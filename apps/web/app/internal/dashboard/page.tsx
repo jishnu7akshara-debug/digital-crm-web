@@ -102,111 +102,136 @@ interface DashboardData {
   upcoming_tasks: UpcomingTask[];
 }
 
+const DEFAULT_DATA: DashboardData = {
+  greeting_name: "Sai",
+  total_clients: 142,
+  clients_growth_percent: 12,
+  active_projects: 38,
+  projects_growth_percent: 18,
+  pipeline_value_rupees: 2480000,
+  pipeline_growth_percent: 32,
+  monthly_revenue_rupees: 975000,
+  revenue_growth_percent: 21,
+  pipeline_total_deals: 46,
+  pipeline_stages: [
+    { stage: "leads", label: "Leads", count: 18, value_rupees: 420000, is_active: false },
+    { stage: "qualified", label: "Qualified", count: 11, value_rupees: 610000, is_active: false },
+    { stage: "proposal", label: "Proposal", count: 8, value_rupees: 750000, is_active: false },
+    { stage: "negotiation", label: "Negotiation", count: 5, value_rupees: 400000, is_active: false },
+    { stage: "won", label: "Won", count: 4, value_rupees: 300000, is_active: true },
+  ],
+  service_revenue: [
+    { service_name: "Web Development", percentage: 40, amount_rupees: 390000, color: "#6C3BDB" },
+    { service_name: "Digital Marketing", percentage: 25, amount_rupees: 243750, color: "#38BDF8" },
+    { service_name: "CRM / ERP", percentage: 15, amount_rupees: 146250, color: "#10B981" },
+    { service_name: "Branding & Media", percentage: 10, amount_rupees: 97500, color: "#F59E0B" },
+    { service_name: "Others", percentage: 10, amount_rupees: 97500, color: "#EC4899" },
+  ],
+  active_projects_list: [
+    {
+      id: "proj-1",
+      project_name: "Sashikiran Surveyors – Website",
+      client_name: "Sashikiran Surveyors",
+      service_name: "Website",
+      progress_percent: 80,
+      due_date: "Nov 10, 2026",
+      status: "In Progress",
+    },
+    {
+      id: "proj-2",
+      project_name: "Talenty Consulting – Marketing",
+      client_name: "Talenty Consulting",
+      service_name: "Digital Marketing",
+      progress_percent: 60,
+      due_date: "Nov 15, 2026",
+      status: "In Progress",
+    },
+    {
+      id: "proj-3",
+      project_name: "KalpaTouch – CRM Setup",
+      client_name: "KalpaTouch",
+      service_name: "CRM / ERP",
+      progress_percent: 40,
+      due_date: "Nov 20, 2026",
+      status: "In Progress",
+    },
+    {
+      id: "proj-4",
+      project_name: "Delights – Branding & Media",
+      client_name: "Delights",
+      service_name: "Branding & Media",
+      progress_percent: 90,
+      due_date: "Nov 8, 2026",
+      status: "Review",
+    },
+    {
+      id: "proj-5",
+      project_name: "Aroma Dew – Catalogue",
+      client_name: "Aroma Dew",
+      service_name: "Branding & Media",
+      progress_percent: 100,
+      due_date: "Nov 5, 2026",
+      status: "Completed",
+    },
+  ],
+  revenue_trend: [
+    { month: "Jan", revenue_rupees: 220000 },
+    { month: "Feb", revenue_rupees: 340000 },
+    { month: "Mar", revenue_rupees: 410000 },
+    { month: "Apr", revenue_rupees: 500000 },
+    { month: "May", revenue_rupees: 580000 },
+    { month: "Jun", revenue_rupees: 640000 },
+    { month: "Jul", revenue_rupees: 710000 },
+    { month: "Aug", revenue_rupees: 790000 },
+    { month: "Sep", revenue_rupees: 850000 },
+    { month: "Oct", revenue_rupees: 920000 },
+    { month: "Nov", revenue_rupees: 975000 },
+  ],
+  clients_by_service: [
+    { service_name: "Websites", count: 56, icon: "monitor" },
+    { service_name: "Digital Marketing", count: 38, icon: "megaphone" },
+    { service_name: "CRM / ERP", count: 22, icon: "layers" },
+    { service_name: "Others", count: 26, icon: "grid" },
+  ],
+  upcoming_tasks: [
+    { id: "t-1", title: "Follow up – Sashikiran Surveyors", due_text: "Today, 4:00 PM", is_urgent: true, is_completed: false },
+    { id: "t-2", title: "Send proposal – New Lead", due_text: "Tomorrow", is_urgent: false, is_completed: false },
+    { id: "t-3", title: "Project review – Talenty Consulting", due_text: "Nov 6", is_urgent: false, is_completed: false },
+    { id: "t-4", title: "Invoice reminder – Aroma Dew", due_text: "Nov 6", is_urgent: false, is_completed: false },
+  ],
+};
+
 export default function DigitalFootprintDashboard() {
+  const [mounted, setMounted] = useState(false);
   const [taskChecked, setTaskChecked] = useState<Record<string, boolean>>({});
 
-  const { data, isLoading } = useQuery<DashboardData>({
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const { data } = useQuery<DashboardData>({
     queryKey: ["executive-dashboard"],
     queryFn: () => api.get<DashboardData>("/dashboard/kpis"),
   });
 
-  const d = data || {
-    greeting_name: "Sai",
-    total_clients: 142,
-    clients_growth_percent: 12,
-    active_projects: 38,
-    projects_growth_percent: 18,
-    pipeline_value_rupees: 2480000,
-    pipeline_growth_percent: 32,
-    monthly_revenue_rupees: 975000,
-    revenue_growth_percent: 21,
-    pipeline_total_deals: 46,
-    pipeline_stages: [
-      { stage: "leads", label: "Leads", count: 18, value_rupees: 420000, is_active: false },
-      { stage: "qualified", label: "Qualified", count: 11, value_rupees: 610000, is_active: false },
-      { stage: "proposal", label: "Proposal", count: 8, value_rupees: 750000, is_active: false },
-      { stage: "negotiation", label: "Negotiation", count: 5, value_rupees: 400000, is_active: false },
-      { stage: "won", label: "Won", count: 4, value_rupees: 300000, is_active: true },
-    ],
-    service_revenue: [
-      { service_name: "Web Development", percentage: 40, amount_rupees: 390000, color: "#6C3BDB" },
-      { service_name: "Digital Marketing", percentage: 25, amount_rupees: 243750, color: "#38BDF8" },
-      { service_name: "CRM / ERP", percentage: 15, amount_rupees: 146250, color: "#10B981" },
-      { service_name: "Branding & Media", percentage: 10, amount_rupees: 97500, color: "#F59E0B" },
-      { service_name: "Others", percentage: 10, amount_rupees: 97500, color: "#EC4899" },
-    ],
-    active_projects_list: [
-      {
-        id: "proj-1",
-        project_name: "Sashikiran Surveyors – Website",
-        client_name: "Sashikiran Surveyors",
-        service_name: "Website",
-        progress_percent: 80,
-        due_date: "Nov 10, 2026",
-        status: "In Progress",
-      },
-      {
-        id: "proj-2",
-        project_name: "Talenty Consulting – Marketing",
-        client_name: "Talenty Consulting",
-        service_name: "Digital Marketing",
-        progress_percent: 60,
-        due_date: "Nov 15, 2026",
-        status: "In Progress",
-      },
-      {
-        id: "proj-3",
-        project_name: "KalpaTouch – CRM Setup",
-        client_name: "KalpaTouch",
-        service_name: "CRM / ERP",
-        progress_percent: 40,
-        due_date: "Nov 20, 2026",
-        status: "In Progress",
-      },
-      {
-        id: "proj-4",
-        project_name: "Delights – Branding & Media",
-        client_name: "Delights",
-        service_name: "Branding & Media",
-        progress_percent: 90,
-        due_date: "Nov 8, 2026",
-        status: "Review",
-      },
-      {
-        id: "proj-5",
-        project_name: "Aroma Dew – Catalogue",
-        client_name: "Aroma Dew",
-        service_name: "Branding & Media",
-        progress_percent: 100,
-        due_date: "Nov 5, 2026",
-        status: "Completed",
-      },
-    ],
-    revenue_trend: [
-      { month: "Jan", revenue_rupees: 220000 },
-      { month: "Feb", revenue_rupees: 340000 },
-      { month: "Mar", revenue_rupees: 410000 },
-      { month: "Apr", revenue_rupees: 500000 },
-      { month: "May", revenue_rupees: 580000 },
-      { month: "Jun", revenue_rupees: 640000 },
-      { month: "Jul", revenue_rupees: 710000 },
-      { month: "Aug", revenue_rupees: 790000 },
-      { month: "Sep", revenue_rupees: 850000 },
-      { month: "Oct", revenue_rupees: 920000 },
-      { month: "Nov", revenue_rupees: 975000 },
-    ],
-    clients_by_service: [
-      { service_name: "Websites", count: 56, icon: "monitor" },
-      { service_name: "Digital Marketing", count: 38, icon: "megaphone" },
-      { service_name: "CRM / ERP", count: 22, icon: "layers" },
-      { service_name: "Others", count: 26, icon: "grid" },
-    ],
-    upcoming_tasks: [
-      { id: "t-1", title: "Follow up – Sashikiran Surveyors", due_text: "Today, 4:00 PM", is_urgent: true, is_completed: false },
-      { id: "t-2", title: "Send proposal – New Lead", due_text: "Tomorrow", is_urgent: false, is_completed: false },
-      { id: "t-3", title: "Project review – Talenty Consulting", due_text: "Nov 6", is_urgent: false, is_completed: false },
-      { id: "t-4", title: "Invoice reminder – Aroma Dew", due_text: "Nov 6", is_urgent: false, is_completed: false },
-    ],
+  // Merge loaded data safely with complete defaults
+  const d: DashboardData = {
+    greeting_name: data?.greeting_name || DEFAULT_DATA.greeting_name,
+    total_clients: data?.total_clients ?? DEFAULT_DATA.total_clients,
+    clients_growth_percent: data?.clients_growth_percent ?? DEFAULT_DATA.clients_growth_percent,
+    active_projects: data?.active_projects ?? DEFAULT_DATA.active_projects,
+    projects_growth_percent: data?.projects_growth_percent ?? DEFAULT_DATA.projects_growth_percent,
+    pipeline_value_rupees: data?.pipeline_value_rupees ?? DEFAULT_DATA.pipeline_value_rupees,
+    pipeline_growth_percent: data?.pipeline_growth_percent ?? DEFAULT_DATA.pipeline_growth_percent,
+    monthly_revenue_rupees: data?.monthly_revenue_rupees ?? DEFAULT_DATA.monthly_revenue_rupees,
+    revenue_growth_percent: data?.revenue_growth_percent ?? DEFAULT_DATA.revenue_growth_percent,
+    pipeline_total_deals: data?.pipeline_total_deals ?? DEFAULT_DATA.pipeline_total_deals,
+    pipeline_stages: data?.pipeline_stages && data.pipeline_stages.length > 0 ? data.pipeline_stages : DEFAULT_DATA.pipeline_stages,
+    service_revenue: data?.service_revenue && data.service_revenue.length > 0 ? data.service_revenue : DEFAULT_DATA.service_revenue,
+    active_projects_list: data?.active_projects_list && data.active_projects_list.length > 0 ? data.active_projects_list : DEFAULT_DATA.active_projects_list,
+    revenue_trend: data?.revenue_trend && data.revenue_trend.length > 0 ? data.revenue_trend : DEFAULT_DATA.revenue_trend,
+    clients_by_service: data?.clients_by_service && data.clients_by_service.length > 0 ? data.clients_by_service : DEFAULT_DATA.clients_by_service,
+    upcoming_tasks: data?.upcoming_tasks && data.upcoming_tasks.length > 0 ? data.upcoming_tasks : DEFAULT_DATA.upcoming_tasks,
   };
 
   const toggleTask = (id: string) => {
@@ -369,25 +394,29 @@ export default function DigitalFootprintDashboard() {
             <div className="flex items-center justify-between my-auto py-2">
               {/* Donut Chart with Centered Total */}
               <div className="relative h-44 w-44 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={d.service_revenue}
-                      dataKey="percentage"
-                      nameKey="service_name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={46}
-                      outerRadius={68}
-                      paddingAngle={3}
-                      stroke="none"
-                    >
-                      {d.service_revenue.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
+                {mounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={d.service_revenue}
+                        dataKey="percentage"
+                        nameKey="service_name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={46}
+                        outerRadius={68}
+                        paddingAngle={3}
+                        stroke="none"
+                      >
+                        {d.service_revenue.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full w-full rounded-full border-4 border-[#F4EFFE] animate-pulse" />
+                )}
                 {/* Center Label */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-xs font-bold text-[#15112B]">₹9,75,000</span>
@@ -443,22 +472,24 @@ export default function DigitalFootprintDashboard() {
                 </thead>
                 <tbody className="divide-y divide-[#F2EFF8]">
                   {d.active_projects_list.map((p) => {
-                    // Service tag colors
+                    const srv = p.service_name || "";
                     let badgeClass = "bg-[#F4EFFE] text-[#6A3BE8]";
-                    if (p.service_name.includes("Marketing")) badgeClass = "bg-[#FFF4E6] text-[#D97706]";
-                    if (p.service_name.includes("CRM")) badgeClass = "bg-[#ECFDF5] text-[#059669]";
-                    if (p.service_name.includes("Branding")) badgeClass = "bg-[#FDF2F8] text-[#DB2777]";
+                    if (srv.includes("Marketing")) badgeClass = "bg-[#FFF4E6] text-[#D97706]";
+                    if (srv.includes("CRM")) badgeClass = "bg-[#ECFDF5] text-[#059669]";
+                    if (srv.includes("Branding")) badgeClass = "bg-[#FDF2F8] text-[#DB2777]";
 
                     // Status pill colors
                     let statusClass = "bg-[#FEF3C7] text-[#B45309]";
                     if (p.status === "Review") statusClass = "bg-[#ECFDF5] text-[#059669]";
                     if (p.status === "Completed") statusClass = "bg-emerald-100 text-emerald-800";
 
+                    const clientInitial = (p.client_name && p.client_name.length > 0) ? p.client_name[0] : "P";
+
                     return (
                       <tr key={p.id} className="hover:bg-[#FAF9FD] transition-colors">
                         <td className="py-3 font-semibold text-[#15112B] flex items-center space-x-2.5">
                           <div className="h-6 w-6 rounded-md bg-[#120B2E] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                            {p.client_name[0]}
+                            {clientInitial}
                           </div>
                           <span className="truncate max-w-[200px]">{p.project_name}</span>
                         </td>
@@ -604,24 +635,28 @@ export default function DigitalFootprintDashboard() {
             </div>
 
             <div className="h-52 w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={d.revenue_trend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F2EFF8" />
-                  <XAxis dataKey="month" stroke="#A298C5" fontSize={10} tickLine={false} />
-                  <YAxis
-                    stroke="#A298C5"
-                    fontSize={10}
-                    tickLine={false}
-                    tickFormatter={(val) => `₹${val / 100000}L`}
-                    domain={[0, 1200000]}
-                  />
-                  <Tooltip
-                    formatter={(val: any) => [`₹${(Number(val) / 100000).toFixed(2)}L`, "Revenue"]}
-                    contentStyle={{ borderRadius: "8px", border: "1px solid #ECE9F4", fontSize: "11px" }}
-                  />
-                  <Bar dataKey="revenue_rupees" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {mounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={d.revenue_trend} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F2EFF8" />
+                    <XAxis dataKey="month" stroke="#A298C5" fontSize={10} tickLine={false} />
+                    <YAxis
+                      stroke="#A298C5"
+                      fontSize={10}
+                      tickLine={false}
+                      tickFormatter={(val) => `₹${val / 100000}L`}
+                      domain={[0, 1200000]}
+                    />
+                    <Tooltip
+                      formatter={(val: any) => [`₹${(Number(val) / 100000).toFixed(2)}L`, "Revenue"]}
+                      contentStyle={{ borderRadius: "8px", border: "1px solid #ECE9F4", fontSize: "11px" }}
+                    />
+                    <Bar dataKey="revenue_rupees" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full rounded-xl bg-[#F7F5FC] animate-pulse" />
+              )}
             </div>
           </div>
 
