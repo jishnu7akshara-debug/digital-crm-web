@@ -50,7 +50,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex min-h-screen bg-[#F8F8FC]">
-      <Sidebar type="portal" />
+      <React.Suspense fallback={<aside className="w-64 bg-[#120B2E] border-r border-[#24174D]" />}>
+        <Sidebar type="portal" />
+      </React.Suspense>
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {children}
       </div>

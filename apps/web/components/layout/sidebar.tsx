@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -28,14 +28,16 @@ interface SidebarProps {
 
 export function Sidebar({ type }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentCategory = searchParams.get("category");
   const [servicesOpen, setServicesOpen] = useState(true);
 
   const servicesSubItems = [
-    { label: "Websites", href: "/internal/clients?service=websites" },
-    { label: "Digital Marketing", href: "/internal/clients?service=digital-marketing" },
-    { label: "CRM / ERP", href: "/internal/clients?service=crm-erp" },
-    { label: "Branding & Media", href: "/internal/clients?service=branding-media" },
-    { label: "Others", href: "/internal/clients?service=others" },
+    { label: "Websites", slug: "websites", href: "/internal/services?category=websites" },
+    { label: "Digital Marketing", slug: "digital-marketing", href: "/internal/services?category=digital-marketing" },
+    { label: "CRM / ERP", slug: "crm-erp", href: "/internal/services?category=crm-erp" },
+    { label: "Branding & Media", slug: "branding-media", href: "/internal/services?category=branding-media" },
+    { label: "Others", slug: "others", href: "/internal/services?category=others" },
   ];
 
   return (
@@ -134,33 +136,61 @@ export function Sidebar({ type }: SidebarProps) {
 
         {/* 6. Services (Collapsible Accordion) */}
         <div>
-          <button
-            onClick={() => setServicesOpen(!servicesOpen)}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#A298C5] hover:bg-[#1E1346] hover:text-white transition-all"
-          >
-            <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-between rounded-xl hover:bg-[#1E1346] transition-all">
+            <Link
+              href="/internal/services"
+              className={cn(
+                "flex-1 flex items-center space-x-3 px-3.5 py-2.5 rounded-l-xl text-xs font-semibold transition-all",
+                pathname.startsWith("/internal/services")
+                  ? "text-white font-bold"
+                  : "text-[#A298C5] hover:text-white"
+              )}
+            >
               <Briefcase className="h-4 w-4 flex-shrink-0" />
               <span>Services</span>
-            </div>
-            {servicesOpen ? (
-              <ChevronDown className="h-3.5 w-3.5 text-[#A298C5]" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-[#A298C5]" />
-            )}
-          </button>
+            </Link>
+            <button
+              onClick={() => setServicesOpen(!servicesOpen)}
+              className="p-2.5 text-[#A298C5] hover:text-white rounded-r-xl transition-colors"
+              title="Toggle submenu"
+            >
+              {servicesOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
 
           {servicesOpen && (
-            <div className="pl-9 pr-2 py-1 space-y-1">
-              {servicesSubItems.map((sub) => (
-                <Link
-                  key={sub.label}
-                  href={sub.href}
-                  className="flex items-center py-1.5 text-[11px] text-[#A298C5] hover:text-white transition-colors"
-                >
-                  <span className="mr-2 text-[14px] leading-none text-[#7340F5]">•</span>
-                  <span>{sub.label}</span>
-                </Link>
-              ))}
+            <div className="pl-7 pr-2 py-1 space-y-0.5 mt-0.5">
+              {servicesSubItems.map((sub) => {
+                const isSubActive =
+                  pathname === "/internal/services" &&
+                  (currentCategory === sub.slug || (!currentCategory && sub.slug === "websites"));
+                return (
+                  <Link
+                    key={sub.label}
+                    href={sub.href}
+                    className={cn(
+                      "flex items-center py-1.5 px-2.5 rounded-lg text-[11px] transition-colors",
+                      isSubActive
+                        ? "text-white font-bold bg-[#1E1346]"
+                        : "text-[#A298C5] hover:text-white hover:bg-[#1E1346]/60"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "mr-2 text-[14px] leading-none",
+                        isSubActive ? "text-[#9A72F8]" : "text-[#7340F5]"
+                      )}
+                    >
+                      •
+                    </span>
+                    <span>{sub.label}</span>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
