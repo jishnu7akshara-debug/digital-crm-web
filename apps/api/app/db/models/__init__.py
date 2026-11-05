@@ -1,0 +1,102 @@
+"""Export all SQLAlchemy models for Alembic and application queries."""
+from app.db.base import Base
+from app.db.models.auth import (
+    Organization,
+    User,
+    UserSession,
+    Role,
+    Permission,
+    RolePermission,
+    UserRole,
+    PasswordResetToken,
+)
+from app.db.models.crm import (
+    Client,
+    ClientContact,
+    ServiceCatalogue,
+    ClientService,
+    Lead,
+    LeadActivity,
+    Proposal,
+    ProposalLineItem,
+    Contract,
+)
+from app.db.models.projects import (
+    Project,
+    ProjectMember,
+    Milestone,
+    Task,
+    TaskAssignee,
+    Deliverable,
+    Comment,
+)
+from app.db.models.finance import (
+    Invoice,
+    InvoiceLineItem,
+    Payment,
+    CreditNote,
+)
+from app.db.models.hr import (
+    Department,
+    Employee,
+    Attendance,
+    LeaveBalance,
+    LeaveLedger,
+    LeaveRequest,
+    Timesheet,
+)
+from app.db.models.support import (
+    SupportTicket,
+    TicketComment,
+)
+from app.db.models.common import (
+    Notification,
+    AuditLog,
+    FileAsset,
+    SystemSetting,
+)
+
+__all__ = [
+    "Base",
+    "Organization",
+    "User",
+    "UserSession",
+    "Role",
+    "Permission",
+    "RolePermission",
+    "UserRole",
+    "PasswordResetToken",
+    "Client",
+    "ClientContact",
+    "ServiceCatalogue",
+    "ClientService",
+    "Lead",
+    "LeadActivity",
+    "Proposal",
+    "ProposalLineItem",
+    "Contract",
+    "Project",
+    "ProjectMember",
+    "Milestone",
+    "Task",
+    "TaskAssignee",
+    "Deliverable",
+    "Comment",
+    "Invoice",
+    "InvoiceLineItem",
+    "Payment",
+    "CreditNote",
+    "Department",
+    "Employee",
+    "Attendance",
+    "LeaveBalance",
+    "LeaveLedger",
+    "LeaveRequest",
+    "Timesheet",
+    "SupportTicket",
+    "TicketComment",
+    "Notification",
+    "AuditLog",
+    "FileAsset",
+    "SystemSetting",
+]

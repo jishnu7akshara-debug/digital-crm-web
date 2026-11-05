@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 25% 98%;
+    --foreground: 250 31% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 250 31% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 250 31% 14%;
+    --primary: 259 67% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 100% 97%;
+    --secondary-foreground: 259 67% 55%;
+    --muted: 250 20% 96%;
+    --muted-foreground: 250 9% 49%;
+    --accent: 260 100% 97%;
+    --accent-foreground: 259 67% 55%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 257 23% 92%;
+    --input: 257 23% 92%;
+    --ring: 259 67% 55%;
+    --radius: 0.5rem;
+  }
+
+  body {
+    background-color: #F8F8FC;
+    color: #1D1930;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom Scrollbar for professional CRM feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E9E5F0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9D95B5;
+}
