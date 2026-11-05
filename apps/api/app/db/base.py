@@ -39,3 +39,4 @@ def uuid_pk() -> Mapped[str]:
         default=lambda: str(uuid.uuid4()),
         nullable=False,
     )
+

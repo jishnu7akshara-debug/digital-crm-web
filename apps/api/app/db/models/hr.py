@@ -164,3 +164,4 @@ class Timesheet(Base, TimestampMixin):
     hours: Mapped[float] = mapped_column(Float, nullable=False)
     description: Mapped[Text] = mapped_column(Text, nullable=False)
     is_billable: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+

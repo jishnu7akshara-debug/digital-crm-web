@@ -28,3 +28,4 @@ api_v1_router.include_router(invoices_router)
 api_v1_router.include_router(services_router)
 api_v1_router.include_router(support_router)
 api_v1_router.include_router(attendance_router)
+

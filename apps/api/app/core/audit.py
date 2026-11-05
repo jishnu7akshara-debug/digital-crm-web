@@ -40,3 +40,4 @@ def log_audit_event(
     db.add(log_entry)
     db.commit()
     return log_entry
+

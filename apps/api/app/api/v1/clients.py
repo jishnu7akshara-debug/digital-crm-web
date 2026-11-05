@@ -433,3 +433,4 @@ def subscribe_client_service(
     )
 
     return ApiResponse(success=True, data=sub.id, message=f"Subscribed to {service.name}.")
+

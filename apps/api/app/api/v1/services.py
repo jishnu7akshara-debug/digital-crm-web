@@ -52,3 +52,4 @@ def list_services(
         for s in services
     ]
     return ApiResponse(success=True, data=items)
+

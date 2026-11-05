@@ -125,3 +125,4 @@ class CreditNote(Base, TimestampMixin):
     )
 
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="credit_notes")
+

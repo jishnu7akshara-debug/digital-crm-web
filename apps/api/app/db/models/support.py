@@ -56,3 +56,4 @@ class TicketComment(Base, TimestampMixin):
     )  # If true, visible to staff only; client cannot see!
 
     ticket: Mapped["SupportTicket"] = relationship("SupportTicket", back_populates="comments")
+

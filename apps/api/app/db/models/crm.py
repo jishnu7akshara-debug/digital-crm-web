@@ -226,3 +226,4 @@ class Contract(Base, TimestampMixin, SoftDeleteMixin):
     )  # "draft", "active", "expiring_soon", "renewed", "terminated"
     document_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     terms_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+

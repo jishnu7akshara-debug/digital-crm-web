@@ -378,3 +378,4 @@ def update_task_status(
     db.commit()
 
     return ApiResponse(success=True, data=True, message="Task status updated.")
+

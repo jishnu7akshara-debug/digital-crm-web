@@ -104,3 +104,4 @@ export const api = {
     window.URL.revokeObjectURL(downloadUrl);
   },
 };
+

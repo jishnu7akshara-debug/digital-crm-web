@@ -76,3 +76,4 @@ class SystemSetting(Base, TimestampMixin):
     value: Mapped[str] = mapped_column(Text, nullable=False)  # JSON or plain string
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+

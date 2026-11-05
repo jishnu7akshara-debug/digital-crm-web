@@ -228,3 +228,4 @@ def convert_lead_to_client(
         data=client.id,
         message=f"Lead converted to client '{client.name}' successfully.",
     )
+

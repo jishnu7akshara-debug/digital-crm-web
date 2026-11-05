@@ -40,3 +40,4 @@ def test_unauthenticated_protected_route():
     unauthed_client = TestClient(app)
     response = unauthed_client.get("/api/v1/dashboard/kpis")
     assert response.status_code == 401
+

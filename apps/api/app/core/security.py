@@ -34,3 +34,4 @@ def generate_secure_token(nbytes: int = 32) -> str:
 def hash_token(token: str) -> str:
     """Hash token using SHA-256 for secure database storage."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+

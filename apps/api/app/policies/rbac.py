@@ -185,3 +185,4 @@ def verify_client_isolation(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied: Cross-client access is strictly forbidden.",
             )
+

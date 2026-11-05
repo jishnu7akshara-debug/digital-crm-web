@@ -53,3 +53,4 @@ export function formatDateTime(dateStr: string | null | undefined): string {
     return dateStr;
   }
 }
+

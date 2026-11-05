@@ -261,8 +261,8 @@ def seed_database() -> None:
                 organization_id=org.id,
                 email=admin_email,
                 hashed_password=hash_password(settings.SUPER_ADMIN_PASSWORD),
-                first_name="Digital",
-                last_name="SuperAdmin",
+                first_name="Sai",
+                last_name="Varshith",
                 phone="+91 98765 43210",
                 user_type="internal",
                 is_active=True,
@@ -279,6 +279,10 @@ def seed_database() -> None:
             db.add(ur)
             db.commit()
             print(f"Created Super Admin: {admin_email}")
+        else:
+            admin_user.first_name = "Sai"
+            admin_user.last_name = "Varshith"
+            db.commit()
 
         # 6. Service Catalogue (Web, App, SEO, Social, Branding, CRM/ERP, EdTech)
         catalogue_items = [
@@ -497,3 +501,4 @@ def seed_database() -> None:
 
 if __name__ == "__main__":
     seed_database()
+

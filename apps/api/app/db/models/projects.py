@@ -167,3 +167,4 @@ class Comment(Base, TimestampMixin, SoftDeleteMixin):
     )
     content: Mapped[Text] = mapped_column(Text, nullable=False)
     is_internal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # Clients cannot see internal comments
+

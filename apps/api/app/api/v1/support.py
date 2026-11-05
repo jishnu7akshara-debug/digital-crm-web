@@ -243,3 +243,4 @@ def add_ticket_comment(
     db.refresh(comment)
 
     return ApiResponse(success=True, data=comment.id, message="Comment posted.")
+
