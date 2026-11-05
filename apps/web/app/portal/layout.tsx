@@ -1,21 +1,37 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/lib/auth-context";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isLoginPage = pathname === "/portal/login";
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/portal/login");
-    } else if (!isLoading && user && user.user_type === "internal") {
-      router.push("/internal/dashboard");
+    if (isLoading) return;
+
+    if (isLoginPage) {
+      if (user && user.user_type === "client") {
+        router.push("/portal");
+      }
+    } else {
+      if (!user) {
+        router.push("/portal/login");
+      } else if (user.user_type === "internal") {
+        router.push("/internal/dashboard");
+      }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, isLoginPage, router]);
+
+  // If viewing the login page, render the login form directly without sidebar
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (
