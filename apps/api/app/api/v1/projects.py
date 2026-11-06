@@ -379,3 +379,51 @@ def update_task_status(
 
     return ApiResponse(success=True, data=True, message="Task status updated.")
 
+
+class UpdateProjectStageRequest(BaseModel):
+    stage: str
+
+
+@router.put("/{project_id}/stage", response_model=ApiResponse[bool])
+def update_project_stage(
+    project_id: str,
+    payload: UpdateProjectStageRequest,
+    scope: AccessScope = Depends(require_permission("projects.edit")),
+    db: Session = Depends(get_db),
+):
+    """Update project workflow stage (Screen 4: Stage path chevrons)."""
+    project = db.query(Project).filter_by(id=project_id, is_deleted=False).first()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+
+    project.status = payload.stage.lower().replace(" ", "_")
+    db.commit()
+
+    return ApiResponse(success=True, data=True, message=f"Project stage moved to {payload.stage}.")
+
+
+@router.post("/deliverables/{deliverable_id}/review", response_model=ApiResponse[bool])
+def review_deliverable(
+    deliverable_id: str,
+    payload: DeliverableApprovalRequest,
+    scope: AccessScope = Depends(require_permission("projects.read")),
+    db: Session = Depends(get_db),
+):
+    """Screen 5: Client approval / request changes for project deliverables."""
+    deliverable = db.query(Deliverable).filter_by(id=deliverable_id, is_deleted=False).first()
+    if not deliverable:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deliverable not found.")
+
+    deliverable.status = payload.status
+    deliverable.client_feedback = payload.feedback
+    if payload.status == "approved":
+        deliverable.approved_at = datetime.now(timezone.utc)
+    db.commit()
+
+    return ApiResponse(
+        success=True,
+        data=True,
+        message="Deliverable approved successfully." if payload.status == "approved" else "Revision request recorded.",
+    )
+
+

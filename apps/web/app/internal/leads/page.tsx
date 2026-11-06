@@ -1,330 +1,322 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Users,
-  Plus,
-  Search,
-  ArrowRight,
-  TrendingUp,
-  UserCheck,
-  AlertCircle,
-  Building,
-} from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
+import { Plus, Check, Search, Upload, LayoutGrid, List } from "lucide-react";
 import { api } from "@/lib/api";
-import { formatINRPrecise, formatDate } from "@/lib/utils";
 
-interface LeadItem {
+interface LeadRow {
   id: string;
-  title: string;
-  company_name?: string;
-  contact_name: string;
-  email: string;
-  phone?: string;
-  source: string;
-  status: string;
-  estimated_value_rupees: number;
-  assigned_to_name?: string;
-  converted_client_id?: string;
-  created_at: string;
+  name: string;
+  contact: string;
+  interested_service: string;
+  status: "New" | "Contacted" | "Qualified" | "Proposal" | "Negotiation";
+  owner: string;
+  created: string;
 }
 
-interface PaginatedLeads {
-  items: LeadItem[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+const MOCKUP_LEADS: LeadRow[] = [
+  { id: "l-1", name: "Sri Venkata Traders", contact: "Ravi K", interested_service: "Website", status: "New", owner: "Meera", created: "Nov 5" },
+  { id: "l-2", name: "Bloom Dental Clinic", contact: "Dr. Anita", interested_service: "SEO", status: "Contacted", owner: "Karan", created: "Nov 4" },
+  { id: "l-3", name: "Nova Learning", contact: "Suresh P", interested_service: "EdTech", status: "Qualified", owner: "Meera", created: "Nov 3" },
+  { id: "l-4", name: "Greenleaf Organics", contact: "Divya R", interested_service: "Social media", status: "Proposal", owner: "Karan", created: "Nov 2" },
+  { id: "l-5", name: "Lakshmi Silks", contact: "Mohan T", interested_service: "E-commerce", status: "Negotiation", owner: "Meera", created: "Nov 1" },
+  { id: "l-6", name: "Mehta Interiors", contact: "Rahul M", interested_service: "Branding", status: "Qualified", owner: "Karan", created: "Oct 30" },
+  { id: "l-7", name: "Quick Courier", contact: "Imran S", interested_service: "CRM", status: "New", owner: "Meera", created: "Oct 29" },
+  { id: "l-8", name: "Aster Tutorials", contact: "Neha G", interested_service: "EdTech", status: "Contacted", owner: "Karan", created: "Oct 28" },
+];
 
-export default function LeadsPage() {
+export default function SalesforceLeadsPage() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [convertLeadId, setConvertLeadId] = useState<string | null>(null);
-  const [convertClientCode, setConvertClientCode] = useState("");
-  const [convertGstin, setConvertGstin] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [leads, setLeads] = useState<LeadRow[]>(MOCKUP_LEADS);
 
-  // New Lead fields
-  const [newTitle, setNewTitle] = useState("");
-  const [newCompany, setNewCompany] = useState("");
+  // New Lead state
+  const [newName, setNewName] = useState("");
   const [newContact, setNewContact] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newValueRupees, setNewValueRupees] = useState<number>(50000);
+  const [newService, setNewService] = useState("Website");
+  const [newStatus, setNewStatus] = useState<LeadRow["status"]>("New");
+  const [newOwner, setNewOwner] = useState("Meera");
 
-  const { data, isLoading } = useQuery<PaginatedLeads>({
-    queryKey: ["leads-list", search, statusFilter],
-    queryFn: () =>
-      api.get<PaginatedLeads>(
-        `/leads?search=${encodeURIComponent(search)}&status_filter=${encodeURIComponent(statusFilter)}`
-      ),
-  });
+  const toggleSelectAll = (checked: boolean) => {
+    const next: Record<string, boolean> = {};
+    if (checked) {
+      leads.forEach((l) => (next[l.id] = true));
+    }
+    setSelectedRows(next);
+  };
 
-  const createLeadMutation = useMutation({
-    mutationFn: async () => {
-      return api.post("/leads", {
-        title: newTitle,
-        company_name: newCompany,
-        contact_name: newContact,
-        email: newEmail,
-        phone: newPhone,
-        estimated_value_paise: Math.round(newValueRupees * 100),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads-list"] });
-      setIsCreateOpen(false);
-      setNewTitle("");
-      setNewCompany("");
-      setNewContact("");
-      setNewEmail("");
-      setNewPhone("");
-    },
-    onError: (err: any) => alert(err.message || "Failed to create lead."),
-  });
+  const toggleRow = (id: string) => {
+    setSelectedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
-  const convertMutation = useMutation({
-    mutationFn: async () => {
-      if (!convertLeadId) return;
-      return api.post(`/leads/${convertLeadId}/convert`, {
-        client_code: convertClientCode,
-        gstin: convertGstin || undefined,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads-list"] });
-      setConvertLeadId(null);
-      setConvertClientCode("");
-      setConvertGstin("");
-      alert("Lead converted to Client successfully!");
-    },
-    onError: (err: any) => alert(err.message || "Failed to convert lead."),
-  });
+  const handleCreateLead = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName) return;
+    const newL: LeadRow = {
+      id: `l-${Date.now()}`,
+      name: newName,
+      contact: newContact || "Contact Person",
+      interested_service: newService,
+      status: newStatus,
+      owner: newOwner,
+      created: "Today",
+    };
+    setLeads([newL, ...leads]);
+    setIsNewModalOpen(false);
+    setNewName("");
+    setNewContact("");
+  };
+
+  const getStatusBadge = (status: LeadRow["status"]) => {
+    switch (status) {
+      case "New":
+        return <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#EAF5FE] text-[#0176D3]">New</span>;
+      case "Contacted":
+        return <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#FEF1D6] text-[#8A5200]">Contacted</span>;
+      case "Qualified":
+        return <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#EBF7E6] text-[#2E844A]">Qualified</span>;
+      case "Proposal":
+        return <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#F5F1FF] text-[#6C3BDB]">Proposal</span>;
+      case "Negotiation":
+        return <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#FFF4E6] text-[#D97706]">Negotiation</span>;
+    }
+  };
+
+  const allSelected = leads.length > 0 && leads.every((l) => selectedRows[l.id]);
 
   return (
-    <>
-      <Header
-        title="Sales Pipeline & Leads"
-        subtitle="Track inquiries, opportunities, pipeline stages, and conversion to active clients"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3 w-full sm:w-auto">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#77738A]" />
-              <Input
-                placeholder="Search leads..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs"
-              />
+    <div className="space-y-3">
+      {/* Salesforce Record Header */}
+      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-none">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Tile + Object Label + Heading */}
+          <div className="flex items-center space-x-3">
+            <div className="h-9 w-9 rounded-[4px] bg-[#F88962] text-white flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0">
+              L
             </div>
-            <select
-              className="text-xs rounded-md border border-[#E9E5F0] p-2 bg-white"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">All Stages</option>
-              <option value="new">New</option>
-              <option value="contacted">Contacted</option>
-              <option value="qualified">Qualified</option>
-              <option value="proposal_sent">Proposal Sent</option>
-              <option value="negotiation">Negotiation</option>
-              <option value="won">Won</option>
-              <option value="lost">Lost</option>
-            </select>
+            <div>
+              <span className="text-[11px] text-[#5C5C5C] font-normal block leading-tight">Leads</span>
+              <h1 className="text-[18px] font-bold text-[#181818] leading-tight flex items-center space-x-1.5">
+                <span>Recently Viewed</span>
+              </h1>
+            </div>
           </div>
-          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" /> Add Lead
-          </Button>
+
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => alert("Excel / CSV Import template ready for leads.")}
+              className="h-8 px-3 rounded-[4px] border border-[#DDDBDA] bg-white text-[#0176D3] text-[13px] font-medium hover:bg-[#F3F3F3] transition-colors"
+            >
+              Import
+            </button>
+            <button
+              onClick={() => setViewMode(viewMode === "list" ? "kanban" : "list")}
+              className="h-8 px-3 rounded-[4px] border border-[#DDDBDA] bg-white text-[#0176D3] text-[13px] font-medium hover:bg-[#F3F3F3] transition-colors"
+            >
+              {viewMode === "list" ? "Kanban" : "Table"}
+            </button>
+            <button
+              onClick={() => setIsNewModalOpen(true)}
+              className="h-8 px-3 rounded-[4px] bg-[#0176D3] text-white text-[13px] font-medium hover:bg-[#014486] transition-colors shadow-sm"
+            >
+              New
+            </button>
+          </div>
         </div>
 
-        {/* Leads Table */}
-        <Card>
-          <CardHeader className="p-4 border-b border-[#E9E5F0]">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-[#77738A]">
-              Pipeline Opportunities ({data?.total || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#E9E5F0] bg-[#F8F8FC] text-[#77738A] font-medium">
-                  <th className="py-3 px-4">Opportunity</th>
-                  <th className="py-3 px-4">Contact</th>
-                  <th className="py-3 px-4">Source</th>
-                  <th className="py-3 px-4">Stage</th>
-                  <th className="py-3 px-4 text-right">Estimated Value</th>
-                  <th className="py-3 px-4">Assigned To</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+        {/* Subtitle / Item Count line */}
+        <div className="mt-3 pt-2 border-t border-[#F3F3F3] text-[12px] text-[#5C5C5C]">
+          <span>{leads.length} items · Sorted by Created date · Filtered by All leads</span>
+        </div>
+      </div>
+
+      {/* Main View: Table or Kanban */}
+      {viewMode === "list" ? (
+        <div className="bg-white border border-[#DDDBDA] rounded-[4px] shadow-none overflow-x-auto">
+          <table className="w-full text-left text-[13px] border-collapse">
+            <thead>
+              <tr className="border-b border-[#DDDBDA] bg-[#FAFAFA] text-[#5C5C5C] font-normal text-[12px]">
+                <th className="py-2.5 px-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(e) => toggleSelectAll(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded-[2px] border-[#DDDBDA] text-[#0176D3] focus:ring-0"
+                  />
+                </th>
+                <th className="py-2.5 px-4 font-normal">Lead name</th>
+                <th className="py-2.5 px-4 font-normal">Contact</th>
+                <th className="py-2.5 px-4 font-normal">Interested service</th>
+                <th className="py-2.5 px-4 font-normal">Status</th>
+                <th className="py-2.5 px-4 font-normal">Owner</th>
+                <th className="py-2.5 px-4 font-normal">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F3F3F3] text-[#181818]">
+              {leads.map((l) => (
+                <tr key={l.id} className="hover:bg-[#F3F3F3]/60 transition-colors">
+                  <td className="py-2.5 px-3">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedRows[l.id]}
+                      onChange={() => toggleRow(l.id)}
+                      className="h-3.5 w-3.5 rounded-[2px] border-[#DDDBDA] text-[#0176D3] focus:ring-0"
+                    />
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <Link
+                      href={`/internal/clients?lead=${l.id}`}
+                      className="text-[#0176D3] hover:underline font-normal"
+                    >
+                      {l.name}
+                    </Link>
+                  </td>
+                  <td className="py-2.5 px-4 text-[#181818]">{l.contact}</td>
+                  <td className="py-2.5 px-4 text-[#5C5C5C]">{l.interested_service}</td>
+                  <td className="py-2.5 px-4">{getStatusBadge(l.status)}</td>
+                  <td className="py-2.5 px-4 text-[#5C5C5C]">{l.owner}</td>
+                  <td className="py-2.5 px-4 text-[#5C5C5C]">{l.created}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E9E5F0]">
-                {isLoading && (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-[#77738A]">
-                      Loading pipeline leads...
-                    </td>
-                  </tr>
-                )}
-                {data?.items.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-[#F8F8FC]">
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-[#1D1930]">{lead.title}</div>
-                      {lead.company_name && (
-                        <div className="text-[10px] text-[#77738A]">{lead.company_name}</div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div>{lead.contact_name}</div>
-                      <div className="text-[10px] text-[#77738A]">{lead.email}</div>
-                    </td>
-                    <td className="py-3 px-4 uppercase text-[10px] text-[#77738A]">{lead.source}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant={lead.status === "won" ? "success" : "default"}>
-                        {lead.status.replace("_", " ").toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-[#6C3BDB]">
-                      {formatINRPrecise(lead.estimated_value_rupees)}
-                    </td>
-                    <td className="py-3 px-4 text-[#77738A]">{lead.assigned_to_name || "Unassigned"}</td>
-                    <td className="py-3 px-4 text-right">
-                      {lead.converted_client_id ? (
-                        <Badge variant="success">CONVERTED</Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => {
-                            setConvertLeadId(lead.id);
-                            setConvertClientCode(`CLI-${lead.contact_name.slice(0, 4).toUpperCase()}-01`);
-                          }}
-                        >
-                          <UserCheck className="h-3 w-3 mr-1 text-[#6C3BDB]" /> Convert to Client
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* Kanban Lane View */
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {(["New", "Contacted", "Qualified", "Proposal", "Negotiation"] as const).map((st) => {
+            const laneLeads = leads.filter((l) => l.status === st);
+            return (
+              <div key={st} className="bg-[#F3F3F3] border border-[#DDDBDA] rounded-[4px] p-2.5 min-h-[400px]">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#DDDBDA]">
+                  <span className="text-[12px] font-bold text-[#181818] uppercase tracking-wide">{st}</span>
+                  <span className="h-5 w-5 rounded-full bg-white text-[#0176D3] font-bold text-[11px] flex items-center justify-center">
+                    {laneLeads.length}
+                  </span>
+                </div>
 
-        {/* Create Lead Modal */}
-        <Modal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          title="Create New Lead"
-          description="Capture new sales opportunity in pipeline."
-        >
-          <div className="space-y-3 pt-2">
-            <div>
-              <label className="block text-xs font-medium text-[#1D1930] mb-1">Opportunity Title *</label>
-              <Input
-                placeholder="e.g. E-Commerce Website & Social Strategy"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-[#1D1930] mb-1">Company Name</label>
-                <Input placeholder="Apex Retail Ltd" value={newCompany} onChange={(e) => setNewCompany(e.target.value)} />
+                <div className="space-y-2">
+                  {laneLeads.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-none hover:border-[#0176D3] transition-colors"
+                    >
+                      <h4 className="text-[13px] font-bold text-[#0176D3] hover:underline cursor-pointer">
+                        {item.name}
+                      </h4>
+                      <p className="text-[11px] text-[#5C5C5C] mt-1">{item.contact}</p>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#F3F3F3] text-[11px] text-[#706E6B]">
+                        <span>{item.interested_service}</span>
+                        <span>{item.owner}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-[#1D1930] mb-1">Contact Name *</label>
-                <Input placeholder="Rajesh Verma" value={newContact} onChange={(e) => setNewContact(e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-[#1D1930] mb-1">Email *</label>
-                <Input type="email" placeholder="rajesh@apex.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#1D1930] mb-1">Phone</label>
-                <Input placeholder="+91 98000 00000" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#1D1930] mb-1">Estimated Value (INR)</label>
-              <Input
-                type="number"
-                value={newValueRupees}
-                onChange={(e) => setNewValueRupees(Number(e.target.value))}
-              />
-            </div>
+            );
+          })}
+        </div>
+      )}
 
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => createLeadMutation.mutate()}
-                isLoading={createLeadMutation.isPending}
-                disabled={!newTitle.trim() || !newContact.trim() || !newEmail.trim()}
-              >
-                Create Lead
-              </Button>
-            </div>
+      {/* Modal: New Lead */}
+      {isNewModalOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[4px] max-w-md w-full p-5 border border-[#DDDBDA] shadow-xl">
+            <h3 className="text-[16px] font-bold text-[#181818] mb-3 pb-2 border-b border-[#DDDBDA]">
+              New Lead
+            </h3>
+
+            <form onSubmit={handleCreateLead} className="space-y-3 text-[13px]">
+              <div>
+                <label className="block text-[12px] text-[#5C5C5C] mb-1 font-medium">* Lead Name / Company</label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Sri Venkata Traders"
+                  className="w-full h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:outline-none focus:border-[#0176D3]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] text-[#5C5C5C] mb-1 font-medium">Contact Person</label>
+                <input
+                  type="text"
+                  value={newContact}
+                  onChange={(e) => setNewContact(e.target.value)}
+                  placeholder="e.g. Ravi K"
+                  className="w-full h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:outline-none focus:border-[#0176D3]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] text-[#5C5C5C] mb-1 font-medium">Interested Service</label>
+                  <select
+                    value={newService}
+                    onChange={(e) => setNewService(e.target.value)}
+                    className="w-full h-8 px-2 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] bg-white focus:outline-none focus:border-[#0176D3]"
+                  >
+                    <option value="Website">Website</option>
+                    <option value="SEO">SEO</option>
+                    <option value="Social media">Social media</option>
+                    <option value="CRM">CRM</option>
+                    <option value="EdTech">EdTech</option>
+                    <option value="Branding">Branding</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] text-[#5C5C5C] mb-1 font-medium">Status</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as LeadRow["status"])}
+                    className="w-full h-8 px-2 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] bg-white focus:outline-none focus:border-[#0176D3]"
+                  >
+                    <option value="New">New</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="Proposal">Proposal</option>
+                    <option value="Negotiation">Negotiation</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] text-[#5C5C5C] mb-1 font-medium">Lead Owner</label>
+                <input
+                  type="text"
+                  value={newOwner}
+                  onChange={(e) => setNewOwner(e.target.value)}
+                  className="w-full h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:outline-none focus:border-[#0176D3]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#DDDBDA]">
+                <button
+                  type="button"
+                  onClick={() => setIsNewModalOpen(false)}
+                  className="h-8 px-3 rounded-[4px] border border-[#DDDBDA] text-[#5C5C5C] hover:bg-[#F3F3F3]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="h-8 px-4 rounded-[4px] bg-[#0176D3] text-white font-medium hover:bg-[#014486]"
+                >
+                  Save Lead
+                </button>
+              </div>
+            </form>
           </div>
-        </Modal>
-
-        {/* Convert to Client Modal */}
-        <Modal
-          isOpen={!!convertLeadId}
-          onClose={() => setConvertLeadId(null)}
-          title="Convert Lead to Active Client"
-          description="Create client account with immutable lead history link and duplicate prevention."
-        >
-          <div className="space-y-3 pt-2">
-            <div>
-              <label className="block text-xs font-medium text-[#1D1930] mb-1">Client Code *</label>
-              <Input
-                placeholder="CLI-NEW-01"
-                value={convertClientCode}
-                onChange={(e) => setConvertClientCode(e.target.value.toUpperCase())}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#1D1930] mb-1">GSTIN (Optional)</label>
-              <Input
-                placeholder="27AAAAA0000A1Z5"
-                value={convertGstin}
-                onChange={(e) => setConvertGstin(e.target.value.toUpperCase())}
-              />
-            </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" size="sm" onClick={() => setConvertLeadId(null)}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => convertMutation.mutate()}
-                isLoading={convertMutation.isPending}
-                disabled={!convertClientCode.trim()}
-              >
-                Confirm Conversion
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      </main>
-    </>
+        </div>
+      )}
+    </div>
   );
 }
-

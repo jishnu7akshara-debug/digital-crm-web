@@ -10,6 +10,7 @@ from app.api.v1.invoices import router as invoices_router
 from app.api.v1.services import router as services_router
 from app.api.v1.support import router as support_router
 from app.api.v1.attendance import router as attendance_router
+from app.api.v1.agreements import router as agreements_router
 
 api_v1_router = APIRouter(prefix="/v1")
 
@@ -28,4 +29,5 @@ api_v1_router.include_router(invoices_router)
 api_v1_router.include_router(services_router)
 api_v1_router.include_router(support_router)
 api_v1_router.include_router(attendance_router)
+api_v1_router.include_router(agreements_router)
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
+import { PortalHeader } from "@/components/layout/portal-header";
 import { useAuth } from "@/lib/auth-context";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -28,17 +28,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     }
   }, [user, isLoading, isLoginPage, router]);
 
-  // If viewing the login page, render the login form directly without sidebar
+  // If viewing the login page, render the login form directly without header
   if (isLoginPage) {
     return <>{children}</>;
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#F8F8FC]">
+      <div className="flex items-center justify-center min-h-screen bg-[#F3F3F3]">
         <div className="flex flex-col items-center space-y-3">
-          <div className="h-8 w-8 rounded-full border-2 border-[#6C3BDB] border-t-transparent animate-spin" />
-          <span className="text-xs text-[#77738A] font-medium tracking-wide">Loading Client Portal...</span>
+          <div className="h-8 w-8 rounded-full border-2 border-[#0176D3] border-t-transparent animate-spin" />
+          <span className="text-xs text-[#5C5C5C] font-medium tracking-wide">Loading Client Portal...</span>
         </div>
       </div>
     );
@@ -49,11 +49,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F8FC]">
-      <React.Suspense fallback={<aside className="w-64 bg-[#120B2E] border-r border-[#24174D]" />}>
-        <Sidebar type="portal" />
+    <div className="min-h-screen bg-[#F3F3F3] flex flex-col text-[#181818]">
+      <React.Suspense fallback={<div className="h-14 bg-[#032D60]" />}>
+        <PortalHeader />
       </React.Suspense>
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {children}
       </div>
     </div>

@@ -223,7 +223,9 @@ class Contract(Base, TimestampMixin, SoftDeleteMixin):
     )  # "none", "monthly", "quarterly", "annual"
     status: Mapped[str] = mapped_column(
         String(30), default="active", nullable=False, index=True
-    )  # "draft", "active", "expiring_soon", "renewed", "terminated"
+    )  # "draft", "sent", "signed", "expired", "active"
+    signed_copy_received: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sent_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     document_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     terms_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 

@@ -10,71 +10,64 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#F8F8FC",
-        foreground: "#1D1930",
+        background: "#F3F3F3",
+        foreground: "#181818",
         brand: {
-          purple: "#6C3BDB",
-          "dark-purple": "#25124D",
-          lavender: "#F5F1FF",
-          DEFAULT: "#6C3BDB",
+          blue: "#0176D3",
+          hover: "#014486",
+          navy: "#032D60",
+          header: "#EAF5FE",
+          DEFAULT: "#0176D3",
         },
-        sidebar: {
-          bg: "#25124D",
-          text: "#E9E5F0",
-          muted: "#9D95B5",
-          active: "#381E6E",
-          hover: "#2F195C",
-          border: "#3F2577",
+        sf: {
+          blue: "#0176D3",
+          blueHover: "#014486",
+          navy: "#032D60",
+          header: "#EAF5FE",
+          canvas: "#F3F3F3",
+          border: "#DDDBDA",
+          text: "#181818",
+          secondary: "#5C5C5C",
+          success: "#2E844A",
+          successBg: "#EBF7E6",
+          warning: "#8A5200",
+          warningBg: "#FEF1D6",
+          error: "#BA0517",
+          errorBg: "#FEDED8",
+          lead: "#F88962",
+          account: "#7F8DE1",
+          project: "#3BA755",
+          agreement: "#4BC076",
+          opportunity: "#FCB95B",
         },
-        df: {
-          text: "#1D1930",
-          secondary: "#77738A",
-          border: "#E9E5F0",
-          surface: "#FFFFFF",
-          subtle: "#F5F1FF",
-          canvas: "#F8F8FC",
+        primary: {
+          DEFAULT: "#0176D3",
+          foreground: "#FFFFFF",
+          hover: "#014486",
+        },
+        secondary: {
+          DEFAULT: "#EAF5FE",
+          foreground: "#0176D3",
+          hover: "#D6ECFD",
+        },
+        muted: {
+          DEFAULT: "#F3F3F3",
+          foreground: "#5C5C5C",
         },
         card: {
           DEFAULT: "#FFFFFF",
-          foreground: "#1D1930",
+          foreground: "#181818",
         },
-        popover: {
-          DEFAULT: "#FFFFFF",
-          foreground: "#1D1930",
-        },
-        primary: {
-          DEFAULT: "#6C3BDB",
-          foreground: "#FFFFFF",
-          hover: "#5A2EC0",
-        },
-        secondary: {
-          DEFAULT: "#F5F1FF",
-          foreground: "#6C3BDB",
-          hover: "#ECE4FC",
-        },
-        muted: {
-          DEFAULT: "#F3F1F8",
-          foreground: "#77738A",
-        },
-        accent: {
-          DEFAULT: "#F5F1FF",
-          foreground: "#6C3BDB",
-        },
-        destructive: {
-          DEFAULT: "#E53E3E",
-          foreground: "#FFFFFF",
-        },
-        border: "#E9E5F0",
-        input: "#E9E5F0",
-        ring: "#6C3BDB",
+        border: "#DDDBDA",
       },
       borderRadius: {
-        lg: "0.5rem",
-        md: "calc(0.5rem - 2px)",
-        sm: "calc(0.5rem - 4px)",
+        lg: "4px",
+        md: "4px",
+        sm: "4px",
+        DEFAULT: "4px",
       },
-      fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+      fontSize: {
+        base: ["13px", "18px"],
       },
     },
   },
@@ -82,4 +75,3 @@ const config: Config = {
 };
 
 export default config;
-
