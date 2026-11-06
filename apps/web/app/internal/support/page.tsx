@@ -12,7 +12,6 @@ import {
   Building2,
   Lock,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,25 +78,38 @@ export default function SupportDeskPage() {
   });
 
   return (
-    <>
-      <Header
-        title="Support & Client Inquiries"
-        subtitle="Manage client support requests with SLA tracking and private internal team notes"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <select
-            className="text-xs rounded-md border border-[#E9E5F0] p-2 bg-white"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Tickets</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-          </select>
+    <div className="space-y-6 select-none">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              HELP DESK & INQUIRIES
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              Client Support SLA
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Support & Client Inquiries
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Manage client tickets, SLA response commitments, and internal private notes.
+          </p>
         </div>
+
+        <select
+          className="text-xs rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 bg-white text-[#0F172A] font-medium shadow-soft focus:outline-none focus:border-[#5B4BDB]"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">All Tickets</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Ticket List */}
@@ -217,8 +229,7 @@ export default function SupportDeskPage() {
             )}
           </Card>
         </div>
-      </main>
-    </>
+    </div>
   );
 }
 

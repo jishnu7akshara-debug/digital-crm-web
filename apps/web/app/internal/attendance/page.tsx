@@ -9,11 +9,9 @@ import {
   Calendar,
   AlertCircle,
   FileCheck,
+  UserCheck,
+  ArrowRight,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
@@ -54,7 +52,11 @@ export default function AttendancePage() {
     try {
       const res = await api.post<any>("/attendance/punch");
       queryClient.invalidateQueries({ queryKey: ["attendance-records"] });
-      setPunchMessage(`${res.punch_type.replace("_", " ").toUpperCase()} recorded at ${res.timestamp_local} (${res.status.toUpperCase()})`);
+      setPunchMessage(
+        `${res.punch_type.replace("_", " ").toUpperCase()} recorded at ${
+          res.timestamp_local
+        } (${res.status.toUpperCase()})`
+      );
       setTimeout(() => setPunchMessage(null), 6000);
     } catch (err: any) {
       alert(err.message || "Attendance punch failed.");
@@ -64,107 +66,132 @@ export default function AttendancePage() {
   };
 
   return (
-    <>
-      <Header
-        title="Attendance & Time"
-        subtitle="Asia/Kolkata timezone: Late threshold (> 10:30), Half-day (> 11:00 or < 7h), Absent (< 4h), and Saturday rules"
-      />
+    <div className="space-y-6 select-none">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              OPERATIONS & TEAM
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              Asia/Kolkata (IST)
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Attendance & Work Logs
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Late threshold (&gt; 10:30 AM), half-day (&gt; 11:00 AM or &lt; 7h), and Saturday rules.
+          </p>
+        </div>
 
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        {/* Quick Punch Action Card */}
-        <Card className="border-[#E9E5F0] bg-white">
-          <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-[#6C3BDB]" />
-                <h3 className="text-base font-bold text-[#1D1930]">Daily Biometric / Web Punch</h3>
-              </div>
-              <p className="text-xs text-[#77738A] mt-1">
-                Timestamps stored in UTC with deterministic Asia/Kolkata business rules. Missing punches are audited.
-              </p>
-              {punchMessage && (
-                <div className="mt-2 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-200 inline-block">
-                  ✓ {punchMessage}
-                </div>
-              )}
-            </div>
+        <button
+          onClick={handlePunch}
+          disabled={punching}
+          className="h-10 px-5 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-[13px] font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-2 shrink-0 active:scale-95 disabled:opacity-50"
+        >
+          <Clock className="h-4 w-4 stroke-[2]" />
+          <span>{punching ? "Recording..." : "Record Punch"}</span>
+        </button>
+      </div>
 
-            <Button
-              size="lg"
-              onClick={handlePunch}
-              isLoading={punching}
-              className="bg-[#6C3BDB] hover:bg-[#5A2EC0] text-sm font-semibold shadow"
-            >
-              <Clock className="h-4 w-4 mr-2" /> Record Punch
-            </Button>
-          </CardContent>
-        </Card>
+      {punchMessage && (
+        <div className="p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs font-semibold flex items-center space-x-2 shadow-xs">
+          <CheckCircle2 className="h-4 w-4 text-[#059669]" />
+          <span>{punchMessage}</span>
+        </div>
+      )}
 
-        {/* Daily Attendance Records */}
-        <Card>
-          <CardHeader className="p-4 border-b border-[#E9E5F0]">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-[#77738A]">
+      {/* Daily Attendance Records Table */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
+        <div className="p-5 border-b border-[#E5E7EB] flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-[#0F172A] tracking-tight">
               Daily Logs ({data?.total || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#E9E5F0] bg-[#F8F8FC] text-[#77738A] font-medium">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Check In (IST)</th>
-                  <th className="py-3 px-4">Check Out (IST)</th>
-                  <th className="py-3 px-4">Hours Logged</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-center">Missing Punch</th>
+            </h3>
+            <p className="text-xs text-[#64748B] mt-0.5">
+              Deterministic biometric & web check-ins for the active billing cycle
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-[#F1F5F9] bg-[#F8F9FB] text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+                <th className="py-3 px-5">Date</th>
+                <th className="py-3 px-5">Employee</th>
+                <th className="py-3 px-5">Check In (IST)</th>
+                <th className="py-3 px-5">Check Out (IST)</th>
+                <th className="py-3 px-5">Hours Logged</th>
+                <th className="py-3 px-5">Status</th>
+                <th className="py-3 px-5 text-center">Missing Punch</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F1F5F9]">
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-[#64748B]">
+                    Loading attendance records...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E9E5F0]">
-                {isLoading && (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-[#77738A]">
-                      Loading attendance records...
-                    </td>
-                  </tr>
-                )}
-                {data?.items.map((rec) => (
-                  <tr key={rec.id} className="hover:bg-[#F8F8FC]">
-                    <td className="py-3 px-4 font-mono font-medium text-[#1D1930]">{formatDate(rec.date)}</td>
-                    <td className="py-3 px-4 font-medium text-[#1D1930]">{rec.employee_name}</td>
-                    <td className="py-3 px-4 font-mono text-[#77738A]">{rec.check_in_local || "—"}</td>
-                    <td className="py-3 px-4 font-mono text-[#77738A]">{rec.check_out_local || "—"}</td>
-                    <td className="py-3 px-4 font-mono text-[#1D1930]">
-                      {Math.floor(rec.working_minutes / 60)}h {rec.working_minutes % 60}m
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant={
-                          rec.status === "present"
-                            ? "success"
-                            : rec.status === "late"
-                            ? "warning"
-                            : "danger"
-                        }
-                      >
-                        {rec.status.toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {rec.is_missing_punch ? (
-                        <span className="text-rose-600 font-semibold text-xs">Flagged</span>
-                      ) : (
-                        <span className="text-emerald-600 font-semibold text-xs">Complete</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      </main>
-    </>
+              )}
+              {data?.items && data.items.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-[#64748B]">
+                    No attendance records logged for today yet.
+                  </td>
+                </tr>
+              )}
+              {data?.items.map((rec) => (
+                <tr key={rec.id} className="hover:bg-[#F8F9FB] transition-colors">
+                  <td className="py-3.5 px-5 font-medium text-[#0F172A]">
+                    {formatDate(rec.date)}
+                  </td>
+                  <td className="py-3.5 px-5 font-semibold text-[#0F172A]">
+                    {rec.employee_name}
+                  </td>
+                  <td className="py-3.5 px-5 text-[#64748B] font-mono text-xs">
+                    {rec.check_in_local || "—"}
+                  </td>
+                  <td className="py-3.5 px-5 text-[#64748B] font-mono text-xs">
+                    {rec.check_out_local || "—"}
+                  </td>
+                  <td className="py-3.5 px-5 text-[#0F172A] font-semibold">
+                    {Math.floor(rec.working_minutes / 60)}h {rec.working_minutes % 60}m
+                  </td>
+                  <td className="py-3.5 px-5">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        rec.status === "present"
+                          ? "bg-[#ECFDF5] text-[#059669]"
+                          : rec.status === "late"
+                          ? "bg-[#FFFBEB] text-[#D97706]"
+                          : "bg-[#FFF1F2] text-[#E11D48]"
+                      }`}
+                    >
+                      {rec.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-5 text-center">
+                    {rec.is_missing_punch ? (
+                      <span className="text-[#E11D48] font-semibold text-xs px-2 py-0.5 rounded-full bg-[#FFF1F2]">
+                        Flagged
+                      </span>
+                    ) : (
+                      <span className="text-[#059669] font-semibold text-xs px-2 py-0.5 rounded-full bg-[#ECFDF5]">
+                        Complete
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
-

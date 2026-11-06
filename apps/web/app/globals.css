@@ -1,42 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 95%;
-    --foreground: 0 0% 9%;
+    --background: 220 20% 98%; /* #F8F9FB */
+    --foreground: 222 47% 11%; /* #0F172A */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 206 99% 42%; /* #0176D3 */
+    --popover-foreground: 222 47% 11%;
+    --primary: 247 67% 58%; /* #5B4BDB */
     --primary-foreground: 0 0% 100%;
-    --secondary: 207 88% 96%; /* #EAF5FE */
-    --secondary-foreground: 206 99% 42%;
-    --muted: 0 0% 95%; /* #F3F3F3 */
-    --muted-foreground: 0 0% 36%; /* #5C5C5C */
-    --accent: 207 88% 96%;
-    --accent-foreground: 206 99% 42%;
-    --destructive: 354 95% 37%; /* #BA0517 */
+    --secondary: 231 100% 97%; /* #EEF2FF */
+    --secondary-foreground: 247 67% 58%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%; /* #64748B */
+    --accent: 231 100% 97%;
+    --accent-foreground: 247 67% 58%;
+    --destructive: 346 84% 61%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 86%; /* #DDDBDA */
-    --input: 0 0% 86%;
-    --ring: 206 99% 42%;
-    --radius: 4px;
+    --border: 220 13% 91%; /* #E5E7EB */
+    --input: 220 13% 91%;
+    --ring: 247 67% 58%;
+    --radius: 12px;
   }
 
   body {
-    background-color: #F3F3F3;
-    color: #181818;
-    font-size: 13px;
-    line-height: 18px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #F8F9FB;
+    color: #0F172A;
+    font-size: 14px;
+    line-height: 20px;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    color: #0F172A;
+    letter-spacing: -0.02em;
   }
 }
 
-/* Compact Salesforce Lightning scrollbar */
+/* Modern minimal scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -45,9 +55,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #DDDBDA;
-  border-radius: 4px;
+  background: #E5E7EB;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #AEACAB;
+  background: #CBD5E1;
 }

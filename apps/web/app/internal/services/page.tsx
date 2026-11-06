@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -14,16 +14,13 @@ import {
   Search,
   CheckCircle2,
   ArrowRight,
-  Building,
+  Building2,
   TrendingUp,
   DollarSign,
   Calendar,
   Clock,
-  ChevronRight,
   Filter,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Button } from "@/components/ui/button";
 
 interface SubscribedClient {
   id: string;
@@ -57,7 +54,6 @@ interface ServiceDetails {
   pricing_model: string;
   base_price_rupees: number;
   description: string;
-  color: string;
   icon: any;
   deliverables: string[];
   clients: SubscribedClient[];
@@ -78,7 +74,6 @@ const SERVICES_DATA: Record<string, ServiceDetails> = {
     pricing_model: "Fixed Milestone / Retainer",
     base_price_rupees: 80000,
     description: "Production-grade Next.js, React, Tailwind, and REST API integration with enterprise SEO, sub-second load times, and custom administration dashboards.",
-    color: "#6C3BDB",
     icon: Monitor,
     deliverables: [
       "Custom Figma UI/UX Design System",
@@ -98,103 +93,99 @@ const SERVICES_DATA: Record<string, ServiceDetails> = {
     projects: [
       { id: "p-1", name: "Sashikiran Surveyors – Website", client: "Sashikiran Surveyors", progress: 80, due_date: "Nov 10, 2026", status: "In Progress" },
       { id: "p-2", name: "Aroma Dew – Catalogue & Store", client: "Aroma Dew", progress: 100, due_date: "Nov 5, 2026", status: "Completed" },
-      { id: "p-3", name: "MedPulse – Booking Engine", client: "MedPulse Clinic", progress: 35, due_date: "Dec 15, 2026", status: "In Progress" },
+      { id: "p-3", name: "MedPulse – Telehealth Portal", client: "MedPulse Clinic", progress: 35, due_date: "Dec 15, 2026", status: "In Progress" },
     ],
   },
-  "digital-marketing": {
+  digital_marketing: {
     category: "Digital Marketing",
-    slug: "digital-marketing",
-    name: "Growth Marketing & Performance SEO",
-    tagline: "End-to-end customer acquisition through Google Search ads, Meta performance ads, and organic SEO.",
+    slug: "digital_marketing",
+    name: "Search & Growth Marketing",
+    tagline: "Data-driven SEO, Google Ads PPC management, and performance marketing funnels.",
     clients_count: 38,
     mtd_revenue: 243750,
     revenue_share_percent: 25,
-    active_projects_count: 12,
+    active_projects_count: 11,
     sla_delivery: "Continuous Monthly Retainer",
-    pricing_model: "Monthly Retainer + Ad Spend %",
+    pricing_model: "Monthly Retainer",
     base_price_rupees: 30000,
-    description: "Data-driven performance marketing focused on qualified pipeline generation, high-intent Google Search campaigns, technical SEO audits, and conversion optimization.",
-    color: "#38BDF8",
+    description: "Complete organic search rankings, technical on-page & off-page SEO, conversion rate optimization, and high-ROI paid ad campaign management.",
     icon: Megaphone,
     deliverables: [
-      "High-Intent Keyword Discovery & Mapping",
-      "Google Search & Performance Max Setup",
-      "Meta (Instagram & Facebook) Ad Creative Sprints",
-      "Conversion Tracking, Pixels & GA4 Infrastructure",
-      "Bi-Weekly Pipeline Performance Audits",
-      "Landing Page A/B Testing & Speed Optimization",
+      "Technical SEO Audit & Schema Markup",
+      "High-Intent Keyword Map & Content Briefs",
+      "Google Search Console & GA4 Setup",
+      "Google Ads Search & Display Campaigns",
+      "Monthly Organic Traffic & Ranking Reports",
+      "Conversion Funnel Optimization",
     ],
     clients: [
-      { id: "c-6", name: "Talenty Consulting", contact: "Priya Sharma", plan: "Growth Marketing Retainer", value_rupees: 360000, renewal: "Feb 2027", status: "active" },
-      { id: "c-7", name: "Urban Nest Interiors", contact: "Manoj Kumar", plan: "Paid Ads Performance", value_rupees: 400000, renewal: "Dec 2026", status: "active" },
-      { id: "c-8", name: "FreshRoot Organics", contact: "Sunita Roy", plan: "Social & SEO Retainer", value_rupees: 280000, renewal: "Jan 2027", status: "active" },
-      { id: "c-9", name: "Apex Logistics", contact: "Harish Gupta", plan: "Search Engine Ads", value_rupees: 300000, renewal: "Nov 2026", status: "expiring_soon" },
+      { id: "c-6", name: "Talenty Consulting", contact: "Priya Sharma", plan: "Quarterly SEO Retainer", value_rupees: 210000, renewal: "Dec 2026", status: "active" },
+      { id: "c-7", name: "Peak Fitness", contact: "Arjun S.", plan: "SEO + Local Map Pack", value_rupees: 90000, renewal: "Jan 2027", status: "active" },
+      { id: "c-8", name: "Delights Gourmet", contact: "Sameer Joshi", plan: "Performance Ads", value_rupees: 180000, renewal: "Nov 2026", status: "expiring_soon" },
     ],
     projects: [
-      { id: "p-4", name: "Talenty Consulting – Marketing", client: "Talenty Consulting", progress: 60, due_date: "Nov 15, 2026", status: "In Progress" },
-      { id: "p-5", name: "Urban Nest – Festive Ad Campaigns", client: "Urban Nest Interiors", progress: 75, due_date: "Nov 22, 2026", status: "In Progress" },
+      { id: "p-4", name: "Talenty Consulting – SEO Sprint", client: "Talenty Consulting", progress: 60, due_date: "Nov 15, 2026", status: "In Progress" },
+      { id: "p-5", name: "Peak Fitness – Local SEO", client: "Peak Fitness", progress: 40, due_date: "Nov 30, 2026", status: "In Progress" },
     ],
   },
-  "crm-erp": {
+  crm_erp: {
     category: "CRM / ERP",
-    slug: "crm-erp",
-    name: "Enterprise Workflow & Custom CRM / ERP",
-    tagline: "Tailored process automation, pipeline routing, invoice generation, and custom data workflows.",
+    slug: "crm_erp",
+    name: "Custom CRM & ERP Architecture",
+    tagline: "Bespoke internal operating systems, inventory management, and automated sales workflows.",
     clients_count: 22,
     mtd_revenue: 146250,
     revenue_share_percent: 15,
     active_projects_count: 6,
-    sla_delivery: "4-6 Weeks",
-    pricing_model: "Project Milestone + SLA",
+    sla_delivery: "6-8 Weeks",
+    pricing_model: "Custom Scope",
     base_price_rupees: 120000,
-    description: "Replace fragmented spreadsheets with a scalable operational system tailored to your exact business rules, automated billing, and permission boundaries.",
-    color: "#10B981",
+    description: "Multi-tenant operational platforms built for Indian businesses with GST compliance, WhatsApp API routing, automated lead assignment, and role-based permissions.",
     icon: Layers,
     deliverables: [
-      "Process Architecture & Requirements Specification",
-      "Relational Database Modeling & Migration",
-      "Role-Based Access Control (RBAC) Engine",
-      "Automated Invoicing & GST Tax Integration",
-      "Real-time Analytics & Executive Reporting",
-      "Admin Training, Documentation & Dedicated SLA",
+      "Custom Data Schema & RBAC Permissions",
+      "Lead Capture & Sales Pipeline Kanban",
+      "Indian GST Invoicing (CGST/SGST/IGST)",
+      "WhatsApp & SMS Notification Gateways",
+      "Client Self-Service Approval Portal",
+      "Automated Daily Database Backups",
     ],
     clients: [
-      { id: "c-10", name: "KalpaTouch", contact: "Venkat Raman", plan: "Enterprise CRM & Hosting", value_rupees: 550000, renewal: "Mar 2027", status: "active" },
-      { id: "c-11", name: "Apex Logistics", contact: "Harish Gupta", plan: "Inventory & Dispatch ERP", value_rupees: 380000, renewal: "Jan 2027", status: "active" },
-      { id: "c-12", name: "FastTrack Cargo", contact: "Alok Verma", plan: "Mobile Field CRM", value_rupees: 220000, renewal: "Dec 2026", status: "active" },
+      { id: "c-9", name: "KalpaTouch", contact: "Ananya Iyer", plan: "Enterprise CRM Suite", value_rupees: 450000, renewal: "Mar 2027", status: "active" },
+      { id: "c-10", name: "Apex Logistics Ltd", contact: "Vikram Mehta", plan: "Fleet & Inventory ERP", value_rupees: 300000, renewal: "Feb 2027", status: "active" },
+      { id: "c-11", name: "FastTrack Courier", contact: "Deepak S.", plan: "Delivery Tracker API", value_rupees: 120000, renewal: "Jan 2027", status: "active" },
     ],
     projects: [
       { id: "p-6", name: "KalpaTouch – CRM Setup", client: "KalpaTouch", progress: 40, due_date: "Nov 20, 2026", status: "In Progress" },
-      { id: "p-7", name: "Apex Logistics – ERP Invoicing", client: "Apex Logistics", progress: 55, due_date: "Dec 10, 2026", status: "In Progress" },
+      { id: "p-7", name: "Apex Logistics – ERP Flow", client: "Apex Logistics Ltd", progress: 95, due_date: "Nov 12, 2026", status: "Review" },
     ],
   },
-  "branding-media": {
+  branding: {
     category: "Branding & Media",
-    slug: "branding-media",
-    name: "Brand Identity, Guidelines & Media Collaterals",
-    tagline: "Holistic brand positioning: typography, iconography, logo suites, packaging, and catalogue design.",
-    clients_count: 16,
+    slug: "branding",
+    name: "Corporate Identity & Creative Media",
+    tagline: "Memorable brand identities, packaging, product catalogues, and high-impact corporate video.",
+    clients_count: 18,
     mtd_revenue: 97500,
     revenue_share_percent: 10,
-    active_projects_count: 4,
+    active_projects_count: 5,
     sla_delivery: "2-3 Weeks",
-    pricing_model: "Fixed Milestone",
-    base_price_rupees: 50000,
-    description: "Craft distinctive, premium brand aesthetics that resonate with your target market across print, packaging, digital showcases, and video media.",
-    color: "#F59E0B",
+    pricing_model: "Fixed Project",
+    base_price_rupees: 45000,
+    description: "Logo suites, comprehensive brand guidelines, corporate typography, product packaging design, and 3D product renders that command market presence.",
     icon: Palette,
     deliverables: [
-      "Brand Positioning & Tone of Voice Guide",
-      "Primary, Secondary & Monogram Logo Suite",
-      "Typography, Color Tokens & Design System Kit",
-      "Print Packaging, Labels & Product Boxes",
-      "Digital Product Catalogue & Marketing Deck",
-      "Social Media Templates & IP Transfer Agreement",
+      "Primary & Secondary Logo Architecture",
+      "Color Palette, Typography & Usage Rules",
+      "Corporate Stationery & Digital Asset Kit",
+      "Product Packaging & Label Artwork",
+      "Catalogue & Brochure Print Ready Files",
+      "Social Media Post & Banner Templates",
     ],
     clients: [
-      { id: "c-13", name: "Delights Gourmet", contact: "Simran Kaur", plan: "Brand Identity & Packaging", value_rupees: 220000, renewal: "Dec 2026", status: "active" },
-      { id: "c-14", name: "Aroma Dew", contact: "Kavita Rao", plan: "Product Catalogue Design", value_rupees: 180000, renewal: "Nov 2026", status: "active" },
-      { id: "c-15", name: "Zenith Luxe", contact: "Arjun Reddy", plan: "Brand Refresh & Stationery", value_rupees: 120000, renewal: "Jan 2027", status: "active" },
+      { id: "c-12", name: "Delights Gourmet", contact: "Sameer Joshi", plan: "Brand Identity Suite", value_rupees: 250000, renewal: "May 2027", status: "active" },
+      { id: "c-13", name: "Aroma Dew", contact: "Kavita Rao", plan: "Product Catalogue Launch", value_rupees: 180000, renewal: "Jun 2027", status: "active" },
+      { id: "c-14", name: "Skyline Infra", contact: "Rahul Nair", plan: "Corporate Media Kit", value_rupees: 150000, renewal: "Apr 2027", status: "active" },
     ],
     projects: [
       { id: "p-8", name: "Delights – Branding & Media", client: "Delights", progress: 90, due_date: "Nov 8, 2026", status: "Review" },
@@ -214,7 +205,6 @@ const SERVICES_DATA: Record<string, ServiceDetails> = {
     pricing_model: "Custom Scope",
     base_price_rupees: 60000,
     description: "Specialized technology solutions: automated learning management systems, secure exam testing portals, cloud cost optimization, and ongoing operational support.",
-    color: "#EC4899",
     icon: Sparkles,
     deliverables: [
       "Learning Management System (LMS) Architecture",
@@ -239,7 +229,6 @@ function ServicesView() {
   const router = useRouter();
   const categoryParam = searchParams.get("category");
 
-  // Determine active category
   const activeSlug = categoryParam && SERVICES_DATA[categoryParam] ? categoryParam : "websites";
   const activeService = SERVICES_DATA[activeSlug];
 
@@ -250,52 +239,40 @@ function ServicesView() {
   const Icon = activeService.icon;
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs text-[#77738A] mb-1">
-            <Link href="/internal/dashboard" className="hover:text-[#6437EA]">Dashboard</Link>
-            <span>/</span>
-            <span className="text-[#1D1930] font-medium">Services</span>
-            <span>/</span>
-            <span className="text-[#6437EA] font-semibold">{activeService.category}</span>
-          </div>
-          <h1 className="text-2xl font-black text-[#1D1930] tracking-tight flex items-center space-x-3">
-            <span>{activeService.name}</span>
-            <span
-              className="text-xs font-semibold px-2.5 py-0.5 rounded-full text-white"
-              style={{ backgroundColor: activeService.color }}
-            >
-              {activeService.clients_count} Active Clients
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              SERVICE CATALOGUE
             </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              {activeService.clients_count} Subscribed Clients
+            </span>
+          </div>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            {activeService.name}
           </h1>
-          <p className="text-xs text-[#77738A] mt-1">{activeService.tagline}</p>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            {activeService.tagline}
+          </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <Link href="/internal/projects">
-            <Button
-              variant="outline"
-              className="text-xs px-4 py-2.5 rounded-xl border-[#EBE8F3] text-[#1D1930] flex items-center space-x-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Create Project</span>
-            </Button>
-          </Link>
-          <Link href="/internal/clients">
-            <Button
-              className="bg-[#6437EA] hover:bg-[#5528DA] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md flex items-center space-x-2"
-            >
-              <Building className="h-4 w-4" />
-              <span>Add Client</span>
-            </Button>
+        <div className="flex items-center space-x-3 shrink-0">
+          <Link
+            href="/internal/clients/new"
+            className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Client to Service</span>
           </Link>
         </div>
       </div>
 
-      {/* Category Navigation Tabs */}
-      <div className="flex items-center space-x-2 text-xs overflow-x-auto pb-1 bg-white p-2 rounded-2xl border border-[#EBE8F3] shadow-sm">
+      {/* Category Pills Navigation Bar */}
+      <div className="bg-white p-3 rounded-2xl border border-[#E5E7EB] shadow-card flex items-center space-x-2 overflow-x-auto text-[13px]">
         {Object.values(SERVICES_DATA).map((srv) => {
           const isSelected = activeSlug === srv.slug;
           const SrvIcon = srv.icon;
@@ -303,17 +280,17 @@ function ServicesView() {
             <button
               key={srv.slug}
               onClick={() => handleTabChange(srv.slug)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-semibold transition-all whitespace-nowrap ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
                 isSelected
-                  ? "bg-[#6437EA] text-white shadow-md shadow-purple-900/20"
-                  : "text-[#77738A] hover:text-[#1D1930] hover:bg-[#F6F5FA]"
+                  ? "bg-[#5B4BDB] text-white shadow-soft"
+                  : "bg-[#F8F9FB] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]"
               }`}
             >
-              <SrvIcon className="h-4 w-4 flex-shrink-0" />
+              <SrvIcon className="h-3.5 w-3.5" />
               <span>{srv.category}</span>
               <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-bold ml-1 ${
-                  isSelected ? "bg-white/20 text-white" : "bg-[#F0EDF7] text-[#6437EA]"
+                className={`text-[10px] px-2 py-0.2 rounded-full font-bold ml-1 ${
+                  isSelected ? "bg-white/20 text-white" : "bg-[#E5E7EB] text-[#64748B]"
                 }`}
               >
                 {srv.clients_count}
@@ -323,56 +300,58 @@ function ServicesView() {
         })}
       </div>
 
-      {/* 4 Metric KPI Cards for this Service */}
+      {/* 4 Metric KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-[#EBE8F3] shadow-sm">
-          <span className="text-[10px] font-bold text-[#77738A] uppercase tracking-wider block">Active Clients</span>
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">Active Clients</span>
           <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-2xl font-black text-[#1D1930]">{activeService.clients_count}</span>
-            <span className="text-xs font-semibold text-emerald-600">Subscribed</span>
+            <span className="text-2xl font-bold text-[#0F172A]">{activeService.clients_count}</span>
+            <span className="text-xs font-semibold text-[#059669]">Subscribed</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#EBE8F3] shadow-sm">
-          <span className="text-[10px] font-bold text-[#77738A] uppercase tracking-wider block">MTD Revenue Generated</span>
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">MTD Revenue</span>
           <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-2xl font-black text-[#6437EA]">
+            <span className="text-2xl font-bold text-[#5B4BDB]">
               ₹{activeService.mtd_revenue.toLocaleString("en-IN")}
             </span>
-            <span className="text-xs font-bold text-[#77738A]">({activeService.revenue_share_percent}% MTD)</span>
+            <span className="text-xs font-semibold text-[#64748B]">({activeService.revenue_share_percent}% MTD)</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#EBE8F3] shadow-sm">
-          <span className="text-[10px] font-bold text-[#77738A] uppercase tracking-wider block">Active Projects</span>
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">Active Projects</span>
           <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-2xl font-black text-[#1D1930]">{activeService.active_projects_count}</span>
-            <span className="text-xs font-semibold text-blue-600">In Pipeline</span>
+            <span className="text-2xl font-bold text-[#0F172A]">{activeService.active_projects_count}</span>
+            <span className="text-xs font-semibold text-[#0284C7]">In Progress</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#EBE8F3] shadow-sm">
-          <span className="text-[10px] font-bold text-[#77738A] uppercase tracking-wider block">Delivery SLA / Model</span>
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">Delivery SLA</span>
           <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-sm font-black text-[#1D1930] truncate">{activeService.sla_delivery}</span>
+            <span className="text-sm font-bold text-[#0F172A] truncate">{activeService.sla_delivery}</span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Subscribed Clients & Active Projects */}
+      {/* Main Grid: Subscribed Clients & Deliverables */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Subscribed Clients Table (2 cols) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#EBE8F3] p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E7EB]">
             <div>
-              <h3 className="text-base font-bold text-[#1D1930]">
+              <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+                ACTIVE SUBSCRIBERS
+              </div>
+              <h3 className="text-base font-bold text-[#0F172A] mt-0.5">
                 Subscribed Clients ({activeService.clients.length})
               </h3>
-              <p className="text-xs text-[#77738A]">Organizations currently billed under {activeService.category}</p>
             </div>
             <Link
               href="/internal/clients"
-              className="text-xs font-semibold text-[#6437EA] hover:text-[#5528DA] flex items-center space-x-1"
+              className="text-xs font-semibold text-[#5B4BDB] hover:underline flex items-center space-x-1"
             >
               <span>View All Clients</span>
               <ArrowRight className="h-3 w-3" />
@@ -380,37 +359,36 @@ function ServicesView() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#FAF9FD] border-b border-[#ECE9F4] text-[#77738A] font-bold uppercase tracking-wider text-[10px]">
+            <table className="w-full text-left text-[13.5px]">
+              <thead className="bg-[#F8F9FB] border-b border-[#E5E7EB] text-[#94A3B8] font-bold uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th className="py-3 px-4">Client Organization</th>
-                  <th className="py-3 px-4">Primary Contact</th>
-                  <th className="py-3 px-4">Contract Plan</th>
-                  <th className="py-3 px-4">Value (₹)</th>
+                  <th className="py-3 px-4">Organization</th>
+                  <th className="py-3 px-4">Contact</th>
+                  <th className="py-3 px-4">Plan</th>
+                  <th className="py-3 px-4">Value</th>
                   <th className="py-3 px-4">Renewal</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0EDF7] text-[#1D1930]">
+              <tbody className="divide-y divide-[#E5E7EB] text-[#0F172A]">
                 {activeService.clients.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#FAF9FD] transition-colors">
-                    <td className="py-3.5 px-4 font-bold flex items-center space-x-2.5">
-                      <div className="h-6 w-6 rounded-md bg-[#120B2E] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                        {c.name[0]}
-                      </div>
-                      <span className="truncate">{c.name}</span>
+                  <tr key={c.id} className="hover:bg-[#F8F9FB] transition-colors">
+                    <td className="py-3.5 px-4 font-semibold text-[#5B4BDB]">
+                      <Link href="/internal/clients/CLI-PEAK-001" className="hover:underline">
+                        {c.name}
+                      </Link>
                     </td>
-                    <td className="py-3.5 px-4 text-[#77738A]">{c.contact}</td>
-                    <td className="py-3.5 px-4 font-medium text-xs text-[#6437EA]">{c.plan}</td>
+                    <td className="py-3.5 px-4 text-[#64748B]">{c.contact}</td>
+                    <td className="py-3.5 px-4 font-medium text-xs text-[#0F172A]">{c.plan}</td>
                     <td className="py-3.5 px-4 font-bold">₹{c.value_rupees.toLocaleString("en-IN")}</td>
-                    <td className="py-3.5 px-4 text-[#77738A]">{c.renewal}</td>
+                    <td className="py-3.5 px-4 text-[#64748B]">{c.renewal}</td>
                     <td className="py-3.5 px-4">
                       {c.status === "active" ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#059669]">
                           Active
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#D97706]">
                           Renewal Due
                         </span>
                       )}
@@ -422,115 +400,44 @@ function ServicesView() {
           </div>
         </div>
 
-        {/* Deliverables & Scope Checklist (1 col) */}
-        <div className="bg-white rounded-2xl border border-[#EBE8F3] p-6 shadow-sm flex flex-col justify-between">
+        {/* Deliverables Scope Checklist (1 col) */}
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col justify-between">
           <div>
-            <div className="flex items-center space-x-3 mb-4">
-              <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-                style={{ backgroundColor: activeService.color }}
-              >
-                <Icon className="h-5 w-5" />
+            <div className="pb-3 mb-4 border-b border-[#E5E7EB]">
+              <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+                SCOPE SPECIFICATION
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#1D1930]">Service Deliverables</h3>
-                <span className="text-[11px] text-[#77738A]">Standard package inclusions</span>
-              </div>
+              <h3 className="text-base font-bold text-[#0F172A] mt-0.5">Package Inclusions</h3>
             </div>
 
-            <p className="text-xs text-[#77738A] leading-relaxed mb-4">{activeService.description}</p>
+            <p className="text-[13px] text-[#64748B] leading-relaxed mb-4">{activeService.description}</p>
 
-            <div className="space-y-2.5 pt-3 border-t border-[#F0EDF7]">
+            <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
               {activeService.deliverables.map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-2 text-xs text-[#1D1930]">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                <div key={idx} className="flex items-start space-x-2.5 text-[13px] text-[#0F172A]">
+                  <CheckCircle2 className="h-4 w-4 text-[#059669] shrink-0 mt-0.5" />
                   <span className="font-medium leading-snug">{item}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-[#F0EDF7] flex items-center justify-between">
+          <div className="mt-6 pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
             <div>
-              <span className="text-[10px] text-[#77738A] font-semibold block">{activeService.pricing_model}</span>
-              <span className="text-lg font-black text-[#1D1930]">
+              <span className="text-[11px] text-[#94A3B8] font-semibold uppercase tracking-wider block">
+                {activeService.pricing_model}
+              </span>
+              <span className="text-lg font-bold text-[#0F172A]">
                 From ₹{activeService.base_price_rupees.toLocaleString("en-IN")}
               </span>
             </div>
-            <Link href="/internal/opportunities">
-              <Button
-                size="sm"
-                className="bg-[#6437EA] hover:bg-[#5528DA] text-white text-xs px-3.5 py-2 rounded-xl"
-              >
-                Create Proposal
-              </Button>
+            <Link
+              href="/internal/opportunities"
+              className="h-9 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center justify-center"
+            >
+              Create Proposal
             </Link>
           </div>
-        </div>
-      </div>
-
-      {/* Active Projects under this Service */}
-      <div className="bg-white rounded-2xl border border-[#EBE8F3] p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-base font-bold text-[#1D1930]">
-              Active Projects in {activeService.category} ({activeService.projects.length})
-            </h3>
-            <p className="text-xs text-[#77738A]">Delivery milestones, completion percentages, and deadlines</p>
-          </div>
-          <Link
-            href="/internal/projects"
-            className="text-xs font-semibold text-[#6437EA] hover:text-[#5528DA] flex items-center space-x-1"
-          >
-            <span>View All Projects</span>
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {activeService.projects.map((proj) => (
-            <div
-              key={proj.id}
-              className="bg-[#FAF9FD] border border-[#ECE9F4] rounded-xl p-4 flex flex-col justify-between hover:border-[#6437EA]/40 transition-all"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#EFEBFC] text-[#6437EA]">
-                    {proj.client}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      proj.status === "Completed"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : proj.status === "Review"
-                        ? "bg-purple-50 text-[#6437EA]"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {proj.status}
-                  </span>
-                </div>
-                <h4 className="text-xs font-bold text-[#1D1930] mt-2.5 leading-snug">{proj.name}</h4>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-[#F0EDF7]">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-[#77738A] text-[11px]">Progress</span>
-                  <span className="font-bold text-[#1D1930]">{proj.progress}%</span>
-                </div>
-                <div className="w-full bg-[#EBE8F3] rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-[#6437EA] h-1.5 rounded-full"
-                    style={{ width: `${proj.progress}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-[#77738A] mt-2">
-                  <span>Due Date</span>
-                  <span className="font-semibold text-[#1D1930]">{proj.due_date}</span>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -539,13 +446,8 @@ function ServicesView() {
 
 export default function ServicesPage() {
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-[#F8F8FC]">
-      <Header />
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
-        <Suspense fallback={<div className="p-8 text-center text-xs text-[#77738A]">Loading service details...</div>}>
-          <ServicesView />
-        </Suspense>
-      </main>
-    </div>
+    <Suspense fallback={<div className="p-8 text-center text-sm text-[#64748B]">Loading service catalogue...</div>}>
+      <ServicesView />
+    </Suspense>
   );
 }

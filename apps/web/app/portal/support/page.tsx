@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Headphones, Plus } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,18 +41,29 @@ export default function PortalSupportPage() {
   });
 
   return (
-    <>
-      <Header
-        title="Client Support & Helpdesk"
-        subtitle="Submit inquiries, report issues, and communicate directly with your dedicated account team"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        <div className="flex justify-end">
-          <Button size="sm" onClick={() => setIsOpenModal(true)}>
-            <Plus className="h-4 w-4 mr-1.5" /> Submit Support Request
-          </Button>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-1">
+            CLIENT ASSISTANCE
+          </span>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Client Support & Helpdesk
+          </h1>
+          <p className="text-[13px] text-[#64748B] mt-0.5">
+            Submit inquiries, report issues, and communicate directly with your dedicated account team.
+          </p>
         </div>
+
+        <button
+          onClick={() => setIsOpenModal(true)}
+          className="h-10 px-4 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-[13px] font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-2 shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Submit Request</span>
+        </button>
+      </div>
 
         <Card>
           <CardHeader className="p-4 border-b border-[#E9E5F0]">
@@ -158,8 +168,7 @@ export default function PortalSupportPage() {
             </div>
           </div>
         </Modal>
-      </main>
-    </>
+    </div>
   );
 }
 

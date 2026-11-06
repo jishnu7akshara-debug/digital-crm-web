@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, Send, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Check, Plus, Send, X, CheckCircle2, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface TaskItem {
@@ -33,7 +33,7 @@ const DEFAULT_PROJECT = {
   account_id: "CLI-PEAK-001",
   service: "Website development",
   manager: "Meera",
-  due_date: "Nov 30",
+  due_date: "Nov 30, 2026",
   current_stage: "internal_review",
 };
 
@@ -48,8 +48,6 @@ const DEFAULT_TASKS: TaskItem[] = [
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const projectId = params.id as string;
 
   const [currentStage, setCurrentStage] = useState("internal_review");
@@ -98,31 +96,24 @@ export default function ProjectWorkspacePage() {
     }
   }, [projectData]);
 
-  // Stage change mutation
   const handleStageClick = async (stageId: string) => {
     setCurrentStage(stageId);
     try {
       await api.put(`/projects/${projectId}/stage`, { stage: stageId });
       setNotification(`Project stage updated to ${STAGES.find((s) => s.id === stageId)?.label}`);
       setTimeout(() => setNotification(null), 3000);
-    } catch (e) {
-      // optimistic update retained
-    }
+    } catch (e) {}
   };
 
-  // Move task to next or specific lane
   const moveTask = async (taskId: string, targetStatus: "todo" | "in_progress" | "in_review" | "completed") => {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: targetStatus } : t))
     );
     try {
       await api.put(`/projects/tasks/${taskId}/status`, { status: targetStatus });
-    } catch (e) {
-      // retained
-    }
+    } catch (e) {}
   };
 
-  // Add Task
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
@@ -146,12 +137,9 @@ export default function ProjectWorkspacePage() {
       });
       setNotification("Task created successfully");
       setTimeout(() => setNotification(null), 3000);
-    } catch (e) {
-      // optimistic update
-    }
+    } catch (e) {}
   };
 
-  // Send to client
   const handleSendToClient = () => {
     setNotification("Home page design deliverable sent to Peak Fitness portal for review");
     setTimeout(() => setNotification(null), 4000);
@@ -167,122 +155,109 @@ export default function ProjectWorkspacePage() {
   ] as const;
 
   return (
-    <div className="space-y-3 pb-8">
-      {/* Toast Notification */}
+    <div className="space-y-6 pb-12">
+      {/* Toast */}
       {notification && (
-        <div className="fixed bottom-4 right-4 z-50 bg-[#032D60] text-white px-4 py-2.5 rounded-[4px] shadow-lg flex items-center space-x-2 text-[13px] border border-[#0176D3] animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="h-4 w-4 text-[#2E844A]" />
+        <div className="fixed bottom-4 right-4 z-50 bg-[#0F172A] text-white px-4 py-3 rounded-xl shadow-dropdown flex items-center space-x-2 text-[13px] border border-[#E5E7EB] animate-in fade-in slide-in-from-bottom-2">
+          <CheckCircle2 className="h-4 w-4 text-[#059669]" />
           <span>{notification}</span>
         </div>
       )}
 
-      {/* Record Header Card: Green tile 'P' (#3BA755) + Website redesign */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            {/* Green Tile 'P' */}
-            <div className="h-8 w-8 rounded-[4px] bg-[#3BA755] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+      {/* Record Header Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className="h-11 w-11 rounded-xl bg-[#0F172A] text-white font-bold text-base flex items-center justify-center shrink-0 shadow-soft">
               P
             </div>
             <div>
-              <div className="text-[11px] text-[#5C5C5C] font-normal leading-none mb-0.5">
-                Project
+              <div className="flex items-center space-x-2 mb-0.5">
+                <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+                  PROJECT WORKSPACE
+                </span>
+                <span className="text-[11px] text-[#94A3B8]">·</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EEF2FF] text-[#5B4BDB]">
+                  {STAGES.find((s) => s.id === currentStage)?.label || "Active"}
+                </span>
               </div>
-              <h1 className="text-xl font-bold text-[#181818] leading-tight">
+              <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight leading-tight">
                 {projectData?.name || DEFAULT_PROJECT.name}
               </h1>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <button
               onClick={handleSendToClient}
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] font-normal rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm flex items-center space-x-1.5"
+              className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-2"
             >
-              <Send className="h-3.5 w-3.5 text-[#5C5C5C]" />
+              <Send className="h-4 w-4 text-[#5B4BDB]" />
               <span>Send to client</span>
             </button>
             <button
               onClick={() => setIsNewTaskOpen(true)}
-              className="h-8 px-3.5 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm flex items-center space-x-1.5"
+              className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               <span>New Task</span>
             </button>
           </div>
         </div>
 
-        {/* Key Fields Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 pt-3 border-t border-[#DDDBDA] text-[12px]">
+        {/* Key Fields Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-[#E5E7EB]">
           <div>
-            <div className="text-[11px] text-[#5C5C5C]">Account</div>
+            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Account</div>
             <Link
-              href="/internal/clients"
-              className="text-[#0176D3] hover:underline font-normal text-[13px] truncate block"
+              href="/internal/clients/CLI-PEAK-001"
+              className="text-[#5B4BDB] hover:underline font-semibold text-[14px] mt-1 block"
             >
               {projectData?.client_name || DEFAULT_PROJECT.account_name}
             </Link>
           </div>
           <div>
-            <div className="text-[11px] text-[#5C5C5C]">Service</div>
-            <div className="text-[#181818] text-[13px]">
+            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Service</div>
+            <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
               {DEFAULT_PROJECT.service}
             </div>
           </div>
           <div>
-            <div className="text-[11px] text-[#5C5C5C]">Manager</div>
-            <div className="text-[#181818] text-[13px]">
+            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Project Manager</div>
+            <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
               {projectData?.manager?.name || DEFAULT_PROJECT.manager}
             </div>
           </div>
           <div>
-            <div className="text-[11px] text-[#5C5C5C]">Due date</div>
-            <div className="text-[#181818] text-[13px]">
+            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Due date</div>
+            <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
               {DEFAULT_PROJECT.due_date}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stage Path Chevrons (Screen 4) */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-2.5 shadow-sm overflow-x-auto">
-        <div className="flex items-center min-w-[700px]">
+      {/* Stage Path Chevrons / Step Bar */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 shadow-card overflow-x-auto">
+        <div className="flex items-center space-x-2 min-w-[720px]">
           {STAGES.map((stage, idx) => {
             const isCompleted = idx < stageIndex;
             const isCurrent = idx === stageIndex;
-            const isUpcoming = idx > stageIndex;
 
-            let bgColor = "bg-[#F3F3F3]";
-            let textColor = "text-[#5C5C5C]";
-            let borderColor = "border-[#DDDBDA]";
-
+            let badgeStyle = "bg-[#F8F9FB] text-[#64748B] border border-[#E5E7EB]";
             if (isCompleted) {
-              bgColor = "bg-[#2E844A]";
-              textColor = "text-white";
-              borderColor = "border-[#2E844A]";
+              badgeStyle = "bg-[#ECFDF5] text-[#059669] border border-[#D1FAE5]";
             } else if (isCurrent) {
-              bgColor = "bg-[#0176D3]";
-              textColor = "text-white font-bold";
-              borderColor = "border-[#0176D3]";
+              badgeStyle = "bg-[#5B4BDB] text-white border border-[#5B4BDB] shadow-soft font-semibold";
             }
 
             return (
               <button
                 key={stage.id}
                 onClick={() => handleStageClick(stage.id)}
-                className={`flex-1 h-8 px-2 flex items-center justify-center text-[12px] font-medium transition-all relative select-none mr-1 first:rounded-l-[4px] last:rounded-r-[4px] last:mr-0 ${bgColor} ${textColor} hover:opacity-95`}
-                style={{
-                  clipPath:
-                    idx === STAGES.length - 1
-                      ? "polygon(0 0, 100% 0, 100% 100%, 0 100%, 8px 50%)"
-                      : idx === 0
-                      ? "polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%)"
-                      : "polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%)",
-                }}
-                title={`Move to ${stage.label}`}
+                className={`flex-1 h-10 px-3 rounded-xl flex items-center justify-center text-[12.5px] transition-all ${badgeStyle}`}
               >
-                {isCompleted && <Check className="h-3 w-3 mr-1 text-white stroke-[3]" />}
+                {isCompleted && <Check className="h-3.5 w-3.5 mr-1.5 stroke-[2.5]" />}
                 <span className="truncate">{stage.label}</span>
               </button>
             );
@@ -290,87 +265,78 @@ export default function ProjectWorkspacePage() {
         </div>
       </div>
 
-      {/* Kanban Task Board: Tasks (6) */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] shadow-sm">
-        {/* Board Header */}
-        <div className="px-4 py-2.5 border-b border-[#DDDBDA] flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-[14px] font-bold text-[#181818]">
+      {/* Kanban Task Board */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card p-6">
+        <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#E5E7EB]">
+          <div>
+            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              DELIVERY BOARD
+            </div>
+            <h2 className="text-[17px] font-bold text-[#0F172A] tracking-tight mt-0.5">
               Tasks ({tasks.length})
             </h2>
           </div>
           <button
             onClick={() => setIsNewTaskOpen(true)}
-            className="text-[12px] font-bold text-[#0176D3] hover:underline flex items-center space-x-1"
+            className="text-[13px] font-semibold text-[#5B4BDB] hover:underline flex items-center space-x-1"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>New</span>
+            <Plus className="h-4 w-4" />
+            <span>Add Task</span>
           </button>
         </div>
 
         {/* 4 Lanes */}
-        <div className="p-3 grid grid-cols-1 md:grid-cols-4 gap-3 bg-[#F3F3F3]/40">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {lanes.map((lane) => {
             const laneTasks = tasks.filter((t) => t.status === lane.id);
 
             return (
               <div
                 key={lane.id}
-                className="bg-[#F3F3F3] border border-[#DDDBDA] rounded-[4px] p-2 flex flex-col min-h-[360px]"
+                className="bg-[#F8F9FB] rounded-xl border border-[#E5E7EB] p-3 flex flex-col min-h-[420px]"
               >
-                {/* Lane Header */}
-                <div className="font-bold text-[12px] text-[#181818] mb-2 px-1 flex items-center justify-between">
-                  <span>
-                    {lane.label} ({laneTasks.length})
+                <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#E5E7EB] px-1">
+                  <span className="text-[11.5px] font-bold text-[#94A3B8] uppercase tracking-wider">
+                    {lane.label}
+                  </span>
+                  <span className="h-5 w-5 rounded-full bg-white text-[#5B4BDB] font-bold text-[11px] flex items-center justify-center border border-[#E5E7EB]">
+                    {laneTasks.length}
                   </span>
                 </div>
 
-                {/* Task Cards */}
-                <div className="space-y-2 flex-1">
+                <div className="space-y-2.5 flex-1 overflow-y-auto">
                   {laneTasks.map((task) => {
-                    // Priority Pill Colors
-                    let prioBg = "bg-[#F3F3F3]";
-                    let prioText = "text-[#5C5C5C]";
-                    if (task.priority === "high") {
-                      prioBg = "bg-[#FEDED8]";
-                      prioText = "text-[#BA0517]";
-                    } else if (task.priority === "medium") {
-                      prioBg = "bg-[#FEF1D6]";
-                      prioText = "text-[#8A5200]";
-                    }
+                    let prioColor = "bg-[#F1F5F9] text-[#64748B]";
+                    if (task.priority === "high") prioColor = "bg-[#FFF1F2] text-[#E11D48]";
+                    if (task.priority === "medium") prioColor = "bg-[#FFFBEB] text-[#D97706]";
 
                     return (
                       <div
                         key={task.id}
-                        className="bg-white border border-[#DDDBDA] rounded-[4px] p-2.5 shadow-sm hover:shadow transition-shadow group relative"
+                        className="bg-white border border-[#E5E7EB] hover:border-[#CBD5E1] rounded-xl p-3.5 shadow-soft transition-all group"
                       >
-                        <div className="text-[13px] font-medium text-[#181818] leading-tight mb-2">
+                        <div className="text-[13.5px] font-semibold text-[#0F172A] mb-2 leading-snug">
                           {task.title}
                         </div>
 
                         <div className="flex items-center justify-between text-[11px] pt-1">
-                          <span className="text-[#5C5C5C] font-normal">
-                            {task.owner_name}
-                          </span>
-                          <span
-                            className={`px-1.5 py-0.5 rounded-[3px] font-medium capitalize text-[10px] ${prioBg} ${prioText}`}
-                          >
+                          <span className="text-[#64748B] font-medium">{task.owner_name}</span>
+                          <span className={`px-2 py-0.5 rounded-full font-semibold capitalize ${prioColor}`}>
                             {task.priority}
                           </span>
                         </div>
 
-                        {/* Quick Lane Mover Buttons on Hover */}
-                        <div className="mt-2 pt-1.5 border-t border-[#DDDBDA]/60 hidden group-hover:flex items-center justify-end space-x-1 text-[10px]">
+                        {/* Quick Lane Mover */}
+                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB] hidden group-hover:flex items-center justify-end space-x-1 text-[11px]">
                           {lane.id !== "todo" && (
                             <button
                               onClick={() => {
                                 const idx = lanes.findIndex((l) => l.id === lane.id);
                                 moveTask(task.id, lanes[idx - 1].id);
                               }}
-                              className="px-1.5 py-0.5 bg-[#F3F3F3] hover:bg-[#DDDBDA] rounded text-[#181818]"
-                              title="Move left"
+                              className="px-2 py-0.5 bg-[#F8F9FB] hover:bg-[#E5E7EB] rounded-lg text-[#0F172A]"
                             >
-                              ←
+                              ← Back
                             </button>
                           )}
                           {lane.id !== "completed" && (
@@ -379,10 +345,9 @@ export default function ProjectWorkspacePage() {
                                 const idx = lanes.findIndex((l) => l.id === lane.id);
                                 moveTask(task.id, lanes[idx + 1].id);
                               }}
-                              className="px-1.5 py-0.5 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white rounded font-bold"
-                              title="Move right"
+                              className="px-2 py-0.5 bg-[#5B4BDB] hover:bg-[#4B3DC7] text-white rounded-lg font-semibold"
                             >
-                              →
+                              Next →
                             </button>
                           )}
                         </div>
@@ -391,7 +356,7 @@ export default function ProjectWorkspacePage() {
                   })}
 
                   {laneTasks.length === 0 && (
-                    <div className="h-24 border border-dashed border-[#DDDBDA] rounded-[4px] flex items-center justify-center text-[11px] text-[#5C5C5C]">
+                    <div className="h-28 border border-dashed border-[#E5E7EB] rounded-xl flex items-center justify-center text-[11px] text-[#94A3B8]">
                       No tasks
                     </div>
                   )}
@@ -405,41 +370,36 @@ export default function ProjectWorkspacePage() {
       {/* New Task Modal */}
       {isNewTaskOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] w-full max-w-md shadow-2xl p-5 text-[13px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#DDDBDA]">
-              <h3 className="font-bold text-[15px] text-[#181818]">Create New Task</h3>
-              <button
-                onClick={() => setIsNewTaskOpen(false)}
-                className="text-[#5C5C5C] hover:text-[#181818]"
-              >
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] w-full max-w-md shadow-dropdown p-6 text-[14px]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <h3 className="font-bold text-[16px] text-[#0F172A]">Create New Task</h3>
+              <button onClick={() => setIsNewTaskOpen(false)} className="text-[#64748B] hover:text-[#0F172A]">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="mt-4 space-y-3">
+            <form onSubmit={handleCreateTask} className="mt-4 space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                  Task Title *
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Task Title <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Navigation responsive bug"
+                  placeholder="e.g. Navigation responsive fix"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                    Assignee
-                  </label>
+                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">Assignee</label>
                   <select
                     value={newTaskOwner}
                     onChange={(e) => setNewTaskOwner(e.target.value)}
-                    className="w-full h-8 px-2 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none bg-white"
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
                   >
                     <option value="Meera">Meera (PM)</option>
                     <option value="Karan">Karan (Developer)</option>
@@ -448,13 +408,11 @@ export default function ProjectWorkspacePage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                    Priority
-                  </label>
+                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">Priority</label>
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value as any)}
-                    className="w-full h-8 px-2 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none bg-white"
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
                   >
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
@@ -464,13 +422,11 @@ export default function ProjectWorkspacePage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                  Lane
-                </label>
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">Lane</label>
                 <select
                   value={newTaskLane}
                   onChange={(e) => setNewTaskLane(e.target.value as any)}
-                  className="w-full h-8 px-2 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none bg-white"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
                 >
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
@@ -479,17 +435,17 @@ export default function ProjectWorkspacePage() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#DDDBDA]">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => setIsNewTaskOpen(false)}
-                  className="h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] hover:bg-[#F3F3F3]"
+                  className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#64748B] hover:bg-[#F8F9FB]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="h-8 px-4 bg-[#0176D3] text-white rounded-[4px] text-[13px] font-bold hover:bg-[#0176D3]/90 shadow-sm"
+                  className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-[13px] font-semibold shadow-soft"
                 >
                   Create Task
                 </button>

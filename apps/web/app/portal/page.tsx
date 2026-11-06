@@ -2,15 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCircle2, MessageSquare, ExternalLink, X } from "lucide-react";
+import { Check, CheckCircle2, MessageSquare, ExternalLink, X, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 
 const SERVICES_PROGRESS = [
-  { name: "Website development", progress: 65 },
-  { name: "SEO", progress: 40 },
-  { name: "Social media management", progress: 30 },
-  { name: "Custom CRM", progress: 10 },
+  { name: "Website development", progress: 65, color: "bg-[#5B4BDB]" },
+  { name: "SEO Optimization", progress: 40, color: "bg-[#06B6D4]" },
+  { name: "Social media management", progress: 30, color: "bg-[#10B981]" },
+  { name: "Custom CRM Setup", progress: 10, color: "bg-[#F59E0B]" },
 ];
 
 const INVOICES = [
@@ -58,89 +57,114 @@ export default function ClientPortalDashboard() {
   };
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 select-none">
       {/* Toast message */}
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 z-50 bg-[#032D60] text-white px-4 py-2.5 rounded-[4px] shadow-lg flex items-center space-x-2 text-[13px] border border-[#0176D3] animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="h-4 w-4 text-[#2E844A]" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-[13px] border border-white/10 animate-in fade-in slide-in-from-bottom-3">
+          <CheckCircle2 className="h-4 w-4 text-[#10B981]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Light-blue Welcome Band (Page 5 of PDF) */}
-      <div className="bg-[#EAF5FE] border border-[#DDDBDA] rounded-[4px] px-6 py-5 shadow-sm">
-        <h1 className="text-2xl font-bold text-[#032D60]">
-          Welcome back, Arjun
-        </h1>
-        <p className="text-[13px] text-[#5C5C5C] mt-1">
-          Here is where your services stand.
-        </p>
+      {/* Modern SaaS Welcome Banner */}
+      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              CLIENT PORTAL
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              Peak Fitness
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+            Welcome back, Arjun 👋
+          </h1>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Here is where your active contracted services and milestone deliverables stand.
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-3 shrink-0">
+          <Link
+            href="/portal/agreements"
+            className="h-10 px-4 bg-[#F8F9FB] border border-[#E5E7EB] hover:bg-[#F1F5F9] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-2"
+          >
+            <ShieldCheck className="h-4 w-4 text-[#5B4BDB]" />
+            <span>View Agreements</span>
+          </Link>
+        </div>
       </div>
 
-      {/* "Needs your approval" Card (Page 5 of PDF) */}
-      <div className="bg-white border border-[#DDDBDA] border-l-4 border-l-[#0176D3] rounded-[4px] p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="text-[12px] font-bold text-[#0176D3] mb-0.5">
-            Needs your approval
-          </div>
-          <h2 className="text-[16px] font-bold text-[#181818]">
+      {/* "Needs your approval" Action Card */}
+      <div className="bg-white border-2 border-[#5B4BDB]/20 rounded-2xl p-6 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="space-y-1">
+          <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-[11px] font-bold uppercase tracking-wider inline-block">
+            Needs Your Review & Approval
+          </span>
+          <h2 className="text-lg font-bold text-[#0F172A] tracking-tight">
             Home page design, version 2
           </h2>
-          <div className="text-[12px] text-[#5C5C5C] mt-0.5">
-            Website development · sent today
+          <div className="text-[13px] text-[#64748B]">
+            Website development · Sent today for client review
           </div>
         </div>
 
         {approvalStatus === "pending" && (
-          <div className="flex items-center space-x-2 shrink-0">
+          <div className="flex items-center space-x-3 shrink-0">
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm"
+              className="h-10 px-4 bg-white border border-[#E5E7EB] text-[#0F172A] text-[13px] font-medium rounded-xl hover:bg-[#F8F9FB] transition-colors shadow-soft"
             >
-              Request changes
+              Request Changes
             </button>
             <button
               onClick={handleApprove}
-              className="h-8 px-4 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm"
+              className="h-10 px-5 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-[13px] font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-2"
             >
-              Approve
+              <Check className="h-4 w-4 stroke-[2.5]" />
+              <span>Approve Deliverable</span>
             </button>
           </div>
         )}
 
         {approvalStatus === "approved" && (
-          <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#EBF7E6] text-[#2E844A] rounded-[4px] text-[13px] font-bold shrink-0">
+          <div className="flex items-center space-x-2 px-4 py-2 bg-[#ECFDF5] text-[#059669] rounded-xl text-[13px] font-bold shrink-0 border border-[#A7F3D0]">
             <CheckCircle2 className="h-4 w-4" />
             <span>Approved today</span>
           </div>
         )}
 
         {approvalStatus === "revision" && (
-          <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#FEF1D6] text-[#8A5200] rounded-[4px] text-[13px] font-bold shrink-0">
+          <div className="flex items-center space-x-2 px-4 py-2 bg-[#FFFBEB] text-[#D97706] rounded-xl text-[13px] font-bold shrink-0 border border-[#FDE68A]">
             <MessageSquare className="h-4 w-4" />
             <span>Changes requested</span>
           </div>
         )}
       </div>
 
-      {/* Two Columns: Your Services (Left ~60%) & Invoices/Support (Right ~40%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* Two Columns: Your Services & Invoices/Support */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Your services */}
-        <div className="lg:col-span-7 bg-white border border-[#DDDBDA] rounded-[4px] p-4 shadow-sm">
-          <h3 className="text-[14px] font-bold text-[#181818] mb-4">
-            Your services
-          </h3>
+        <div className="lg:col-span-7 bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-card">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E7EB]">
+            <h3 className="text-base font-bold text-[#0F172A] tracking-tight">
+              Active Services
+            </h3>
+            <span className="text-xs text-[#64748B]">Contracted deliverables</span>
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {SERVICES_PROGRESS.map((svc) => (
               <div key={svc.name} className="space-y-1.5">
                 <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-[#181818] font-normal">{svc.name}</span>
-                  <span className="text-[#5C5C5C] font-normal">{svc.progress}%</span>
+                  <span className="text-[#0F172A] font-semibold">{svc.name}</span>
+                  <span className="text-[#64748B] font-medium">{svc.progress}%</span>
                 </div>
-                <div className="w-full bg-[#E5E5E5] h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-[#0176D3] h-full rounded-full transition-all duration-500"
+                    className={`${svc.color} h-full rounded-full transition-all duration-500`}
                     style={{ width: `${svc.progress}%` }}
                   />
                 </div>
@@ -150,32 +174,35 @@ export default function ClientPortalDashboard() {
         </div>
 
         {/* Right Column: Invoices & Support */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-6">
           {/* Invoices Card */}
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[14px] font-bold text-[#181818]">Invoices</h3>
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-card">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E5E7EB]">
+              <h3 className="text-base font-bold text-[#0F172A] tracking-tight">
+                Tax Invoices
+              </h3>
               <Link
                 href="/portal/invoices"
-                className="text-[12px] text-[#0176D3] hover:underline"
+                className="text-xs font-semibold text-[#5B4BDB] hover:underline flex items-center gap-1"
               >
-                View All
+                <span>View All</span>
+                <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {INVOICES.map((inv) => (
                 <div
                   key={inv.number}
-                  className="flex items-center justify-between py-1.5 border-b border-[#DDDBDA]/60 last:border-0 text-[13px]"
+                  className="flex items-center justify-between py-2 border-b border-[#F1F5F9] last:border-0 text-[13px]"
                 >
-                  <span className="text-[#0176D3] font-medium">{inv.number}</span>
-                  <span className="text-[#181818] font-medium">{inv.amount}</span>
+                  <span className="font-semibold text-[#5B4BDB]">{inv.number}</span>
+                  <span className="text-[#0F172A] font-bold">{inv.amount}</span>
                   <span
-                    className={`px-2 py-0.5 rounded-[3px] text-[11px] font-medium ${
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                       inv.isPaid
-                        ? "bg-[#EBF7E6] text-[#2E844A]"
-                        : "bg-[#FEF1D6] text-[#8A5200]"
+                        ? "bg-[#ECFDF5] text-[#059669]"
+                        : "bg-[#FFFBEB] text-[#D97706]"
                     }`}
                   >
                     {inv.status}
@@ -186,20 +213,24 @@ export default function ClientPortalDashboard() {
           </div>
 
           {/* Support Card */}
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-4 shadow-sm">
-            <h3 className="text-[14px] font-bold text-[#181818] mb-2">
-              Support
-            </h3>
-            <p className="text-[13px] text-[#5C5C5C]">
-              No open tickets
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-card">
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-[#E5E7EB]">
+              <h3 className="text-base font-bold text-[#0F172A] tracking-tight">
+                Dedicated Support
+              </h3>
+              <span className="text-xs text-[#059669] font-semibold">Live SLA Active</span>
+            </div>
+            <p className="text-[13px] text-[#64748B]">
+              No pending tickets. Reach out anytime with project requests.
             </p>
-            <div className="mt-3 pt-3 border-t border-[#DDDBDA] flex items-center justify-between text-[12px]">
-              <span className="text-[#5C5C5C]">Account Manager: Meera</span>
+            <div className="mt-4 pt-3 border-t border-[#F1F5F9] flex items-center justify-between text-xs">
+              <span className="text-[#64748B]">Account Lead: Meera</span>
               <Link
                 href="/portal/support"
-                className="text-[#0176D3] hover:underline font-medium"
+                className="text-[#5B4BDB] font-semibold hover:underline flex items-center gap-1"
               >
-                Raise a ticket
+                <span>Raise ticket</span>
+                <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </div>
@@ -208,32 +239,32 @@ export default function ClientPortalDashboard() {
 
       {/* Request Changes Modal */}
       {isFeedbackModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] w-full max-w-md shadow-2xl p-5 text-[13px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#DDDBDA]">
-              <h3 className="font-bold text-[15px] text-[#181818]">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl w-full max-w-md shadow-2xl p-6 text-[13px] animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <h3 className="font-bold text-base text-[#0F172A]">
                 Request Changes
               </h3>
               <button
                 onClick={() => setIsFeedbackModalOpen(false)}
-                className="text-[#5C5C5C] hover:text-[#181818]"
+                className="text-[#64748B] hover:text-[#0F172A] p-1 rounded-lg"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleRequestChanges} className="mt-4 space-y-3">
+            <form onSubmit={handleRequestChanges} className="mt-4 space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
+                <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
                   Deliverable
                 </label>
-                <div className="text-[13px] font-medium text-[#181818] bg-[#F3F3F3] px-3 py-2 rounded-[4px]">
+                <div className="text-[13px] font-semibold text-[#0F172A] bg-[#F8F9FB] border border-[#E5E7EB] px-3.5 py-2.5 rounded-xl">
                   Home page design, version 2
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
+                <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
                   Your feedback / adjustments needed *
                 </label>
                 <textarea
@@ -242,21 +273,21 @@ export default function ClientPortalDashboard() {
                   placeholder="e.g. Please update the hero section heading and adjust the button colors to match our brand guidelines."
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
-                  className="w-full p-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full p-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none transition-all"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#DDDBDA]">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => setIsFeedbackModalOpen(false)}
-                  className="h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] hover:bg-[#F3F3F3]"
+                  className="h-9 px-4 border border-[#E5E7EB] rounded-xl text-xs font-medium text-[#0F172A] hover:bg-[#F8F9FB] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="h-8 px-4 bg-[#0176D3] text-white rounded-[4px] text-[13px] font-bold hover:bg-[#0176D3]/90 shadow-sm"
+                  className="h-9 px-5 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white rounded-xl text-xs font-semibold shadow-soft transition-all"
                 >
                   Submit feedback
                 </button>

@@ -3,7 +3,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban, CheckCircle2, Clock, Eye } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
@@ -16,13 +15,21 @@ export default function PortalProjectsPage() {
   });
 
   return (
-    <>
-      <Header
-        title="Project Workspaces"
-        subtitle="Review progress, deliverables, and milestones for your contracted services"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-1">
+            CLIENT WORKSPACES
+          </span>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Active Projects
+          </h1>
+          <p className="text-[13px] text-[#64748B] mt-0.5">
+            Review live progress, sprint tasks, and review milestones for your contracted services.
+          </p>
+        </div>
+      </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isLoading && (
             <div className="col-span-2 text-center py-12 text-[#77738A] text-xs">
@@ -62,8 +69,7 @@ export default function PortalProjectsPage() {
             </Card>
           ))}
         </div>
-      </main>
-    </>
+    </div>
   );
 }
 

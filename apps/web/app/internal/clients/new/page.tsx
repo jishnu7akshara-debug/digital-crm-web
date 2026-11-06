@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Upload, Download, CheckCircle2, AlertCircle, FileSpreadsheet, X } from "lucide-react";
+import { UploadCloud, Download, CheckCircle2, AlertCircle, FileSpreadsheet, X } from "lucide-react";
 import { api } from "@/lib/api";
 
 const AVAILABLE_SERVICES = [
@@ -19,7 +19,7 @@ export default function NewAccountPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form State (pre-filled with PDF Page 6 defaults for instant satisfaction)
+  // Form State
   const [companyName, setCompanyName] = useState("Peak Fitness");
   const [industry, setIndustry] = useState("Fitness");
   const [city, setCity] = useState("Bengaluru");
@@ -52,14 +52,12 @@ export default function NewAccountPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-  // Toggle Service Chip
   const toggleService = (svc: string) => {
     setSelectedServices((prev) =>
       prev.includes(svc) ? prev.filter((s) => s !== svc) : [...prev, svc]
     );
   };
 
-  // Submit New Account Form
   const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim() || !contactEmail.trim() || !primaryContact.trim()) {
@@ -87,7 +85,6 @@ export default function NewAccountPage() {
         router.push("/internal/clients/CLI-PEAK-001");
       }, 1500);
     } catch (e: any) {
-      // Optimistic redirect if mock or backend error
       setNotification(`Account '${companyName}' registered successfully.`);
       setTimeout(() => {
         router.push("/internal/clients/CLI-PEAK-001");
@@ -95,7 +92,6 @@ export default function NewAccountPage() {
     }
   };
 
-  // Handle Excel Bulk Upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -128,7 +124,6 @@ export default function NewAccountPage() {
     }
   };
 
-  // Download Sample Excel Template
   const handleDownloadTemplate = () => {
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -145,151 +140,168 @@ export default function NewAccountPage() {
   };
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Toast */}
       {notification && (
-        <div className="fixed bottom-4 right-4 z-50 bg-[#032D60] text-white px-4 py-2.5 rounded-[4px] shadow-lg flex items-center space-x-2 text-[13px] border border-[#0176D3] animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="h-4 w-4 text-[#2E844A]" />
+        <div className="fixed bottom-4 right-4 z-50 bg-[#0F172A] text-white px-4 py-3 rounded-xl shadow-dropdown flex items-center space-x-2 text-[13px] border border-[#E5E7EB] animate-in fade-in slide-in-from-bottom-2">
+          <CheckCircle2 className="h-4 w-4 text-[#059669]" />
           <span>{notification}</span>
         </div>
       )}
 
-      {/* Screen 6: Two Columns (New Account Form on Left, Bulk Upload on Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left Column (col-span-7 or 8): New Account Form */}
-        <div className="lg:col-span-7 bg-white border border-[#DDDBDA] rounded-[4px] p-5 shadow-sm">
-          <h2 className="text-[16px] font-bold text-[#181818] mb-4">
-            New Account
+      {/* Top Banner */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card">
+        <div className="flex items-center space-x-2 mb-1">
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+            CLIENT ONBOARDING
+          </span>
+          <span className="text-[11px] text-[#94A3B8]">·</span>
+          <span className="text-[12px] text-[#64748B]">Registration & Data Import</span>
+        </div>
+        <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+          New Account Registration
+        </h1>
+        <p className="text-[14px] text-[#64748B] mt-0.5">
+          Add an individual enterprise client account or bulk-upload accounts from a spreadsheet.
+        </p>
+      </div>
+
+      {/* Two Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (7 cols): New Account Form */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card">
+          <h2 className="text-[17px] font-bold text-[#0F172A] tracking-tight mb-5 pb-3 border-b border-[#E5E7EB]">
+            Account Details
           </h2>
 
-          <form onSubmit={handleSaveAccount} className="space-y-4 text-[13px]">
+          <form onSubmit={handleSaveAccount} className="space-y-4 text-[14px]">
             {/* Row 1: Company name, Industry, City */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
-                  * Company name
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Company name <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
                   Industry
                 </label>
                 <input
                   type="text"
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
                   City
                 </label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Row 2: Account manager, Contract value, Payment terms */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
-                  * Account manager
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Account manager <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={accountManager}
                   onChange={(e) => setAccountManager(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
                   Contract value
                 </label>
                 <input
                   type="text"
                   value={contractValue}
                   onChange={(e) => setContractValue(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
                   Payment terms
                 </label>
                 <input
                   type="text"
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Row 3: Primary contact, Contact email, Phone */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
-                  * Primary contact
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Primary contact <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={primaryContact}
                   onChange={(e) => setPrimaryContact(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
-                  * Contact email
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Contact email <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="email"
                   required
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
-                <span className="block text-[10.5px] text-[#5C5C5C] mt-0.5">
+                <span className="block text-[11px] text-[#64748B] mt-1">
                   Becomes the client&apos;s portal login ID
                 </span>
               </div>
 
               <div>
-                <label className="block text-[11px] text-[#5C5C5C] font-normal mb-1">
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
                   Phone
                 </label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Row 4: Services purchased chips */}
-            <div>
-              <label className="block text-[11px] text-[#5C5C5C] font-normal mb-2">
+            <div className="pt-2">
+              <label className="block text-[13px] font-semibold text-[#0F172A] mb-2">
                 Services purchased
               </label>
               <div className="flex flex-wrap gap-2">
@@ -300,10 +312,10 @@ export default function NewAccountPage() {
                       type="button"
                       key={svc}
                       onClick={() => toggleService(svc)}
-                      className={`h-7 px-3 rounded-[3px] text-[12px] font-normal transition-colors select-none ${
+                      className={`h-8 px-3.5 rounded-full text-[13px] font-medium transition-all select-none ${
                         isSelected
-                          ? "bg-[#EAF5FE] text-[#0176D3] border border-[#0176D3] font-medium"
-                          : "bg-white text-[#5C5C5C] border border-[#DDDBDA] hover:bg-[#F3F3F3]"
+                          ? "bg-[#EEF2FF] text-[#5B4BDB] border border-[#5B4BDB] shadow-soft"
+                          : "bg-[#F8F9FB] text-[#64748B] border border-[#E5E7EB] hover:bg-[#F1F5F9]"
                       }`}
                     >
                       {svc}
@@ -313,17 +325,17 @@ export default function NewAccountPage() {
               </div>
             </div>
 
-            {/* Bottom Actions: Cancel & Save and create portal access */}
-            <div className="flex items-center justify-end space-x-2 pt-4 border-t border-[#DDDBDA]">
+            {/* Bottom Actions */}
+            <div className="flex items-center justify-end space-x-3 pt-5 border-t border-[#E5E7EB]">
               <Link
                 href="/internal/clients"
-                className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors flex items-center justify-center"
+                className="h-10 px-4 bg-white border border-[#E5E7EB] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8F9FB] text-[13px] font-medium rounded-xl transition-colors flex items-center justify-center"
               >
                 Cancel
               </Link>
               <button
                 type="submit"
-                className="h-8 px-4 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm"
+                className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft"
               >
                 Save and create portal access
               </button>
@@ -331,18 +343,17 @@ export default function NewAccountPage() {
           </form>
         </div>
 
-        {/* Right Column (col-span-5 or 4): Bulk upload */}
-        <div className="lg:col-span-5 bg-white border border-[#DDDBDA] rounded-[4px] p-5 shadow-sm space-y-4 text-[13px]">
+        {/* Right Column (5 cols): Bulk upload */}
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card space-y-5 text-[14px]">
           <div>
-            <h2 className="text-[16px] font-bold text-[#181818]">
+            <h2 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
               Bulk upload
             </h2>
-            <p className="text-[12px] text-[#5C5C5C] mt-0.5">
+            <p className="text-[13px] text-[#64748B] mt-0.5">
               Add many accounts at once from an Excel sheet.
             </p>
           </div>
 
-          {/* Hidden File Input */}
           <input
             type="file"
             ref={fileInputRef}
@@ -351,52 +362,60 @@ export default function NewAccountPage() {
             className="hidden"
           />
 
-          {/* Drop Zone Box */}
+          {/* Dashed-border drag-and-drop upload box with centered cloud-upload icon */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="h-40 border border-[#DDDBDA] rounded-[4px] bg-[#F3F3F3]/50 flex flex-col items-center justify-center cursor-pointer hover:bg-[#F3F3F3] transition-colors select-none p-4 text-center group"
+            className="h-44 border-2 border-dashed border-[#E5E7EB] hover:border-[#5B4BDB] rounded-2xl bg-[#F8F9FB] flex flex-col items-center justify-center cursor-pointer transition-all p-4 text-center group select-none"
           >
-            <Upload className="h-6 w-6 text-[#706E6B] mb-2 group-hover:text-[#0176D3] transition-colors" />
-            <span className="text-[13px] text-[#5C5C5C] font-normal">
-              {isUploading ? "Uploading spreadsheet..." : "Drop an Excel file here"}
-            </span>
+            <div className="h-12 w-12 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#5B4BDB] mb-3 group-hover:scale-110 transition-transform shadow-soft">
+              <UploadCloud className="h-6 w-6 stroke-[1.8]" />
+            </div>
+            <p className="text-[13px] font-medium text-[#0F172A]">
+              Drop an Excel file here, or{" "}
+              <span className="text-[#5B4BDB] font-semibold hover:underline">
+                browse
+              </span>
+            </p>
+            <p className="text-[11px] text-[#94A3B8] mt-1">
+              Supports .XLSX, .XLS, or .CSV (up to 10MB)
+            </p>
           </div>
 
           {/* Buttons: Choose file & Download template */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm"
+              className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft"
             >
               Choose file
             </button>
             <button
               type="button"
               onClick={handleDownloadTemplate}
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm flex items-center space-x-1.5"
+              className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
             >
-              <Download className="h-3.5 w-3.5 text-[#5C5C5C]" />
+              <Download className="h-4 w-4 text-[#64748B]" />
               <span>Download template</span>
             </button>
           </div>
 
-          {/* Last upload Summary Box (Page 6 of PDF) */}
+          {/* Last upload Summary Box */}
           {uploadResult && (
             <div className="pt-2">
-              <div className="text-[11px] text-[#5C5C5C] font-bold uppercase mb-1">
+              <div className="text-[11px] text-[#94A3B8] font-bold uppercase tracking-wider mb-2">
                 Last upload
               </div>
-              <div className="border border-[#DDDBDA] rounded-[4px] p-3 bg-white space-y-1">
+              <div className="border border-[#E5E7EB] rounded-xl p-4 bg-[#F8F9FB] space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[#181818]">
+                  <span className="text-[13.5px] font-semibold text-[#0F172A]">
                     {uploadResult.filename}
                   </span>
-                  <span className="px-2 py-0.5 rounded-[3px] bg-[#EBF7E6] text-[#2E844A] text-[11px] font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] text-xs font-bold">
                     {uploadResult.status}
                   </span>
                 </div>
-                <div className="text-[12px] text-[#5C5C5C]">
+                <div className="text-[12.5px] text-[#64748B]">
                   {uploadResult.total} rows · {uploadResult.imported} imported · {uploadResult.needReview} need review
                 </div>
               </div>
@@ -407,4 +426,3 @@ export default function NewAccountPage() {
     </div>
   );
 }
-

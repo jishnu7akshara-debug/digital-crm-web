@@ -49,8 +49,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F3F3] flex flex-col text-[#181818]">
-      <React.Suspense fallback={<div className="h-14 bg-[#032D60]" />}>
+    <div className="min-h-screen bg-[#F8F9FB] flex flex-col text-[#0F172A] font-sans">
+      <React.Suspense fallback={<div className="h-16 bg-white border-b border-[#E5E7EB]" />}>
         <PortalHeader />
       </React.Suspense>
       <div className="flex-1 overflow-y-auto">

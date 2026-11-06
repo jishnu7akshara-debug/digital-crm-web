@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { FolderKanban, Plus, Search, ChevronRight } from "lucide-react";
+import { FolderKanban, Plus, Search, ChevronRight, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 
 const DEFAULT_PROJECTS = [
@@ -83,109 +83,109 @@ export default function ProjectsListPage() {
   );
 
   return (
-    <div className="space-y-3">
-      {/* Salesforce Record Header: Green Tile 'P' (#3BA755) + Projects */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-[4px] bg-[#3BA755] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
-              P
-            </div>
-            <div>
-              <div className="text-[11px] text-[#5C5C5C] font-normal leading-none mb-0.5">
-                Projects
-              </div>
-              <h1 className="text-xl font-bold text-[#181818] leading-tight">
-                All Projects
-              </h1>
-            </div>
+    <div className="space-y-6 pb-12">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              DELIVERY WORKSPACES
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              {filtered.length} Active Workspaces
+            </span>
           </div>
-
-          <div className="flex items-center space-x-2">
-            <Link
-              href="/internal/projects/proj-peak-web"
-              className="h-8 px-3.5 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <span>Website redesign</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Client Projects & Delivery Lifecycles
+          </h1>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Monitor sprint progress, review deliverables, and task completion across accounts.
+          </p>
         </div>
 
-        <div className="text-[12px] text-[#5C5C5C] mt-2">
-          {filtered.length} items · Sorted by Priority · Filtered by All Projects
+        <div className="flex items-center space-x-3 shrink-0">
+          <Link
+            href="/internal/projects/proj-peak-web"
+            className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
+          >
+            <span>Website redesign</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar Card */}
+      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#94A3B8]" />
+          <input
+            type="text"
+            placeholder="Search projects or accounts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-9 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 transition-all"
+          />
+        </div>
+
+        <div className="text-[13px] text-[#64748B]">
+          {filtered.length} projects · Sorted by Priority
         </div>
       </div>
 
       {/* Projects Table */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] shadow-sm overflow-hidden">
-        <div className="p-3 border-b border-[#DDDBDA] flex items-center justify-between">
-          <div className="relative w-72">
-            <input
-              type="text"
-              placeholder="Search projects..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-8 pl-3 pr-8 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
-            />
-            <Search className="h-3.5 w-3.5 text-[#5C5C5C] absolute right-2.5 top-2.5" />
-          </div>
-        </div>
-
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13px]">
+          <table className="w-full text-left border-collapse text-[13.5px]">
             <thead>
-              <tr className="border-b border-[#DDDBDA] bg-[#F3F3F3]/60 text-[11px] text-[#5C5C5C] uppercase font-bold tracking-wider">
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C]">Project Name</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Account</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Service</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Stage</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Manager</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Progress</th>
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C]">Due Date</th>
+              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Project Name</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Account</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Service</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Stage</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Manager</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Progress</th>
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Due Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#DDDBDA]">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {filtered.map((proj: any) => (
                 <tr
                   key={proj.id}
-                  className="hover:bg-[#F3F3F3]/60 transition-colors group cursor-pointer"
+                  className="hover:bg-[#F8F9FB] transition-colors group cursor-pointer"
                 >
-                  <td className="py-2.5 px-4">
+                  <td className="py-3.5 px-4">
                     <Link
                       href={`/internal/projects/${proj.id}`}
-                      className="text-[#0176D3] hover:underline font-medium flex items-center space-x-1.5"
+                      className="text-[#5B4BDB] hover:underline font-semibold flex items-center space-x-1.5"
                     >
                       <span>{proj.name}</span>
                     </Link>
                   </td>
-                  <td className="py-2.5 px-3 text-[#181818]">
-                    <Link
-                      href="/internal/clients"
-                      className="hover:text-[#0176D3] hover:underline"
-                    >
+                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">
+                    <Link href="/internal/clients/CLI-PEAK-001" className="hover:underline hover:text-[#5B4BDB]">
                       {proj.account_name}
                     </Link>
                   </td>
-                  <td className="py-2.5 px-3 text-[#5C5C5C]">{proj.service}</td>
-                  <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 rounded-[3px] bg-[#EAF5FE] text-[#0176D3] font-medium text-[11px] capitalize">
+                  <td className="py-3.5 px-3 text-[#64748B]">{proj.service}</td>
+                  <td className="py-3.5 px-3">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] font-semibold text-xs capitalize">
                       {proj.stage}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-[#181818]">{proj.manager}</td>
-                  <td className="py-2.5 px-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-20 bg-[#DDDBDA] h-1.5 rounded-full overflow-hidden">
+                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">{proj.manager}</td>
+                  <td className="py-3.5 px-3">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-24 bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
                         <div
-                          className="bg-[#0176D3] h-full rounded-full"
+                          className="bg-[#5B4BDB] h-full rounded-full transition-all duration-500"
                           style={{ width: `${proj.progress}%` }}
                         />
                       </div>
-                      <span className="text-[11px] text-[#5C5C5C]">{proj.progress}%</span>
+                      <span className="text-[12px] font-semibold text-[#64748B]">{proj.progress}%</span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-4 text-[#5C5C5C]">{proj.due_date}</td>
+                  <td className="py-3.5 px-4 text-[#64748B]">{proj.due_date}</td>
                 </tr>
               ))}
             </tbody>

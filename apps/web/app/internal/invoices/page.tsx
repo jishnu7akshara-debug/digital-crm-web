@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, FileText, Download, CheckCircle2, CreditCard } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Plus, Search, FileText, Download, Receipt, Building2 } from "lucide-react";
 import { api } from "@/lib/api";
 
 const DEFAULT_INVOICES = [
@@ -90,84 +90,97 @@ export default function InvoicesPage() {
   );
 
   return (
-    <div className="space-y-3 pb-8">
-      {/* Salesforce Record Header: Blue Tile 'I' (#0176D3) + Invoices */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-[4px] bg-[#0176D3] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
-              I
-            </div>
-            <div>
-              <div className="text-[11px] text-[#5C5C5C] font-normal leading-none mb-0.5">
-                Finance
-              </div>
-              <h1 className="text-xl font-bold text-[#181818] leading-tight">
-                Invoices
-              </h1>
-            </div>
+    <div className="space-y-6 pb-12">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              FINANCE & BILLING
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              GST Compliant (CGST/SGST/IGST)
+            </span>
           </div>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Invoices & Commercial Billing
+          </h1>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Issue GST tax invoices, track payment allocations, and monitor receivables.
+          </p>
         </div>
 
-        <div className="text-[12px] text-[#5C5C5C] mt-2">
-          {filtered.length} items · Sorted by Issue Date · Filtered by All Invoices
+        <div className="flex items-center space-x-3 shrink-0">
+          <Link
+            href="/internal/reports"
+            className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <Download className="h-4 w-4 text-[#64748B]" />
+            <span>Export GST Summary</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar Card */}
+      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#94A3B8]" />
+          <input
+            type="text"
+            placeholder="Search invoices or clients..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-9 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 transition-all"
+          />
+        </div>
+
+        <div className="text-[13px] text-[#64748B]">
+          {filtered.length} invoices · Sorted by Issue Date
         </div>
       </div>
 
       {/* Invoices Table */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] shadow-sm overflow-hidden">
-        <div className="p-3 border-b border-[#DDDBDA] flex items-center justify-between">
-          <div className="relative w-72">
-            <input
-              type="text"
-              placeholder="Search invoices or clients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-8 pl-3 pr-8 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
-            />
-            <Search className="h-3.5 w-3.5 text-[#5C5C5C] absolute right-2.5 top-2.5" />
-          </div>
-        </div>
-
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13px]">
+          <table className="w-full text-left border-collapse text-[13.5px]">
             <thead>
-              <tr className="border-b border-[#DDDBDA] bg-[#F3F3F3]/60 text-[11px] text-[#5C5C5C] uppercase font-bold tracking-wider">
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C]">Invoice Number</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Account</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Amount</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Balance Due</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Issue Date</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Status</th>
+              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Invoice Number</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Account</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Amount</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Balance Due</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Issue Date</th>
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#DDDBDA]">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {filtered.map((inv: any) => (
                 <tr
                   key={inv.id}
-                  className="hover:bg-[#F3F3F3]/60 transition-colors group cursor-pointer"
+                  className="hover:bg-[#F8F9FB] transition-colors group cursor-pointer"
                 >
-                  <td className="py-2.5 px-4 font-medium text-[#0176D3]">
+                  <td className="py-3.5 px-4 font-semibold text-[#5B4BDB]">
                     {inv.invoice_number}
                   </td>
-                  <td className="py-2.5 px-3 text-[#181818]">
-                    <Link href="/internal/clients" className="hover:underline">
+                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">
+                    <Link href="/internal/clients/CLI-PEAK-001" className="hover:underline hover:text-[#5B4BDB]">
                       {inv.client_name}
                     </Link>
                   </td>
-                  <td className="py-2.5 px-3 font-medium text-[#181818]">
+                  <td className="py-3.5 px-3 font-bold text-[#0F172A]">
                     ₹{Number(inv.total_rupees).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-2.5 px-3 text-[#5C5C5C]">
+                  <td className="py-3.5 px-3 text-[#64748B]">
                     ₹{Number(inv.balance_rupees).toLocaleString("en-IN")}
                   </td>
-                  <td className="py-2.5 px-3 text-[#5C5C5C]">{inv.issue_date}</td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-3.5 px-3 text-[#64748B]">{inv.issue_date}</td>
+                  <td className="py-3.5 px-4">
                     <span
-                      className={`px-2 py-0.5 rounded-[3px] text-[11px] font-medium ${
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         inv.isPaid
-                          ? "bg-[#EBF7E6] text-[#2E844A]"
-                          : "bg-[#FEF1D6] text-[#8A5200]"
+                          ? "bg-[#ECFDF5] text-[#059669]"
+                          : "bg-[#FFFBEB] text-[#D97706]"
                       }`}
                     >
                       {inv.status}

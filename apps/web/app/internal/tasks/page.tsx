@@ -10,11 +10,8 @@ import {
   CheckCircle2,
   AlertCircle,
   FolderKanban,
+  ArrowRight,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
@@ -42,7 +39,6 @@ export default function StaffTasksPage() {
     queryFn: () => api.get<any>("/projects?page_size=20"),
   });
 
-  // Collect tasks from all projects
   const [tasks, setTasks] = useState<TaskItem[]>([]);
 
   React.useEffect(() => {
@@ -86,109 +82,157 @@ export default function StaffTasksPage() {
   });
 
   return (
-    <>
-      <Header
-        title="My Tasks & Assignments"
-        subtitle="Operational tasks, collaborators, and milestone deadlines"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        <div className="flex items-center space-x-2">
-          <Button
-            size="sm"
-            variant={filter === "all" ? "primary" : "outline"}
-            onClick={() => setFilter("all")}
-          >
-            All Tasks ({tasks.length})
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === "pending" ? "primary" : "outline"}
-            onClick={() => setFilter("pending")}
-          >
-            Pending
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === "completed" ? "primary" : "outline"}
-            onClick={() => setFilter("completed")}
-          >
-            Completed
-          </Button>
+    <div className="space-y-6 select-none">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              OPERATIONS & DELIVERY
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              Sprint Tasks
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Tasks & Work Items
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Operational work items, milestone deliverables, and client-visible status.
+          </p>
         </div>
 
-        <Card>
-          <CardHeader className="p-4 border-b border-[#E9E5F0]">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-[#77738A]">
-              Task Assignments ({filteredTasks.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#E9E5F0] bg-[#F8F8FC] text-[#77738A] font-medium">
-                  <th className="py-3 px-4">Task</th>
-                  <th className="py-3 px-4">Project</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Logged Hours</th>
-                  <th className="py-3 px-4">Due Date</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+        {/* Filter Pills */}
+        <div className="flex items-center space-x-2 bg-[#F8F9FB] p-1.5 rounded-xl border border-[#E5E7EB]">
+          <button
+            onClick={() => setFilter("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              filter === "all"
+                ? "bg-white text-[#5B4BDB] shadow-soft"
+                : "text-[#64748B] hover:text-[#0F172A]"
+            }`}
+          >
+            All Tasks ({tasks.length})
+          </button>
+          <button
+            onClick={() => setFilter("pending")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              filter === "pending"
+                ? "bg-white text-[#5B4BDB] shadow-soft"
+                : "text-[#64748B] hover:text-[#0F172A]"
+            }`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setFilter("completed")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              filter === "completed"
+                ? "bg-white text-[#5B4BDB] shadow-soft"
+                : "text-[#64748B] hover:text-[#0F172A]"
+            }`}
+          >
+            Completed
+          </button>
+        </div>
+      </div>
+
+      {/* Task Assignments Table */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
+        <div className="p-5 border-b border-[#E5E7EB]">
+          <h3 className="text-base font-bold text-[#0F172A] tracking-tight">
+            Task Assignments ({filteredTasks.length})
+          </h3>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-[#F1F5F9] bg-[#F8F9FB] text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+                <th className="py-3 px-5">Task</th>
+                <th className="py-3 px-5">Project</th>
+                <th className="py-3 px-5">Priority</th>
+                <th className="py-3 px-5">Status</th>
+                <th className="py-3 px-5">Logged Hours</th>
+                <th className="py-3 px-5">Due Date</th>
+                <th className="py-3 px-5 text-right">Workspace</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F1F5F9]">
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-[#64748B]">
+                    Loading tasks...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E9E5F0]">
-                {isLoading && (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-[#77738A]">
-                      Loading tasks...
-                    </td>
-                  </tr>
-                )}
-                {filteredTasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-[#F8F8FC]">
-                    <td className="py-3 px-4 font-semibold text-[#1D1930]">{task.title}</td>
-                    <td className="py-3 px-4 text-[#77738A]">{task.project_name || "Workspace"}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant={task.priority === "urgent" ? "danger" : "default"} className="text-[10px]">
-                        {task.priority.toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <select
-                        value={task.status}
-                        onChange={(e) =>
-                          updateStatusMutation.mutate({
-                            taskId: task.id,
-                            status: e.target.value,
-                          })
-                        }
-                        className="text-xs border border-[#E9E5F0] rounded px-2 py-1 bg-white font-medium"
-                      >
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="in_review">In Review</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-[#77738A]">
-                      {task.logged_hours}h / {task.estimated_hours}h
-                    </td>
-                    <td className="py-3 px-4 text-[#77738A]">{task.due_date ? formatDate(task.due_date) : "—"}</td>
-                    <td className="py-3 px-4 text-right">
-                      <Link href={`/internal/projects/${task.project_id}`}>
-                        <Button variant="outline" size="sm" className="h-7 text-xs">
-                          Workspace <ExternalLink className="h-3 w-3 ml-1 text-[#6C3BDB]" />
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      </main>
-    </>
+              )}
+              {filteredTasks.length === 0 && !isLoading && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-[#64748B]">
+                    No tasks found in this view.
+                  </td>
+                </tr>
+              )}
+              {filteredTasks.map((task) => (
+                <tr key={task.id} className="hover:bg-[#F8F9FB] transition-colors">
+                  <td className="py-3.5 px-5 font-semibold text-[#0F172A]">
+                    {task.title}
+                  </td>
+                  <td className="py-3.5 px-5 text-[#64748B]">
+                    {task.project_name || "Workspace"}
+                  </td>
+                  <td className="py-3.5 px-5">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        task.priority === "urgent"
+                          ? "bg-[#FFF1F2] text-[#E11D48]"
+                          : task.priority === "high"
+                          ? "bg-[#FFF7ED] text-[#EA580C]"
+                          : "bg-[#F1F5F9] text-[#64748B]"
+                      }`}
+                    >
+                      {task.priority.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-5">
+                    <select
+                      value={task.status}
+                      onChange={(e) =>
+                        updateStatusMutation.mutate({
+                          taskId: task.id,
+                          status: e.target.value,
+                        })
+                      }
+                      className="text-xs border border-[#E5E7EB] rounded-lg px-2.5 py-1 bg-white font-medium text-[#0F172A] focus:outline-none focus:border-[#5B4BDB]"
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="in_review">In Review</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </td>
+                  <td className="py-3.5 px-5 font-mono text-xs text-[#64748B]">
+                    {task.logged_hours}h / {task.estimated_hours}h
+                  </td>
+                  <td className="py-3.5 px-5 text-xs text-[#64748B]">
+                    {task.due_date ? formatDate(task.due_date) : "—"}
+                  </td>
+                  <td className="py-3.5 px-5 text-right">
+                    <Link
+                      href={`/internal/projects/${task.project_id}`}
+                      className="inline-flex items-center space-x-1 text-xs font-semibold text-[#5B4BDB] hover:underline"
+                    >
+                      <span>Open Workspace</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
-

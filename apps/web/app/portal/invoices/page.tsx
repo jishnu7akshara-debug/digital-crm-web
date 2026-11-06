@@ -3,7 +3,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Download } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,21 @@ export default function PortalInvoicesPage() {
   });
 
   return (
-    <>
-      <Header
-        title="Billing & Tax Invoices"
-        subtitle="GST compliant tax invoices, payment histories, and official receipts"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Top Banner */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-1">
+            CLIENT ACCOUNTING
+          </span>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Billing & Tax Invoices
+          </h1>
+          <p className="text-[13px] text-[#64748B] mt-0.5">
+            GST compliant tax invoices, payment histories, and official receipts.
+          </p>
+        </div>
+      </div>
         <Card>
           <CardHeader className="p-4 border-b border-[#E9E5F0]">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-[#77738A]">
@@ -88,8 +95,7 @@ export default function PortalInvoicesPage() {
             </table>
           </CardContent>
         </Card>
-      </main>
-    </>
+    </div>
   );
 }
 

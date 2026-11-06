@@ -3,21 +3,18 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  Compass,
+  TrendingUp,
   Plus,
   Search,
   Filter,
-  DollarSign,
   Calendar,
-  Building,
+  Building2,
   User,
-  MoreVertical,
-  CheckCircle2,
-  Clock,
   ArrowRight,
+  CheckCircle2,
+  X,
+  Clock,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Button } from "@/components/ui/button";
 
 interface Opportunity {
   id: string;
@@ -145,17 +142,19 @@ const INITIAL_OPPORTUNITIES: Opportunity[] = [
 ];
 
 const STAGES = [
-  { key: "leads", label: "Leads", count: 18, total: "₹4,20,000", color: "border-purple-200 bg-purple-50/50" },
-  { key: "qualified", label: "Qualified", count: 11, total: "₹6,10,000", color: "border-blue-200 bg-blue-50/50" },
-  { key: "proposal", label: "Proposal", count: 8, total: "₹7,50,000", color: "border-indigo-200 bg-indigo-50/50" },
-  { key: "negotiation", label: "Negotiation", count: 5, total: "₹4,00,000", color: "border-amber-200 bg-amber-50/50" },
-  { key: "won", label: "Won", count: 4, total: "₹3,00,000", color: "border-emerald-200 bg-emerald-50/50" },
-];
+  { key: "leads", label: "Leads", count: 18, total: "₹4,20,000" },
+  { key: "qualified", label: "Qualified", count: 11, total: "₹6,10,000" },
+  { key: "proposal", label: "Proposal", count: 8, total: "₹7,50,000" },
+  { key: "negotiation", label: "Negotiation", count: 5, total: "₹4,00,000" },
+  { key: "won", label: "Won", count: 4, total: "₹3,00,000" },
+] as const;
 
 export default function OpportunitiesPage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedService, setSelectedService] = useState("All");
+
   const [newOpp, setNewOpp] = useState({
     title: "",
     client: "",
@@ -199,279 +198,285 @@ export default function OpportunitiesPage() {
     );
   };
 
-  const filteredOpps = opportunities.filter(
-    (o) =>
+  const filteredOpps = opportunities.filter((o) => {
+    const matchesSearch =
       o.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.client.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      o.client.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesService =
+      selectedService === "All" || o.service.toLowerCase().includes(selectedService.toLowerCase());
+    return matchesSearch && matchesService;
+  });
+
+  const totalValue = opportunities.reduce((acc, curr) => acc + curr.value_rupees, 0);
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-[#F8F8FC]">
-      <Header />
+    <div className="space-y-6">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              PIPELINE & SALES
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              {opportunities.length} Active Deals
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Opportunities & Deals Pipeline
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Track deal velocity, pipeline values, and conversion across sales stages.
+          </p>
+        </div>
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
-        {/* Page Title & Stats */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center space-x-2 text-xs text-[#77738A] mb-1">
-              <Link href="/internal/dashboard" className="hover:text-[#6437EA]">Dashboard</Link>
-              <span>/</span>
-              <span className="text-[#1D1930] font-medium">Opportunities</span>
-            </div>
-            <h1 className="text-2xl font-black text-[#1D1930] tracking-tight flex items-center space-x-3">
-              <span>Opportunities & Deals Pipeline</span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EFEBFC] text-[#6437EA]">
-                46 Active Deals
-              </span>
-            </h1>
-            <p className="text-xs text-[#77738A] mt-1">
-              Track deal velocity, pipeline values, and conversion across sales stages.
-            </p>
+        <div className="flex items-center space-x-3 shrink-0">
+          <div className="bg-[#F8F9FB] border border-[#E5E7EB] px-4 py-2 rounded-xl text-right">
+            <span className="text-[11px] text-[#94A3B8] uppercase font-semibold tracking-wider block">
+              Total Pipeline Value
+            </span>
+            <span className="text-base font-bold text-[#5B4BDB]">
+              ₹{totalValue.toLocaleString("en-IN")}
+            </span>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <div className="bg-white border border-[#EBE8F3] px-4 py-2 rounded-xl shadow-sm text-right">
-              <span className="text-[10px] text-[#77738A] uppercase font-bold tracking-wider block">Total Pipeline Value</span>
-              <span className="text-sm font-extrabold text-[#6437EA]">₹24,80,000</span>
-            </div>
-            <Button
-              onClick={() => setIsNewModalOpen(true)}
-              className="bg-[#6437EA] hover:bg-[#5528DA] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md flex items-center space-x-2"
+          <button
+            onClick={() => setIsNewModalOpen(true)}
+            className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>New Opportunity</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar Card */}
+      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#94A3B8]" />
+          <input
+            type="text"
+            placeholder="Search deals or clients..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-9 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 transition-all"
+          />
+        </div>
+
+        {/* Service Pills */}
+        <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto text-[13px]">
+          <span className="text-[#94A3B8] text-[12px] font-semibold mr-1 uppercase tracking-wider">
+            Services:
+          </span>
+          {["All", "Websites", "Digital Marketing", "CRM / ERP", "Branding & Media"].map((srv) => (
+            <button
+              key={srv}
+              onClick={() => setSelectedService(srv)}
+              className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                selectedService === srv
+                  ? "bg-[#5B4BDB] text-white shadow-soft"
+                  : "bg-[#F8F9FB] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]"
+              }`}
             >
-              <Plus className="h-4 w-4" />
-              <span>New Opportunity</span>
-            </Button>
-          </div>
+              {srv}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Search & Stage Filter Bar */}
-        <div className="bg-white p-4 rounded-2xl border border-[#EBE8F3] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#9D95B5]" />
-            <input
-              type="text"
-              placeholder="Search deals or clients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl pl-10 pr-4 py-2 text-xs text-[#1D1930] placeholder:text-[#9D95B5] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
-            />
-          </div>
+      {/* 5-Column Kanban Board */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+        {STAGES.map((col, idx) => {
+          const colOpps = filteredOpps.filter((o) => o.stage === col.key);
+          const colTotalRupees = colOpps.reduce((sum, o) => sum + o.value_rupees, 0);
 
-          <div className="flex items-center space-x-2 text-xs">
-            <span className="text-[#77738A]">Services:</span>
-            {["All", "Websites", "Digital Marketing", "CRM / ERP", "Branding & Media"].map((srv, idx) => (
-              <button
-                key={srv}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                  idx === 0
-                    ? "bg-[#6437EA] text-white"
-                    : "bg-[#F6F5FA] text-[#77738A] hover:text-[#1D1930]"
-                }`}
-              >
-                {srv}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 5-Column Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-          {STAGES.map((col) => {
-            const colOpps = filteredOpps.filter((o) => o.stage === col.key);
-            return (
-              <div
-                key={col.key}
-                className="bg-white rounded-2xl border border-[#EBE8F3] shadow-sm p-4 flex flex-col min-h-[500px]"
-              >
-                {/* Column Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-[#F0EDF7] mb-3">
-                  <div>
-                    <h3 className="text-xs font-bold text-[#1D1930] uppercase tracking-wider">{col.label}</h3>
-                    <span className="text-[10px] text-[#77738A] font-semibold">{col.total}</span>
+          return (
+            <div
+              key={col.key}
+              className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card p-4 flex flex-col min-h-[520px]"
+            >
+              {/* Column Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB] mb-3">
+                <div>
+                  <div className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider">
+                    {col.label}
                   </div>
-                  <span className="h-5 w-5 rounded-full bg-[#F6F5FA] text-[#6437EA] font-extrabold text-[11px] flex items-center justify-center">
-                    {colOpps.length}
-                  </span>
+                  <div className="text-[13px] font-bold text-[#0F172A] mt-0.5">
+                    ₹{colTotalRupees.toLocaleString("en-IN")}
+                  </div>
                 </div>
+                <span className="h-6 w-6 rounded-full bg-[#EEF2FF] text-[#5B4BDB] font-bold text-xs flex items-center justify-center">
+                  {colOpps.length}
+                </span>
+              </div>
 
-                {/* Cards */}
-                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {colOpps.map((opp) => (
+              {/* Cards List */}
+              <div className="space-y-3 flex-1 overflow-y-auto">
+                {colOpps.map((opp) => {
+                  let badgeClass = "bg-[#EEF2FF] text-[#5B4BDB]";
+                  if (opp.service === "Digital Marketing") badgeClass = "bg-[#F0F9FF] text-[#0284C7]";
+                  if (opp.service === "CRM / ERP") badgeClass = "bg-[#ECFDF5] text-[#059669]";
+                  if (opp.service.includes("Branding")) badgeClass = "bg-[#FFFBEB] text-[#D97706]";
+
+                  return (
                     <div
                       key={opp.id}
-                      className="bg-[#FAFAFD] hover:bg-white border border-[#EBE8F3] hover:border-[#6437EA]/40 rounded-xl p-3.5 shadow-sm transition-all group"
+                      className="bg-[#F8F9FB] hover:bg-white border border-[#E5E7EB] hover:border-[#CBD5E1] rounded-xl p-3.5 transition-all shadow-soft group"
                     >
-                      <div className="flex items-start justify-between">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#EFEBFC] text-[#6437EA]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}`}>
                           {opp.service}
                         </span>
-                        <span className="text-xs font-bold text-[#1D1930]">
+                        <span className="text-[13px] font-bold text-[#0F172A]">
                           ₹{opp.value_rupees.toLocaleString("en-IN")}
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-[#1D1930] mt-2 group-hover:text-[#6437EA] transition-colors leading-snug">
+                      <h4 className="text-[13.5px] font-semibold text-[#0F172A] leading-snug mb-1">
                         {opp.title}
                       </h4>
 
-                      <div className="flex items-center space-x-1.5 text-[11px] text-[#77738A] mt-1.5">
-                        <Building className="h-3 w-3 text-[#9D95B5]" />
-                        <span className="truncate">{opp.client}</span>
+                      <div className="flex items-center space-x-1.5 text-[12px] text-[#64748B] mb-2.5">
+                        <Building2 className="h-3.5 w-3.5 text-[#94A3B8]" />
+                        <span>{opp.client}</span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-[#F0EDF7] text-[10px] text-[#77738A]">
-                        <div className="flex items-center space-x-1">
-                          <User className="h-3 w-3 text-[#9D95B5]" />
-                          <span>{opp.owner}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-3 w-3 text-[#9D95B5]" />
+                      <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]/80 text-[11px] text-[#64748B]">
+                        <span className="flex items-center space-x-1">
+                          <User className="h-3 w-3 text-[#94A3B8]" />
+                          <span>{opp.owner.split(" ")[0]}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Clock className="h-3 w-3 text-[#94A3B8]" />
                           <span>{opp.expected_close}</span>
-                        </div>
+                        </span>
                       </div>
 
-                      {/* Stage Progression Quick Action */}
-                      <div className="mt-2.5 pt-2 border-t border-dashed border-[#EBE8F3] flex justify-end">
-                        {col.key !== "won" ? (
+                      {/* Advance Stage button */}
+                      {col.key !== "won" ? (
+                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex justify-end">
                           <button
                             onClick={() => {
-                              const nextStageMap: Record<string, Opportunity["stage"]> = {
-                                leads: "qualified",
-                                qualified: "proposal",
-                                proposal: "negotiation",
-                                negotiation: "won",
-                              };
-                              moveStage(opp.id, nextStageMap[opp.stage]);
+                              const nextStage = STAGES[idx + 1]?.key;
+                              if (nextStage) moveStage(opp.id, nextStage);
                             }}
-                            className="text-[10px] text-[#6437EA] hover:text-[#5528DA] font-semibold flex items-center space-x-1"
+                            className="text-[11.5px] font-semibold text-[#5B4BDB] hover:text-[#4B3DC7] flex items-center space-x-1"
                           >
                             <span>Advance Stage</span>
                             <ArrowRight className="h-3 w-3" />
                           </button>
-                        ) : (
-                          <span className="text-[10px] text-emerald-600 font-bold flex items-center space-x-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>Deal Closed</span>
-                          </span>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-end text-[11.5px] font-semibold text-[#059669]">
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          <span>Deal Closed</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  );
+                })}
 
-                  {colOpps.length === 0 && (
-                    <div className="py-8 text-center text-xs text-[#9D95B5] border-2 border-dashed border-[#EBE8F3] rounded-xl">
-                      No deals in this stage
-                    </div>
-                  )}
-                </div>
+                {colOpps.length === 0 && (
+                  <div className="h-32 border border-dashed border-[#E5E7EB] rounded-xl flex items-center justify-center text-[12px] text-[#94A3B8]">
+                    No deals in this stage
+                  </div>
+                )}
               </div>
-            );
-          })}
-        </div>
-      </main>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Add Opportunity Modal */}
+      {/* New Opportunity Modal */}
       {isNewModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#EBE8F3] animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-base font-bold text-[#1D1930] mb-1">Create New Opportunity</h3>
-            <p className="text-xs text-[#77738A] mb-4">Add a new prospective deal into the pipeline.</p>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] w-full max-w-md shadow-dropdown p-6 text-[14px]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <h3 className="font-bold text-[16px] text-[#0F172A]">Create New Opportunity</h3>
+              <button
+                onClick={() => setIsNewModalOpen(false)}
+                className="text-[#64748B] hover:text-[#0F172A]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleAddOpportunity} className="space-y-4 text-xs">
+            <form onSubmit={handleAddOpportunity} className="mt-4 space-y-4">
               <div>
-                <label className="block text-[11px] font-semibold text-[#1D1930] mb-1">Deal Title *</label>
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Opportunity Title <span className="text-[#E11D48]">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Brand Refresh & Website Portal"
+                  placeholder="e.g. E-Commerce Redesign"
                   value={newOpp.title}
                   onChange={(e) => setNewOpp({ ...newOpp, title: e.target.value })}
-                  className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl px-3.5 py-2 text-xs text-[#1D1930] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#1D1930] mb-1">Client / Company Name *</label>
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Client / Account Name <span className="text-[#E11D48]">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Acme Tech Solutions"
+                  placeholder="e.g. Sashikiran Surveyors"
                   value={newOpp.client}
                   onChange={(e) => setNewOpp({ ...newOpp, client: e.target.value })}
-                  className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl px-3.5 py-2 text-xs text-[#1D1930] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#1D1930] mb-1">Service Category</label>
+                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                    Service Category
+                  </label>
                   <select
                     value={newOpp.service}
                     onChange={(e) => setNewOpp({ ...newOpp, service: e.target.value })}
-                    className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl px-3 py-2 text-xs text-[#1D1930] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
                   >
                     <option value="Websites">Websites</option>
                     <option value="Digital Marketing">Digital Marketing</option>
                     <option value="CRM / ERP">CRM / ERP</option>
                     <option value="Branding & Media">Branding & Media</option>
-                    <option value="Others">Others</option>
+                    <option value="EdTech">EdTech</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#1D1930] mb-1">Deal Value (₹)</label>
+                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                    Value (₹ INR)
+                  </label>
                   <input
                     type="number"
                     placeholder="250000"
                     value={newOpp.value_rupees}
                     onChange={(e) => setNewOpp({ ...newOpp, value_rupees: e.target.value })}
-                    className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl px-3 py-2 text-xs text-[#1D1930] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1D1930] mb-1">Initial Stage</label>
-                  <select
-                    value={newOpp.stage}
-                    onChange={(e) => setNewOpp({ ...newOpp, stage: e.target.value as Opportunity["stage"] })}
-                    className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl px-3 py-2 text-xs text-[#1D1930] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
-                  >
-                    <option value="leads">Leads</option>
-                    <option value="qualified">Qualified</option>
-                    <option value="proposal">Proposal</option>
-                    <option value="negotiation">Negotiation</option>
-                    <option value="won">Won</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1D1930] mb-1">Deal Owner</label>
-                  <input
-                    type="text"
-                    value={newOpp.owner}
-                    onChange={(e) => setNewOpp({ ...newOpp, owner: e.target.value })}
-                    className="w-full bg-[#F6F5FA] border border-[#ECE9F4] rounded-xl px-3 py-2 text-xs text-[#1D1930] focus:outline-none focus:ring-1 focus:ring-[#6437EA]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-4 border-t border-[#F0EDF7]">
-                <Button
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => setIsNewModalOpen(false)}
-                  className="text-xs px-4 py-2 rounded-xl"
+                  className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#64748B] hover:bg-[#F8F9FB]"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   type="submit"
-                  className="bg-[#6437EA] hover:bg-[#5528DA] text-white text-xs font-semibold px-4 py-2 rounded-xl"
+                  className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-[13px] font-semibold shadow-soft"
                 >
-                  Add to Pipeline
-                </Button>
+                  Create Opportunity
+                </button>
               </div>
             </form>
           </div>
@@ -480,4 +485,3 @@ export default function OpportunitiesPage() {
     </div>
   );
 }
-

@@ -15,7 +15,6 @@ import {
   Shield,
   ArrowRight,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 
 interface TeamMember {
@@ -161,49 +160,44 @@ export default function TeamPage() {
   });
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-[#F8F8FC]">
-      <Header />
-
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
-        {/* Title & Quick Link to Attendance */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center space-x-2 text-xs text-[#77738A] mb-1">
-              <Link href="/internal/dashboard" className="hover:text-[#6437EA]">Dashboard</Link>
-              <span>/</span>
-              <span className="text-[#1D1930] font-medium">Team</span>
-            </div>
-            <h1 className="text-2xl font-black text-[#1D1930] tracking-tight flex items-center space-x-3">
-              <span>Team Directory</span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EFEBFC] text-[#6437EA]">
-                {members.length} Members
-              </span>
-            </h1>
-            <p className="text-xs text-[#77738A] mt-1">
-              Manage employees, departments, roles, and view daily attendance status.
-            </p>
+    <div className="space-y-6 select-none">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              OPERATIONS & HRMS
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              {members.length} Members
+            </span>
           </div>
-
-          <div className="flex items-center space-x-3">
-            <Link href="/internal/attendance">
-              <Button
-                variant="outline"
-                className="text-xs px-4 py-2.5 rounded-xl border-[#EBE8F3] text-[#6437EA] hover:bg-[#EFEBFC] flex items-center space-x-2"
-              >
-                <Clock className="h-4 w-4" />
-                <span>Attendance & Timesheets</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-[#6437EA] hover:bg-[#5528DA] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md flex items-center space-x-2"
-            >
-              <UserPlus className="h-4 w-4" />
-              <span>Add Member</span>
-            </Button>
-          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Team Directory & Staff
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Manage employees, departments, roles, and view daily attendance status.
+          </p>
         </div>
+
+        <div className="flex items-center space-x-3 shrink-0">
+          <Link
+            href="/internal/attendance"
+            className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-2"
+          >
+            <Clock className="h-4 w-4 text-[#5B4BDB]" />
+            <span>Attendance Logs</span>
+          </Link>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-10 px-4 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-[13px] font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Add Member</span>
+          </button>
+        </div>
+      </div>
 
         {/* Filter Bar */}
         <div className="bg-white p-4 rounded-2xl border border-[#EBE8F3] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -292,7 +286,6 @@ export default function TeamPage() {
             );
           })}
         </div>
-      </main>
 
       {/* Add Member Modal */}
       {isModalOpen && (

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, FileText, Upload, ChevronRight } from "lucide-react";
+import { Plus, Search, FileText, Upload, Building2, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 
 const DEFAULT_ACCOUNTS = [
@@ -126,106 +126,109 @@ export default function AccountsListPage() {
   );
 
   return (
-    <div className="space-y-3 pb-8">
-      {/* Salesforce Record Header: Purple Tile 'A' (#7F8DE1) + Accounts */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-[4px] bg-[#7F8DE1] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
-              A
-            </div>
-            <div>
-              <div className="text-[11px] text-[#5C5C5C] font-normal leading-none mb-0.5">
-                Accounts
-              </div>
-              <h1 className="text-xl font-bold text-[#181818] leading-tight">
-                Recently Viewed
-              </h1>
-            </div>
+    <div className="space-y-6 pb-12">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              CORE CRM
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              {accounts.length} Total Accounts
+            </span>
           </div>
-
-          <div className="flex items-center space-x-2">
-            <Link
-              href="/internal/clients/new"
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <Upload className="h-3.5 w-3.5 text-[#5C5C5C]" />
-              <span>Import</span>
-            </Link>
-            <Link
-              href="/internal/agreements"
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <FileText className="h-3.5 w-3.5 text-[#5C5C5C]" />
-              <span>Agreements</span>
-            </Link>
-            <Link
-              href="/internal/clients/new"
-              className="h-8 px-3.5 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>New Account</span>
-            </Link>
-          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Client Accounts Directory
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Manage agency clients, primary contacts, and subscription lifecycles.
+          </p>
         </div>
 
-        <div className="text-[12px] text-[#5C5C5C] mt-2">
-          {filtered.length} items · Sorted by Account name · Filtered by All accounts
+        <div className="flex items-center space-x-3 shrink-0">
+          <Link
+            href="/internal/clients/new"
+            className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <Upload className="h-4 w-4 text-[#64748B]" />
+            <span>Bulk Import</span>
+          </Link>
+          <Link
+            href="/internal/agreements"
+            className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <FileText className="h-4 w-4 text-[#64748B]" />
+            <span>Agreements</span>
+          </Link>
+          <Link
+            href="/internal/clients/new"
+            className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            <span>New Account</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar Card */}
+      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#94A3B8]" />
+          <input
+            type="text"
+            placeholder="Search accounts or cities..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-9 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 transition-all"
+          />
+        </div>
+
+        <div className="text-[13px] text-[#64748B]">
+          {filtered.length} accounts · Sorted by Account name
         </div>
       </div>
 
       {/* Accounts Table */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] shadow-sm overflow-hidden">
-        <div className="p-3 border-b border-[#DDDBDA] flex items-center justify-between">
-          <div className="relative w-72">
-            <input
-              type="text"
-              placeholder="Search accounts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-8 pl-3 pr-8 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
-            />
-            <Search className="h-3.5 w-3.5 text-[#5C5C5C] absolute right-2.5 top-2.5" />
-          </div>
-        </div>
-
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13px]">
+          <table className="w-full text-left border-collapse text-[13.5px]">
             <thead>
-              <tr className="border-b border-[#DDDBDA] bg-[#F3F3F3]/60 text-[11px] text-[#5C5C5C] uppercase font-bold tracking-wider">
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C]">Account Name</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Primary Contact</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Industry</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">City</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Status</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Owner</th>
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C]">Phone</th>
+              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Account Name</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Primary Contact</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Industry</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">City</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Status</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Account Owner</th>
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Phone</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#DDDBDA]">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {filtered.map((acc: any) => (
                 <tr
                   key={acc.id}
-                  className="hover:bg-[#F3F3F3]/60 transition-colors group cursor-pointer"
+                  className="hover:bg-[#F8F9FB] transition-colors group cursor-pointer"
                 >
-                  <td className="py-2.5 px-4">
+                  <td className="py-3.5 px-4">
                     <Link
                       href={acc.name.includes("Peak") ? "/internal/clients/CLI-PEAK-001" : `/internal/clients/${acc.id}`}
-                      className="text-[#0176D3] hover:underline font-medium"
+                      className="text-[#5B4BDB] hover:underline font-semibold"
                     >
                       {acc.name}
                     </Link>
                   </td>
-                  <td className="py-2.5 px-3 text-[#181818]">{acc.contact}</td>
-                  <td className="py-2.5 px-3 text-[#5C5C5C]">{acc.industry}</td>
-                  <td className="py-2.5 px-3 text-[#181818]">{acc.city}</td>
-                  <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 rounded-[3px] bg-[#EBF7E6] text-[#2E844A] font-medium text-[11px]">
+                  <td className="py-3.5 px-3 text-[#0F172A]">{acc.contact}</td>
+                  <td className="py-3.5 px-3 text-[#64748B]">{acc.industry}</td>
+                  <td className="py-3.5 px-3 text-[#0F172A]">{acc.city}</td>
+                  <td className="py-3.5 px-3">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] font-semibold text-xs">
                       {acc.status}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-[#181818]">{acc.owner}</td>
-                  <td className="py-2.5 px-4 text-[#5C5C5C]">{acc.phone}</td>
+                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">{acc.owner}</td>
+                  <td className="py-3.5 px-4 text-[#64748B]">{acc.phone}</td>
                 </tr>
               ))}
             </tbody>

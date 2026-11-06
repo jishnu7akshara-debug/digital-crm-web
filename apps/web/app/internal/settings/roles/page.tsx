@@ -14,7 +14,6 @@ import {
   ShieldAlert,
   Save,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,25 +147,35 @@ export default function RolesManagementPage() {
   };
 
   return (
-    <>
-      <Header
-        title="Role-Based Access Control (RBAC)"
-        subtitle="Configure system permissions, record scoping (All / Assigned / Own), and custom roles"
-      />
-
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        {/* Top Header Actions */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-[#1D1930]">Security Roles & Permission Matrix</h2>
-            <p className="text-xs text-[#77738A]">
-              FastAPI server-enforced policies. Hiding UI is never authorization.
-            </p>
+    <div className="space-y-6 select-none">
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              SECURITY & ACCESS CONTROL
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              RBAC Policies
+            </span>
           </div>
-          <Button size="sm" onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" /> Create Custom Role
-          </Button>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Security Roles & Permission Matrix
+          </h2>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Server-enforced role authorization, record scoping (All / Assigned / Own), and system policies.
+          </p>
         </div>
+
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="h-10 px-4 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-[13px] font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-2 shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Create Custom Role</span>
+        </button>
+      </div>
 
         {error && (
           <div className="p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 flex items-center space-x-2">
@@ -389,8 +398,7 @@ export default function RolesManagementPage() {
             </div>
           </div>
         </Modal>
-      </main>
-    </>
+    </div>
   );
 }
 

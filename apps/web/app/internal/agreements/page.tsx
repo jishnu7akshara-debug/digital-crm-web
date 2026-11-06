@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
   Plus,
@@ -10,9 +10,9 @@ import {
   Mail,
   CheckCircle2,
   X,
-  ExternalLink,
   Copy,
   Send,
+  ExternalLink,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -98,37 +98,20 @@ const DEFAULT_AGREEMENTS: AgreementItem[] = [
 ];
 
 export default function ServiceAgreementsPage() {
-  const queryClient = useQueryClient();
   const [agreements, setAgreements] = useState<AgreementItem[]>(DEFAULT_AGREEMENTS);
   const [activeMailDraft, setActiveMailDraft] = useState<AgreementItem | null>(null);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Generate Agreement Form State
   const [newAccount, setNewAccount] = useState("Peak Fitness");
   const [newService, setNewService] = useState("Custom CRM Platform");
   const [newValue, setNewValue] = useState("₹1,20,000");
 
-  // Fetch real agreements from backend API
-  const { data: apiData } = useQuery<any>({
-    queryKey: ["agreements-list"],
-    queryFn: async () => {
-      try {
-        const res = await api.get<any>("/agreements");
-        return res;
-      } catch (e) {
-        return null;
-      }
-    },
-  });
-
-  // Calculate metrics
   const draftCount = agreements.filter((a) => a.status === "Draft").length;
   const sentCount = agreements.filter((a) => a.status === "Sent").length;
   const signedCount = agreements.filter((a) => a.status === "Signed").length;
   const expiredCount = agreements.filter((a) => a.status === "Expired").length;
 
-  // Generate Agreement Submission
   const handleGenerateAgreement = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextSeq = `DFA-2026-000${agreements.length + 2}`;
@@ -155,28 +138,15 @@ export default function ServiceAgreementsPage() {
         service_name: newService,
         value_paise: 12000000,
       });
-    } catch (err) {
-      // optimistic update retained
-    }
+    } catch (err) {}
   };
 
-  // Download Agreement Template
   const handleDownloadTemplate = () => {
     const textContent = `DIGITAL FOOTPRINT MASTER SERVICES AGREEMENT (MSA)
 Reference: DFA-TEMPLATE-STANDARD
-Digital Footprint Technologies Private Limited ("Company") & Client ("Customer")
-
-1. SCOPE OF SERVICES
-Company shall deliver web, mobile, SEO, marketing or software consulting services as detailed in the Statement of Work.
-
-2. PAYMENT TERMS
-Invoices issued with 30-day settlement SLA. Delayed payments subject to 1.5% interest per month.
-
-3. INTELLECTUAL PROPERTY
-Upon receipt of full payment, all custom deliverables transfer solely to the Customer.
-
-4. CONFIDENTIALITY & GOVERNING LAW
-Both parties agree to standard non-disclosure. Governed by the laws of India, jurisdiction Bengaluru.`;
+1. Scope of Work & Payment Terms: 30-day settlement SLA.
+2. IP Transfer upon full payment.
+3. Governed by the laws of India.`;
 
     const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -190,142 +160,138 @@ Both parties agree to standard non-disclosure. Governed by the laws of India, ju
   };
 
   return (
-    <div className="space-y-3 pb-8">
+    <div className="space-y-6 pb-12">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 z-50 bg-[#032D60] text-white px-4 py-2.5 rounded-[4px] shadow-lg flex items-center space-x-2 text-[13px] border border-[#0176D3] animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="h-4 w-4 text-[#2E844A]" />
+        <div className="fixed bottom-4 right-4 z-50 bg-[#0F172A] text-white px-4 py-3 rounded-xl shadow-dropdown flex items-center space-x-2 text-[13px] border border-[#E5E7EB] animate-in fade-in slide-in-from-bottom-2">
+          <CheckCircle2 className="h-4 w-4 text-[#059669]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Record Header Card: Green tile 'G' (#4BC076) + Service Agreements */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-[4px] bg-[#4BC076] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
-              G
-            </div>
-            <div>
-              <div className="text-[11px] text-[#5C5C5C] font-normal leading-none mb-0.5">
-                Accounts
-              </div>
-              <h1 className="text-xl font-bold text-[#181818] leading-tight">
-                Service Agreements
-              </h1>
-            </div>
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              LEGAL & CONTRACTS
+            </span>
+            <span className="text-[11px] text-[#94A3B8]">·</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
+              TCRM Sequence DFA-2026-NNNN
+            </span>
           </div>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Service Agreements Tracker
+          </h1>
+          <p className="text-[14px] text-[#64748B] mt-0.5">
+            Track automated agreement lifecycles, signature states, and client email drafts.
+          </p>
+        </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleDownloadTemplate}
-              className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <Download className="h-3.5 w-3.5 text-[#5C5C5C]" />
-              <span>Download template</span>
-            </button>
-            <button
-              onClick={() => setIsGenerateModalOpen(true)}
-              className="h-8 px-3.5 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm flex items-center space-x-1.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Generate agreement</span>
-            </button>
-          </div>
+        <div className="flex items-center space-x-3 shrink-0">
+          <button
+            onClick={handleDownloadTemplate}
+            className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <Download className="h-4 w-4 text-[#64748B]" />
+            <span>Download template</span>
+          </button>
+          <button
+            onClick={() => setIsGenerateModalOpen(true)}
+            className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Generate agreement</span>
+          </button>
         </div>
       </div>
 
-      {/* 4 Status Cards (Page 7 of PDF) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-          <div className="text-[11px] text-[#5C5C5C] font-normal">Draft</div>
-          <div className="text-2xl font-normal text-[#181818] mt-1">{draftCount}</div>
+      {/* 4 Status Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card">
+          <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Draft</div>
+          <div className="text-2xl font-bold text-[#0F172A] mt-1">{draftCount}</div>
         </div>
 
-        <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-          <div className="text-[11px] text-[#5C5C5C] font-normal">Sent, awaiting signature</div>
-          <div className="text-2xl font-normal text-[#181818] mt-1">{sentCount}</div>
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card">
+          <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Awaiting Signature</div>
+          <div className="text-2xl font-bold text-[#D97706] mt-1">{sentCount}</div>
         </div>
 
-        <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-          <div className="text-[11px] text-[#5C5C5C] font-normal">Signed</div>
-          <div className="text-2xl font-normal text-[#181818] mt-1">{signedCount}</div>
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card">
+          <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Signed</div>
+          <div className="text-2xl font-bold text-[#059669] mt-1">{signedCount}</div>
         </div>
 
-        <div className="bg-white border border-[#DDDBDA] rounded-[4px] p-3 shadow-sm">
-          <div className="text-[11px] text-[#5C5C5C] font-normal">Expired</div>
-          <div className="text-2xl font-normal text-[#181818] mt-1">{expiredCount}</div>
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card">
+          <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Expired</div>
+          <div className="text-2xl font-bold text-[#64748B] mt-1">{expiredCount}</div>
         </div>
       </div>
 
       {/* Agreements Table */}
-      <div className="bg-white border border-[#DDDBDA] rounded-[4px] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13px]">
+          <table className="w-full text-left border-collapse text-[13.5px]">
             <thead>
-              <tr className="border-b border-[#DDDBDA] bg-[#F3F3F3]/60 text-[11px] text-[#5C5C5C] uppercase font-bold tracking-wider">
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C]">Agreement no.</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Account</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Service</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Value</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Sent</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Signed copy received</th>
-                <th className="py-2.5 px-3 font-normal text-[#5C5C5C]">Status</th>
-                <th className="py-2.5 px-4 font-normal text-[#5C5C5C] text-right">Action</th>
+              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                <th className="py-3 px-4 font-semibold text-[#64748B]">Agreement no.</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Account</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Service</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Value</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Sent</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Signed copy received</th>
+                <th className="py-3 px-3 font-semibold text-[#64748B]">Status</th>
+                <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#DDDBDA]">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {agreements.map((agr) => {
-                // Status Badge styling
-                let statusBadge = "bg-[#F3F3F3] text-[#5C5C5C]";
-                if (agr.status === "Sent") statusBadge = "bg-[#FEF1D6] text-[#8A5200]";
-                if (agr.status === "Signed") statusBadge = "bg-[#EBF7E6] text-[#2E844A]";
-                if (agr.status === "Expired") statusBadge = "bg-[#FEDED8] text-[#BA0517]";
+                let badgeClass = "bg-[#F1F5F9] text-[#64748B]";
+                if (agr.status === "Sent") badgeClass = "bg-[#FFFBEB] text-[#D97706]";
+                if (agr.status === "Signed") badgeClass = "bg-[#ECFDF5] text-[#059669]";
+                if (agr.status === "Expired") badgeClass = "bg-[#FFF1F2] text-[#E11D48]";
 
                 return (
                   <tr
                     key={agr.agreement_no}
-                    className="hover:bg-[#F3F3F3]/60 transition-colors group"
+                    className="hover:bg-[#F8F9FB] transition-colors group"
                   >
-                    <td className="py-2.5 px-4">
+                    <td className="py-3.5 px-4">
                       <Link
                         href="/portal/agreements"
-                        className="text-[#0176D3] hover:underline font-medium"
+                        className="text-[#5B4BDB] hover:underline font-semibold"
                       >
                         {agr.agreement_no}
                       </Link>
                     </td>
-                    <td className="py-2.5 px-3 text-[#181818] font-normal">
-                      <Link
-                        href="/internal/clients"
-                        className="hover:text-[#0176D3] hover:underline"
-                      >
+                    <td className="py-3.5 px-3 text-[#0F172A] font-medium">
+                      <Link href="/internal/clients/CLI-PEAK-001" className="hover:text-[#5B4BDB] hover:underline">
                         {agr.account}
                       </Link>
                     </td>
-                    <td className="py-2.5 px-3 text-[#5C5C5C]">{agr.service}</td>
-                    <td className="py-2.5 px-3 text-[#181818] font-medium">{agr.value}</td>
-                    <td className="py-2.5 px-3 text-[#5C5C5C]">{agr.sent}</td>
-                    <td className="py-2.5 px-3 text-[#5C5C5C]">
+                    <td className="py-3.5 px-3 text-[#64748B]">{agr.service}</td>
+                    <td className="py-3.5 px-3 text-[#0F172A] font-bold">{agr.value}</td>
+                    <td className="py-3.5 px-3 text-[#64748B]">{agr.sent}</td>
+                    <td className="py-3.5 px-3">
                       {agr.signed_copy === "Yes" ? (
-                        <span className="text-[#2E844A] font-medium">Yes</span>
+                        <span className="text-[#059669] font-semibold text-xs">Yes</span>
                       ) : agr.signed_copy === "No" ? (
-                        <span className="text-[#BA0517] font-medium">No</span>
+                        <span className="text-[#E11D48] font-semibold text-xs">No</span>
                       ) : (
-                        "—"
+                        <span className="text-[#94A3B8]">—</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-[3px] text-[11px] font-medium ${statusBadge}`}
-                      >
+                    <td className="py-3.5 px-3">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}`}>
                         {agr.status}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={() => setActiveMailDraft(agr)}
-                        className="text-[#0176D3] hover:underline text-[13px] font-normal"
+                        className="text-[#5B4BDB] hover:text-[#4B3DC7] text-[13px] font-semibold hover:underline"
                       >
                         Open mail draft
                       </button>
@@ -337,8 +303,7 @@ Both parties agree to standard non-disclosure. Governed by the laws of India, ju
           </table>
         </div>
 
-        {/* Footnote matching Page 7 of PDF */}
-        <div className="p-3 border-t border-[#DDDBDA] text-[12px] text-[#5C5C5C]">
+        <div className="p-4 border-t border-[#E5E7EB] text-[12px] text-[#64748B]">
           Agreement numbers are generated automatically. Every agreement stays tracked here.
         </div>
       </div>
@@ -346,49 +311,46 @@ Both parties agree to standard non-disclosure. Governed by the laws of India, ju
       {/* Mail Draft Modal */}
       {activeMailDraft && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] w-full max-w-lg shadow-2xl p-5 text-[13px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#DDDBDA]">
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] w-full max-w-lg shadow-dropdown p-6 text-[14px]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <div className="flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-[#0176D3]" />
-                <h3 className="font-bold text-[15px] text-[#181818]">
+                <Mail className="h-4 w-4 text-[#5B4BDB]" />
+                <h3 className="font-bold text-[16px] text-[#0F172A]">
                   Mail Draft · {activeMailDraft.agreement_no}
                 </h3>
               </div>
-              <button
-                onClick={() => setActiveMailDraft(null)}
-                className="text-[#5C5C5C] hover:text-[#181818]"
-              >
+              <button onClick={() => setActiveMailDraft(null)} className="text-[#64748B] hover:text-[#0F172A]">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3.5">
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
+                <label className="block text-[12px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
                   Recipient
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={`${activeMailDraft.account} <${activeMailDraft.email}>`}
-                  className="w-full h-8 px-2.5 bg-[#F3F3F3] border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818]"
+                  className="w-full h-10 px-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A]"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
+                <label className="block text-[12px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
                   Subject
                 </label>
                 <input
                   type="text"
                   readOnly
                   value={`Digital Footprint Service Agreement (${activeMailDraft.agreement_no}) for ${activeMailDraft.account}`}
-                  className="w-full h-8 px-2.5 bg-[#F3F3F3] border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818]"
+                  className="w-full h-10 px-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A]"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
+                <label className="block text-[12px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
                   Email Body
                 </label>
                 <textarea
@@ -401,15 +363,15 @@ Please find enclosed Service Agreement ${activeMailDraft.agreement_no} for ${act
 You can review and sign the agreement directly through your client portal at:
 https://crm.digitalfootprint.in/portal/agreements
 
-Please let us know if you have any questions or require modifications.
+Please let us know if you have any questions.
 
 Warm regards,
 Digital Footprint Team`}
-                  className="w-full p-2.5 bg-[#F3F3F3] border border-[#DDDBDA] rounded-[4px] text-[12px] font-mono text-[#181818]"
+                  className="w-full p-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[12.5px] font-mono text-[#0F172A]"
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-[#DDDBDA]">
+              <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => {
@@ -419,9 +381,9 @@ Digital Footprint Team`}
                     setToastMessage("Email draft copied to clipboard");
                     setTimeout(() => setToastMessage(null), 3000);
                   }}
-                  className="h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] hover:bg-[#F3F3F3] flex items-center space-x-1.5"
+                  className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] hover:bg-[#F8F9FB] flex items-center space-x-1.5"
                 >
-                  <Copy className="h-3.5 w-3.5 text-[#5C5C5C]" />
+                  <Copy className="h-4 w-4 text-[#64748B]" />
                   <span>Copy draft</span>
                 </button>
 
@@ -429,7 +391,7 @@ Digital Footprint Team`}
                   <button
                     type="button"
                     onClick={() => setActiveMailDraft(null)}
-                    className="h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] hover:bg-[#F3F3F3]"
+                    className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#64748B] hover:bg-[#F8F9FB]"
                   >
                     Close
                   </button>
@@ -440,9 +402,9 @@ Digital Footprint Team`}
                       setToastMessage(`Email sent to ${activeMailDraft.email}`);
                       setTimeout(() => setToastMessage(null), 3500);
                     }}
-                    className="h-8 px-4 bg-[#0176D3] text-white rounded-[4px] text-[13px] font-bold hover:bg-[#0176D3]/90 shadow-sm flex items-center space-x-1.5"
+                    className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-[13px] font-semibold shadow-soft flex items-center space-x-1.5"
                   >
-                    <Send className="h-3.5 w-3.5" />
+                    <Send className="h-4 w-4" />
                     <span>Send now</span>
                   </button>
                 </div>
@@ -455,82 +417,79 @@ Digital Footprint Team`}
       {/* Generate Agreement Modal */}
       {isGenerateModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] w-full max-w-md shadow-2xl p-5 text-[13px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#DDDBDA]">
-              <h3 className="font-bold text-[15px] text-[#181818]">
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] w-full max-w-md shadow-dropdown p-6 text-[14px]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <h3 className="font-bold text-[16px] text-[#0F172A]">
                 Generate Service Agreement
               </h3>
-              <button
-                onClick={() => setIsGenerateModalOpen(false)}
-                className="text-[#5C5C5C] hover:text-[#181818]"
-              >
+              <button onClick={() => setIsGenerateModalOpen(false)} className="text-[#64748B] hover:text-[#0F172A]">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleGenerateAgreement} className="mt-4 space-y-3">
+            <form onSubmit={handleGenerateAgreement} className="mt-4 space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                  Agreement Number
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Agreement Number (Auto-assigned)
                 </label>
                 <input
                   type="text"
                   readOnly
-                  value={`DFA-2026-000${agreements.length + 2} (Auto)`}
-                  className="w-full h-8 px-2.5 bg-[#F3F3F3] border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] font-mono"
+                  value={`DFA-2026-000${agreements.length + 2}`}
+                  className="w-full h-10 px-3 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                  Account *
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Account <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={newAccount}
                   onChange={(e) => setNewAccount(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                  Service / Offering *
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Service / Offering <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={newService}
                   onChange={(e) => setNewService(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
-                  Contract Value *
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
+                  Contract Value <span className="text-[#E11D48]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={newValue}
                   onChange={(e) => setNewValue(e.target.value)}
-                  className="w-full h-8 px-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#DDDBDA]">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => setIsGenerateModalOpen(false)}
-                  className="h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] hover:bg-[#F3F3F3]"
+                  className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#64748B] hover:bg-[#F8F9FB]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="h-8 px-4 bg-[#0176D3] text-white rounded-[4px] text-[13px] font-bold hover:bg-[#0176D3]/90 shadow-sm"
+                  className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-[13px] font-semibold shadow-soft"
                 >
                   Generate Agreement
                 </button>
@@ -542,4 +501,3 @@ Digital Footprint Team`}
     </div>
   );
 }
-

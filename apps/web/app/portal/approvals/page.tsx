@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, MessageSquare, Check, X, Eye } from "lucide-react";
+import { CheckCircle2, MessageSquare, Check, X, Eye, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface DeliverableApprovalItem {
@@ -82,75 +82,83 @@ export default function PortalApprovalsPage() {
   };
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 select-none">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 z-50 bg-[#032D60] text-white px-4 py-2.5 rounded-[4px] shadow-lg flex items-center space-x-2 text-[13px] border border-[#0176D3] animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="h-4 w-4 text-[#2E844A]" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-[13px] border border-white/10 animate-in fade-in slide-in-from-bottom-3">
+          <CheckCircle2 className="h-4 w-4 text-[#10B981]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-[#032D60]">Project Deliverable Approvals</h1>
-        <p className="text-[13px] text-[#5C5C5C] mt-0.5">
-          Review, approve, and provide feedback on designs, wireframes, and deliverables.
-        </p>
+      {/* Top Banner Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-1">
+            CLIENT WORKSPACE
+          </span>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            Project Deliverable Approvals
+          </h1>
+          <p className="text-[13px] text-[#64748B] mt-0.5">
+            Review, approve, and provide feedback on designs, wireframes, and deliverables.
+          </p>
+        </div>
       </div>
 
       {/* Approvals List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {deliverables.map((item) => (
           <div
             key={item.id}
-            className={`bg-white border rounded-[4px] p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+            className={`bg-white border rounded-2xl p-6 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
               item.status === "pending"
-                ? "border-l-4 border-l-[#0176D3] border-[#DDDBDA]"
-                : "border-[#DDDBDA]"
+                ? "border-2 border-[#5B4BDB]/30 bg-[#EEF2FF]/20"
+                : "border-[#E5E7EB]"
             }`}
           >
             <div>
-              <div className="flex items-center space-x-2 mb-1">
-                <span className="text-[11px] font-bold text-[#0176D3] uppercase tracking-wider">
+              <div className="flex items-center space-x-2 mb-1.5">
+                <span className="text-[11px] font-semibold text-[#5B4BDB] uppercase tracking-wider">
                   {item.project_name}
                 </span>
-                <span className="text-[11px] text-[#5C5C5C]">·</span>
-                <span className="text-[11px] text-[#5C5C5C]">Version {item.version}</span>
+                <span className="text-[11px] text-[#94A3B8]">·</span>
+                <span className="text-[11px] text-[#64748B]">Version {item.version}</span>
               </div>
-              <h3 className="text-[15px] font-bold text-[#181818]">{item.title}</h3>
-              <p className="text-[12px] text-[#5C5C5C] mt-0.5">
+              <h3 className="text-base font-bold text-[#0F172A] tracking-tight">{item.title}</h3>
+              <p className="text-[13px] text-[#64748B] mt-0.5">
                 {item.service_name} · {item.sent_date}
               </p>
             </div>
 
-            <div className="flex items-center space-x-2 shrink-0">
+            <div className="flex items-center space-x-3 shrink-0">
               {item.status === "pending" && (
                 <>
                   <button
                     onClick={() => setActiveItem(item)}
-                    className="h-8 px-3.5 bg-white border border-[#DDDBDA] text-[#181818] text-[13px] rounded-[4px] hover:bg-[#F3F3F3] transition-colors shadow-sm"
+                    className="h-10 px-4 bg-white border border-[#E5E7EB] text-[#0F172A] text-xs font-semibold rounded-xl hover:bg-[#F8F9FB] transition-colors shadow-soft"
                   >
-                    Request changes
+                    Request Changes
                   </button>
                   <button
                     onClick={() => handleApprove(item.id)}
-                    className="h-8 px-4 bg-[#0176D3] hover:bg-[#0176D3]/90 text-white text-[13px] font-bold rounded-[4px] transition-colors shadow-sm"
+                    className="h-10 px-5 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-xs font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-1.5"
                   >
-                    Approve
+                    <Check className="h-4 w-4 stroke-[2.5]" />
+                    <span>Approve Deliverable</span>
                   </button>
                 </>
               )}
 
               {item.status === "approved" && (
-                <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#EBF7E6] text-[#2E844A] rounded-[4px] text-[13px] font-bold">
+                <div className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#ECFDF5] text-[#059669] rounded-xl text-xs font-bold border border-[#A7F3D0]">
                   <CheckCircle2 className="h-4 w-4" />
                   <span>Approved</span>
                 </div>
               )}
 
               {item.status === "revision" && (
-                <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#FEF1D6] text-[#8A5200] rounded-[4px] text-[13px] font-bold">
+                <div className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#FFFBEB] text-[#D97706] rounded-xl text-xs font-bold border border-[#FDE68A]">
                   <MessageSquare className="h-4 w-4" />
                   <span>Changes Requested</span>
                 </div>
@@ -162,23 +170,23 @@ export default function PortalApprovalsPage() {
 
       {/* Feedback Modal */}
       {activeItem && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#DDDBDA] rounded-[4px] w-full max-w-md shadow-2xl p-5 text-[13px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#DDDBDA]">
-              <h3 className="font-bold text-[15px] text-[#181818]">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl w-full max-w-md shadow-2xl p-6 text-[13px] animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <h3 className="font-bold text-base text-[#0F172A]">
                 Request Changes: {activeItem.title}
               </h3>
               <button
                 onClick={() => setActiveItem(null)}
-                className="text-[#5C5C5C] hover:text-[#181818]"
+                className="text-[#64748B] hover:text-[#0F172A] p-1 rounded-lg"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleRequestChanges} className="mt-4 space-y-3">
+            <form onSubmit={handleRequestChanges} className="mt-4 space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5C5C] uppercase mb-1">
+                <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1">
                   Revision Notes & Specific Changes Needed *
                 </label>
                 <textarea
@@ -187,21 +195,21 @@ export default function PortalApprovalsPage() {
                   placeholder="e.g. Please update button colors and adjust typography on mobile view."
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
-                  className="w-full p-2.5 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] focus:border-[#0176D3] focus:outline-none"
+                  className="w-full p-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none transition-all"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#DDDBDA]">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
                   onClick={() => setActiveItem(null)}
-                  className="h-8 px-3 border border-[#DDDBDA] rounded-[4px] text-[13px] text-[#181818] hover:bg-[#F3F3F3]"
+                  className="h-9 px-4 border border-[#E5E7EB] rounded-xl text-xs font-medium text-[#0F172A] hover:bg-[#F8F9FB] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="h-8 px-4 bg-[#0176D3] text-white rounded-[4px] text-[13px] font-bold hover:bg-[#0176D3]/90 shadow-sm"
+                  className="h-9 px-5 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white rounded-xl text-xs font-semibold shadow-soft transition-all"
                 >
                   Submit Revisions
                 </button>
@@ -213,4 +221,3 @@ export default function PortalApprovalsPage() {
     </div>
   );
 }
-

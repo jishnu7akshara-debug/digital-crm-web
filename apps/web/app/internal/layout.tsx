@@ -2,7 +2,8 @@
 
 import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { SalesforceHeader } from "@/components/layout/sf-header";
+import { SaasSidebar } from "@/components/layout/saas-sidebar";
+import { SaasHeader } from "@/components/layout/saas-header";
 import { useAuth } from "@/lib/auth-context";
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
@@ -28,17 +29,19 @@ export default function InternalLayout({ children }: { children: React.ReactNode
     }
   }, [user, isLoading, isLoginPage, router]);
 
-  // If viewing the login page, render the login form directly without header
+  // If viewing login page, render login form directly without shell
   if (isLoginPage) {
     return <>{children}</>;
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#F3F3F3]">
+      <div className="flex items-center justify-center min-h-screen bg-[#F8F9FB]">
         <div className="flex flex-col items-center space-y-3">
-          <div className="h-8 w-8 rounded-full border-2 border-[#0176D3] border-t-transparent animate-spin" />
-          <span className="text-xs text-[#5C5C5C] font-medium tracking-wide">Loading Digital Footprint...</span>
+          <div className="h-8 w-8 rounded-full border-2 border-[#5B4BDB] border-t-transparent animate-spin" />
+          <span className="text-xs text-[#64748B] font-medium tracking-wide">
+            Loading Digital Footprint OS...
+          </span>
         </div>
       </div>
     );
@@ -49,14 +52,22 @@ export default function InternalLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F3F3] flex flex-col text-[#181818]">
-      <React.Suspense fallback={<div className="h-[88px] bg-[#EAF5FE]" />}>
-        <SalesforceHeader />
+    <div className="min-h-screen bg-[#F8F9FB] flex text-[#0F172A] font-sans">
+      {/* 1. Dark Midnight Sidebar (260px) */}
+      <React.Suspense fallback={<div className="w-[260px] h-screen bg-[#0B0E23] border-r border-[#1A1F3D]" />}>
+        <SaasSidebar />
       </React.Suspense>
-      <div className="flex-1 p-3 overflow-y-auto max-w-[1600px] w-full mx-auto">
-        {children}
+
+      {/* 2. Main Area: Sticky Header + Generous Padded Canvas */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        <React.Suspense fallback={<div className="h-16 bg-white border-b border-[#E5E7EB]" />}>
+          <SaasHeader />
+        </React.Suspense>
+
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[1600px] w-full mx-auto space-y-6">
+          {children}
+        </main>
       </div>
     </div>
   );
 }
-

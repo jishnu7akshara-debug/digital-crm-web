@@ -1,44 +1,43 @@
 /**
- * Digital Footprint OS Design Tokens (v3: Salesforce Lightning Enterprise Theme).
- * Change here to update colors across the entire system.
+ * Digital Footprint OS Design Tokens: Modern Minimal SaaS Theme.
+ * Recruitment CRM / Linear / Vercel style minimal SaaS aesthetic.
  */
 export const themeTokens = {
   colors: {
-    brandBlue: "#0176D3",
-    brandBlueHover: "#014486",
-    navy: "#032D60",
-    headerTint: "#EAF5FE",
-    canvas: "#F3F3F3",
-    border: "#DDDBDA",
-    text: "#181818",
-    secondaryText: "#5C5C5C",
+    // Primary Accents
+    primary: "#5B4BDB",        // Indigo/Violet
+    primaryHover: "#4B3DC7",
+    primaryLight: "#EEF2FF",   // Lavender tint
+    
+    // Neutrals
+    navy: "#0F172A",          // Dark navy / near-black headings & primary buttons
+    slate: "#64748B",         // Muted slate gray body & descriptions
+    lightGray: "#94A3B8",     // Section labels & subtle hints
+    border: "#E5E7EB",        // Thin light gray border
+    background: "#F8F9FB",    // Page canvas very light gray
+    card: "#FFFFFF",          // Pure white cards & sidebar
     white: "#FFFFFF",
-    success: "#2E844A",
-    successBg: "#EBF7E6",
-    warning: "#8A5200",
-    warningBg: "#FEF1D6",
-    error: "#BA0517",
-    errorBg: "#FEDED8",
-    // Salesforce Object Tile Colors (36px rounded square)
-    objectTiles: {
-      lead: "#F88962",       // Orange
-      account: "#7F8DE1",    // Indigo/Purple
-      project: "#3BA755",    // Green
-      agreement: "#4BC076",  // Mint/Emerald Green
-      opportunity: "#FCB95B", // Amber
-      invoice: "#5B8FF9",    // Blue
+
+    // Status Badges (Pill shapes with soft tinted background & matching text)
+    badge: {
+      lavender: { bg: "#EEF2FF", text: "#5B4BDB", border: "#E0E7FF" },
+      blue: { bg: "#F0F9FF", text: "#0284C7", border: "#E0F2FE" },
+      mint: { bg: "#ECFDF5", text: "#059669", border: "#D1FAE5" },
+      amber: { bg: "#FFFBEB", text: "#D97706", border: "#FEF3C7" },
+      rose: { bg: "#FFF1F2", text: "#E11D48", border: "#FFE4E6" },
+      slate: { bg: "#F1F5F9", text: "#475569", border: "#E2E8F0" },
     },
   },
   dimensions: {
-    headerHeight: "48px",
-    appBarHeight: "40px",
-    portalHeaderHeight: "56px",
-    searchWidth: "440px",
-    tileRadius: "4px",
-    cardRadius: "4px",
-    baseFontSize: "13px",
+    sidebarWidth: "260px",
+    headerHeight: "64px",
+    cardRadius: "16px",       // rounded-2xl
+    inputRadius: "12px",      // rounded-xl
+    buttonRadius: "12px",     // rounded-xl
+    badgeRadius: "9999px",    // rounded-full
+    baseFontSize: "14px",
   },
   typography: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
   },
 } as const;
