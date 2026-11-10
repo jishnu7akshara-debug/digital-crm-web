@@ -192,11 +192,14 @@ def get_client_360(
     db: Session = Depends(get_db),
 ):
     """Retrieve complete Client 360 profile with all services, projects, invoices, and metrics."""
-    verify_client_isolation(client_id, scope)
-
-    client = db.query(Client).filter_by(id=client_id, is_deleted=False).first()
+    client = db.query(Client).filter(
+        ((Client.id == client_id) | (Client.code == client_id)),
+        Client.is_deleted == False
+    ).first()
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
+
+    verify_client_isolation(client.id, scope)
 
     am = db.query(User).filter_by(id=client.account_manager_id).first() if client.account_manager_id else None
 

@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, FileText, Upload, Building2, ExternalLink } from "lucide-react";
+import { Plus, Search, FileText, Upload, Building2, ExternalLink, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 
 const DEFAULT_ACCOUNTS = [
@@ -90,6 +91,7 @@ const DEFAULT_ACCOUNTS = [
 ];
 
 export default function AccountsListPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: apiClients } = useQuery<any>({
@@ -107,14 +109,15 @@ export default function AccountsListPage() {
   const accounts =
     apiClients && apiClients.length > 0
       ? apiClients.map((c: any) => ({
-          id: c.id,
+          id: c.code || c.id,
+          rawId: c.id,
           name: c.name,
           contact: c.brand_name || "Primary Contact",
           phone: "+91 98765 43210",
           industry: c.city ? "Enterprise" : "Fitness",
           city: c.city || "Bengaluru",
           status: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : "Active",
-          owner: c.account_manager_name || "Meera",
+          owner: c.account_manager_name || "Meera Sharma",
         }))
       : DEFAULT_ACCOUNTS;
 
@@ -203,20 +206,25 @@ export default function AccountsListPage() {
                 <th className="py-3 px-3 font-semibold text-[#64748B]">Status</th>
                 <th className="py-3 px-3 font-semibold text-[#64748B]">Account Owner</th>
                 <th className="py-3 px-4 font-semibold text-[#64748B]">Phone</th>
+                <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB]">
               {filtered.map((acc: any) => (
                 <tr
                   key={acc.id}
-                  className="hover:bg-[#F8F9FB] transition-colors group cursor-pointer"
+                  onClick={() => router.push(`/internal/clients/${acc.id}`)}
+                  className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                  title={`Open ${acc.name} 360 profile`}
                 >
                   <td className="py-3.5 px-4">
                     <Link
-                      href={acc.name.includes("Peak") ? "/internal/clients/CLI-PEAK-001" : `/internal/clients/${acc.id}`}
-                      className="text-[#5B4BDB] hover:underline font-semibold"
+                      href={`/internal/clients/${acc.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[#5B4BDB] hover:underline font-semibold inline-flex items-center space-x-1.5"
                     >
-                      {acc.name}
+                      <span>{acc.name}</span>
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-[#5B4BDB] transition-opacity shrink-0" />
                     </Link>
                   </td>
                   <td className="py-3.5 px-3 text-[#0F172A]">{acc.contact}</td>
@@ -229,6 +237,16 @@ export default function AccountsListPage() {
                   </td>
                   <td className="py-3.5 px-3 text-[#0F172A] font-medium">{acc.owner}</td>
                   <td className="py-3.5 px-4 text-[#64748B]">{acc.phone}</td>
+                  <td className="py-3.5 px-4 text-right">
+                    <Link
+                      href={`/internal/clients/${acc.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs shrink-0"
+                    >
+                      <span>Open 360</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
