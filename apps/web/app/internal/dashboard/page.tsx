@@ -642,20 +642,18 @@ export default function SaasDashboardPage() {
                 >
                   <div className="flex items-center space-x-2.5 overflow-hidden">
                     <div
-                      className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                        task.done
+                      className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${task.done
                           ? "bg-[#5B4BDB] border-[#5B4BDB] text-white"
                           : "border-[#CBD5E1] bg-white group-hover:border-[#5B4BDB]"
-                      }`}
+                        }`}
                     >
                       {task.done && <Check className="h-3 w-3 stroke-[3]" />}
                     </div>
                     <span
-                      className={`text-[12.5px] truncate ${
-                        task.done
+                      className={`text-[12.5px] truncate ${task.done
                           ? "line-through text-[#94A3B8]"
                           : "text-[#0F172A] font-medium"
-                      }`}
+                        }`}
                     >
                       {task.title}
                     </span>
