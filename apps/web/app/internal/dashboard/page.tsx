@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Users,
   FolderKanban,
@@ -165,6 +166,7 @@ const INITIAL_TASKS = [
 ];
 
 export default function SaasDashboardPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [tasks, setTasks] = useState(INITIAL_TASKS);
@@ -207,9 +209,12 @@ export default function SaasDashboardPage() {
       {/* 2. Top 4 KPI Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Total Clients */}
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-shadow">
+        <Link
+          href="/internal/clients"
+          className="bg-white border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-all cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center group-hover:scale-105 transition-transform">
               <Users className="h-5 w-5 stroke-[2]" />
             </div>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-0.5">
@@ -218,19 +223,23 @@ export default function SaasDashboardPage() {
             </span>
           </div>
           <div className="mt-4">
-            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight">
+            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight group-hover:text-[#5B4BDB] transition-colors">
               142
             </div>
-            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
-              Total Clients
+            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium flex items-center justify-between">
+              <span>Total Clients</span>
+              <span className="text-xs text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">View All →</span>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Active Projects */}
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-shadow">
+        <Link
+          href="/internal/projects"
+          className="bg-white border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-all cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center group-hover:scale-105 transition-transform">
               <FolderKanban className="h-5 w-5 stroke-[2]" />
             </div>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-0.5">
@@ -239,19 +248,23 @@ export default function SaasDashboardPage() {
             </span>
           </div>
           <div className="mt-4">
-            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight">
+            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight group-hover:text-[#5B4BDB] transition-colors">
               38
             </div>
-            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
-              Active Projects
+            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium flex items-center justify-between">
+              <span>Active Projects</span>
+              <span className="text-xs text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">Directory →</span>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Pipeline Value */}
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-shadow">
+        <Link
+          href="/internal/opportunities"
+          className="bg-white border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-all cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center font-bold text-lg">
+            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center font-bold text-lg group-hover:scale-105 transition-transform">
               ₹
             </div>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-0.5">
@@ -260,19 +273,23 @@ export default function SaasDashboardPage() {
             </span>
           </div>
           <div className="mt-4">
-            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight">
+            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight group-hover:text-[#5B4BDB] transition-colors">
               ₹24,80,000
             </div>
-            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
-              Pipeline Value
+            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium flex items-center justify-between">
+              <span>Pipeline Value</span>
+              <span className="text-xs text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">Pipeline →</span>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Revenue (This Month) */}
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-shadow">
+        <Link
+          href="/internal/invoices"
+          className="bg-white border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-2xl p-5 shadow-card hover:shadow-dropdown transition-all cursor-pointer group"
+        >
           <div className="flex items-center justify-between">
-            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-[#F0EDFF] text-[#5B4BDB] flex items-center justify-center group-hover:scale-105 transition-transform">
               <Receipt className="h-5 w-5 stroke-[2]" />
             </div>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-0.5">
@@ -281,14 +298,15 @@ export default function SaasDashboardPage() {
             </span>
           </div>
           <div className="mt-4">
-            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight">
+            <div className="text-2xl md:text-[28px] font-bold text-[#0F172A] tracking-tight group-hover:text-[#5B4BDB] transition-colors">
               ₹9,75,000
             </div>
-            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium">
-              Revenue (This Month)
+            <div className="text-[13px] text-[#64748B] mt-0.5 font-medium flex items-center justify-between">
+              <span>Revenue (This Month)</span>
+              <span className="text-xs text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">Invoices →</span>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* 3. Middle Section: Sales Pipeline + Active Projects (Left) vs Revenue Donut + Quick Actions + Tasks (Right) */}
@@ -318,49 +336,64 @@ export default function SaasDashboardPage() {
             {/* Funnel Chevron Flow */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5">
               {/* Step 1: Leads */}
-              <div className="bg-[#F8F9FD] border border-[#E5E7EB] rounded-xl p-3.5 text-center relative overflow-hidden group hover:border-[#5B4BDB]/40 transition-colors">
-                <div className="text-xs font-semibold text-[#64748B]">Leads</div>
+              <Link
+                href="/internal/leads"
+                className="bg-[#F8F9FD] border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-xl p-3.5 text-center relative overflow-hidden group transition-all cursor-pointer block"
+              >
+                <div className="text-xs font-semibold text-[#64748B] group-hover:text-[#5B4BDB] transition-colors">Leads</div>
                 <div className="text-xl font-bold text-[#0F172A] mt-1">18</div>
                 <div className="text-[11px] text-[#64748B] font-medium mt-0.5">
                   ₹4,20,000
                 </div>
-              </div>
+              </Link>
 
               {/* Step 2: Qualified */}
-              <div className="bg-[#F8F9FD] border border-[#E5E7EB] rounded-xl p-3.5 text-center relative overflow-hidden group hover:border-[#5B4BDB]/40 transition-colors">
-                <div className="text-xs font-semibold text-[#64748B]">Qualified</div>
+              <Link
+                href="/internal/opportunities"
+                className="bg-[#F8F9FD] border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-xl p-3.5 text-center relative overflow-hidden group transition-all cursor-pointer block"
+              >
+                <div className="text-xs font-semibold text-[#64748B] group-hover:text-[#5B4BDB] transition-colors">Qualified</div>
                 <div className="text-xl font-bold text-[#0F172A] mt-1">11</div>
                 <div className="text-[11px] text-[#64748B] font-medium mt-0.5">
                   ₹6,10,000
                 </div>
-              </div>
+              </Link>
 
               {/* Step 3: Proposal */}
-              <div className="bg-[#F8F9FD] border border-[#E5E7EB] rounded-xl p-3.5 text-center relative overflow-hidden group hover:border-[#5B4BDB]/40 transition-colors">
-                <div className="text-xs font-semibold text-[#64748B]">Proposal</div>
+              <Link
+                href="/internal/opportunities"
+                className="bg-[#F8F9FD] border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-xl p-3.5 text-center relative overflow-hidden group transition-all cursor-pointer block"
+              >
+                <div className="text-xs font-semibold text-[#64748B] group-hover:text-[#5B4BDB] transition-colors">Proposal</div>
                 <div className="text-xl font-bold text-[#0F172A] mt-1">8</div>
                 <div className="text-[11px] text-[#64748B] font-medium mt-0.5">
                   ₹7,50,000
                 </div>
-              </div>
+              </Link>
 
               {/* Step 4: Negotiation */}
-              <div className="bg-[#F8F9FD] border border-[#E5E7EB] rounded-xl p-3.5 text-center relative overflow-hidden group hover:border-[#5B4BDB]/40 transition-colors">
-                <div className="text-xs font-semibold text-[#64748B]">Negotiation</div>
+              <Link
+                href="/internal/opportunities"
+                className="bg-[#F8F9FD] border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-xl p-3.5 text-center relative overflow-hidden group transition-all cursor-pointer block"
+              >
+                <div className="text-xs font-semibold text-[#64748B] group-hover:text-[#5B4BDB] transition-colors">Negotiation</div>
                 <div className="text-xl font-bold text-[#0F172A] mt-1">5</div>
                 <div className="text-[11px] text-[#64748B] font-medium mt-0.5">
                   ₹4,00,000
                 </div>
-              </div>
+              </Link>
 
               {/* Step 5: Won (Highlighted Purple as in mockup) */}
-              <div className="bg-[#5B4BDB] text-white rounded-xl p-3.5 text-center relative overflow-hidden shadow-md col-span-2 sm:col-span-1">
+              <Link
+                href="/internal/opportunities"
+                className="bg-[#5B4BDB] hover:bg-[#4C3DC7] text-white rounded-xl p-3.5 text-center relative overflow-hidden shadow-md col-span-2 sm:col-span-1 block transition-all"
+              >
                 <div className="text-xs font-semibold text-white/90">Won</div>
                 <div className="text-xl font-bold text-white mt-1">4</div>
                 <div className="text-[11px] text-white/90 font-medium mt-0.5">
                   ₹3,00,000
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 
@@ -398,7 +431,9 @@ export default function SaasDashboardPage() {
                   {ACTIVE_PROJECTS.map((proj) => (
                     <tr
                       key={proj.id}
-                      className="hover:bg-[#F8F9FB] transition-colors group cursor-pointer"
+                      onClick={() => router.push(`/internal/projects/proj-peak-web`)}
+                      className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                      title={`Open ${proj.name} workspace`}
                     >
                       {/* Project Name + Icon */}
                       <td className="py-3.5 pr-3 font-semibold text-[#0F172A] flex items-center space-x-2.5">
@@ -414,7 +449,13 @@ export default function SaasDashboardPage() {
 
                       {/* Client */}
                       <td className="py-3.5 pr-3 text-[#64748B]">
-                        {proj.client}
+                        <Link
+                          href={`/internal/clients?search=${encodeURIComponent(proj.client)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-[#5B4BDB] hover:underline"
+                        >
+                          {proj.client}
+                        </Link>
                       </td>
 
                       {/* Service Badge */}

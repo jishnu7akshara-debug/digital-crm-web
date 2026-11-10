@@ -198,7 +198,16 @@ def get_project_workspace(
     db: Session = Depends(get_db),
 ):
     """Retrieve full project workspace including milestones, tasks, and deliverables."""
-    project = db.query(Project).filter_by(id=project_id, is_deleted=False).first()
+    clean_code = project_id.replace("proj-", "PRJ-")
+    project = db.query(Project).filter(
+        (
+            (Project.id == project_id)
+            | (Project.code == project_id)
+            | (Project.code.ilike(clean_code))
+            | (Project.code.ilike(f"%{project_id}%"))
+        ),
+        Project.is_deleted == False,
+    ).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 

@@ -159,6 +159,48 @@ def list_agreements(
     )
 
 
+@router.get("/{agreement_id}", response_model=ApiResponse[AgreementSummaryItem])
+def get_agreement(
+    agreement_id: str,
+    scope: AccessScope = Depends(require_permission("contracts.read")),
+    db: Session = Depends(get_db),
+):
+    """Get single agreement details by id or agreement number."""
+    c = db.query(Contract).filter(Contract.is_deleted == False).filter(
+        (Contract.id == agreement_id) | (Contract.contract_number == agreement_id)
+    ).first()
+
+    if not c:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
+
+    verify_client_isolation(c.client_id, scope)
+
+    cl = db.query(Client).filter_by(id=c.client_id).first()
+    primary_contact = (
+        db.query(ClientContact).filter_by(client_id=c.client_id, is_primary=True).first()
+    )
+
+    sent_str = c.sent_date.strftime("%b %d, %Y") if c.sent_date else None
+
+    return ApiResponse(
+        success=True,
+        data=AgreementSummaryItem(
+            id=c.id,
+            agreement_no=c.contract_number,
+            account_id=c.client_id,
+            account_name=cl.name if cl else "Account",
+            service=c.title,
+            value_formatted=format_inr(c.value_paise),
+            value_paise=c.value_paise,
+            sent_date=sent_str,
+            signed_copy_received=bool(getattr(c, "signed_copy_received", False)),
+            status=(c.status or "draft").lower(),
+            client_email=primary_contact.email if primary_contact else None,
+            terms_summary=c.terms_summary,
+        ),
+    )
+
+
 @router.post("/generate", response_model=ApiResponse[AgreementSummaryItem])
 def generate_agreement(
     payload: GenerateAgreementRequest,

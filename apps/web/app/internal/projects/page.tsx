@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { FolderKanban, Plus, Search, ChevronRight, ArrowRight } from "lucide-react";
+import { FolderKanban, Plus, Search, ChevronRight, ArrowRight, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 
 const DEFAULT_PROJECTS = [
@@ -11,6 +12,7 @@ const DEFAULT_PROJECTS = [
     id: "proj-peak-web",
     name: "Website redesign",
     account_name: "Peak Fitness",
+    client_id: "CLI-PEAK-001",
     service: "Website development",
     manager: "Meera",
     stage: "Internal Review",
@@ -23,6 +25,7 @@ const DEFAULT_PROJECTS = [
     id: "proj-apex-web",
     name: "Apex Global Corporate Portal",
     account_name: "Apex Global Technologies",
+    client_id: "CLI-APEX-001",
     service: "Web application",
     manager: "Karan",
     stage: "In Progress",
@@ -35,6 +38,7 @@ const DEFAULT_PROJECTS = [
     id: "proj-nova-lms",
     name: "EdTech Learning Platform",
     account_name: "Nova Learning",
+    client_id: "CLI-NOVA-001",
     service: "EdTech platform",
     manager: "Meera",
     stage: "Planning",
@@ -46,6 +50,7 @@ const DEFAULT_PROJECTS = [
 ];
 
 export default function ProjectsListPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: apiProjects } = useQuery<any>({
@@ -66,7 +71,8 @@ export default function ProjectsListPage() {
           id: p.id,
           name: p.name,
           account_name: p.client_name || "Peak Fitness",
-          service: "Website development",
+          client_id: p.client_id || "CLI-PEAK-001",
+          service: p.name?.toLowerCase().includes("seo") ? "SEO & Growth" : p.name?.toLowerCase().includes("lms") ? "EdTech Platform" : "Website Development",
           manager: p.manager_name || "Meera",
           stage: p.status?.replace("_", " ") || "In Progress",
           due_date: p.due_date || "Nov 30, 2026",
@@ -106,10 +112,10 @@ export default function ProjectsListPage() {
 
         <div className="flex items-center space-x-3 shrink-0">
           <Link
-            href="/internal/projects/proj-peak-web"
+            href={filtered[0] ? `/internal/projects/${filtered[0].id}` : "/internal/projects/proj-peak-web"}
             className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
           >
-            <span>Website redesign</span>
+            <span>Active Sprint Workspace</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -146,24 +152,33 @@ export default function ProjectsListPage() {
                 <th className="py-3 px-3 font-semibold text-[#64748B]">Manager</th>
                 <th className="py-3 px-3 font-semibold text-[#64748B]">Progress</th>
                 <th className="py-3 px-4 font-semibold text-[#64748B]">Due Date</th>
+                <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB]">
               {filtered.map((proj: any) => (
                 <tr
                   key={proj.id}
-                  className="hover:bg-[#F8F9FB] transition-colors group cursor-pointer"
+                  onClick={() => router.push(`/internal/projects/${proj.id}`)}
+                  className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                  title={`Open ${proj.name} workspace`}
                 >
                   <td className="py-3.5 px-4">
                     <Link
                       href={`/internal/projects/${proj.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="text-[#5B4BDB] hover:underline font-semibold flex items-center space-x-1.5"
                     >
                       <span>{proj.name}</span>
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-[#5B4BDB] transition-opacity shrink-0" />
                     </Link>
                   </td>
                   <td className="py-3.5 px-3 text-[#0F172A] font-medium">
-                    <Link href="/internal/clients/CLI-PEAK-001" className="hover:underline hover:text-[#5B4BDB]">
+                    <Link
+                      href={`/internal/clients/${proj.client_id || "CLI-PEAK-001"}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:underline hover:text-[#5B4BDB]"
+                    >
                       {proj.account_name}
                     </Link>
                   </td>
@@ -186,6 +201,16 @@ export default function ProjectsListPage() {
                     </div>
                   </td>
                   <td className="py-3.5 px-4 text-[#64748B]">{proj.due_date}</td>
+                  <td className="py-3.5 px-4 text-right">
+                    <Link
+                      href={`/internal/projects/${proj.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs shrink-0"
+                    >
+                      <span>Workspace</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

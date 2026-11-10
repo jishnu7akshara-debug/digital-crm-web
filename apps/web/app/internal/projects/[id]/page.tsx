@@ -164,12 +164,22 @@ export default function ProjectWorkspacePage() {
         </div>
       )}
 
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center space-x-2 text-xs text-[#64748B]">
+        <Link href="/internal/projects" className="hover:text-[#5B4BDB] font-medium flex items-center space-x-1">
+          <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+          <span>Projects Directory</span>
+        </Link>
+        <span>/</span>
+        <span className="font-semibold text-[#0F172A]">{projectData?.name || DEFAULT_PROJECT.name}</span>
+      </div>
+
       {/* Record Header Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5">
             <div className="h-11 w-11 rounded-xl bg-[#0F172A] text-white font-bold text-base flex items-center justify-center shrink-0 shadow-soft">
-              P
+              {(projectData?.name || DEFAULT_PROJECT.name).split(" ").map((w: string) => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center space-x-2 mb-0.5">
@@ -180,6 +190,12 @@ export default function ProjectWorkspacePage() {
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EEF2FF] text-[#5B4BDB]">
                   {STAGES.find((s) => s.id === currentStage)?.label || "Active"}
                 </span>
+                {projectData?.code && (
+                  <>
+                    <span className="text-[11px] text-[#94A3B8]">·</span>
+                    <span className="text-xs font-mono text-[#64748B]">{projectData.code}</span>
+                  </>
+                )}
               </div>
               <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight leading-tight">
                 {projectData?.name || DEFAULT_PROJECT.name}
@@ -210,7 +226,7 @@ export default function ProjectWorkspacePage() {
           <div>
             <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Account</div>
             <Link
-              href="/internal/clients/CLI-PEAK-001"
+              href={`/internal/clients/${projectData?.client_code || projectData?.client_id || "CLI-PEAK-001"}`}
               className="text-[#5B4BDB] hover:underline font-semibold text-[14px] mt-1 block"
             >
               {projectData?.client_name || DEFAULT_PROJECT.account_name}
@@ -219,7 +235,7 @@ export default function ProjectWorkspacePage() {
           <div>
             <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Service</div>
             <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
-              {DEFAULT_PROJECT.service}
+              {projectData?.service_name || ((projectData?.name || DEFAULT_PROJECT.name).toLowerCase().includes("seo") ? "SEO & Growth" : (projectData?.name || DEFAULT_PROJECT.name).toLowerCase().includes("lms") ? "EdTech Platform" : "Website Development")}
             </div>
           </div>
           <div>
@@ -231,7 +247,7 @@ export default function ProjectWorkspacePage() {
           <div>
             <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Due date</div>
             <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
-              {DEFAULT_PROJECT.due_date}
+              {projectData?.due_date || DEFAULT_PROJECT.due_date}
             </div>
           </div>
         </div>

@@ -16,6 +16,23 @@ from app.db.models.auth import User
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
 
+class LeadDetailItem(BaseModel):
+    id: str
+    title: str
+    company_name: Optional[str] = None
+    contact_name: str
+    email: str
+    phone: Optional[str] = None
+    source: str
+    status: str
+    estimated_value_rupees: float
+    assigned_to_name: Optional[str] = None
+    assigned_to_id: Optional[str] = None
+    notes: Optional[str] = None
+    converted_client_id: Optional[str] = None
+    created_at: str
+
+
 class LeadItem(BaseModel):
     id: str
     title: str
@@ -114,6 +131,43 @@ def list_leads(
             page=page,
             page_size=page_size,
             total_pages=(total + page_size - 1) // page_size if total > 0 else 1,
+        ),
+    )
+
+
+@router.get("/{lead_id}", response_model=ApiResponse[LeadDetailItem])
+def get_lead(
+    lead_id: str,
+    scope: AccessScope = Depends(require_permission("leads.read")),
+    db: Session = Depends(get_db),
+):
+    """Get single lead by id or title search."""
+    lead = db.query(Lead).filter(Lead.is_deleted == False).filter(
+        (Lead.id == lead_id) | (Lead.title.ilike(f"%{lead_id}%"))
+    ).first()
+
+    if not lead:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found.")
+
+    assigned = db.query(User).filter_by(id=lead.assigned_to_id).first() if lead.assigned_to_id else None
+
+    return ApiResponse(
+        success=True,
+        data=LeadDetailItem(
+            id=lead.id,
+            title=lead.title,
+            company_name=lead.company_name,
+            contact_name=lead.contact_name,
+            email=lead.email,
+            phone=lead.phone,
+            source=lead.source,
+            status=lead.status,
+            estimated_value_rupees=round(lead.estimated_value_paise / 100.0, 2),
+            assigned_to_name=assigned.full_name if assigned else "Meera Sharma",
+            assigned_to_id=lead.assigned_to_id,
+            notes=lead.notes,
+            converted_client_id=lead.converted_client_id,
+            created_at=lead.created_at.isoformat() if lead.created_at else datetime.now(timezone.utc).isoformat(),
         ),
     )
 

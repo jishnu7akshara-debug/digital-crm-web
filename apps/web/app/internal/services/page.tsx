@@ -229,11 +229,12 @@ function ServicesView() {
   const router = useRouter();
   const categoryParam = searchParams.get("category");
 
-  const activeSlug = categoryParam && SERVICES_DATA[categoryParam] ? categoryParam : "websites";
+  const normalizedParam = categoryParam ? categoryParam.toLowerCase().replace(/-/g, "_") : "websites";
+  const activeSlug = SERVICES_DATA[normalizedParam] ? normalizedParam : "websites";
   const activeService = SERVICES_DATA[activeSlug];
 
   const handleTabChange = (slug: string) => {
-    router.push(`/internal/services?category=${slug}`);
+    router.push(`/internal/services?category=${slug.replace(/_/g, "-")}`);
   };
 
   const Icon = activeService.icon;
@@ -372,10 +373,20 @@ function ServicesView() {
               </thead>
               <tbody className="divide-y divide-[#E5E7EB] text-[#0F172A]">
                 {activeService.clients.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#F8F9FB] transition-colors">
+                  <tr
+                    key={c.id}
+                    onClick={() => router.push(`/internal/clients?search=${encodeURIComponent(c.name)}`)}
+                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                    title={`Open ${c.name} account`}
+                  >
                     <td className="py-3.5 px-4 font-semibold text-[#5B4BDB]">
-                      <Link href="/internal/clients/CLI-PEAK-001" className="hover:underline">
-                        {c.name}
+                      <Link
+                        href={`/internal/clients?search=${encodeURIComponent(c.name)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:underline flex items-center space-x-1.5"
+                      >
+                        <span>{c.name}</span>
+                        <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#5B4BDB]" />
                       </Link>
                     </td>
                     <td className="py-3.5 px-4 text-[#64748B]">{c.contact}</td>
@@ -398,6 +409,80 @@ function ServicesView() {
               </tbody>
             </table>
           </div>
+
+          {/* Active Delivery Projects Table */}
+          {activeService.projects && activeService.projects.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-[#E5E7EB]">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E5E7EB]">
+                <div>
+                  <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+                    ENGINEERING PIPELINE
+                  </div>
+                  <h4 className="text-sm font-bold text-[#0F172A] mt-0.5">
+                    Active Delivery Projects ({activeService.projects.length})
+                  </h4>
+                </div>
+                <Link
+                  href="/internal/projects"
+                  className="text-xs font-semibold text-[#5B4BDB] hover:underline flex items-center space-x-1"
+                >
+                  <span>All Projects</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="text-[#94A3B8] font-bold uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="py-2 px-3">Project Workspace</th>
+                      <th className="py-2 px-3">Client</th>
+                      <th className="py-2 px-3">Progress</th>
+                      <th className="py-2 px-3">Target Due</th>
+                      <th className="py-2 px-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5E7EB]">
+                    {activeService.projects.map((p) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => router.push(`/internal/projects/proj-peak-web`)}
+                        className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                      >
+                        <td className="py-3 px-3 font-semibold text-[#0F172A] group-hover:text-[#5B4BDB]">
+                          {p.name}
+                        </td>
+                        <td className="py-3 px-3 text-[#64748B]">{p.client}</td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center space-x-2 w-24">
+                            <div className="w-full bg-[#E5E7EB] h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-[#5B4BDB] h-full rounded-full"
+                                style={{ width: `${p.progress}%` }}
+                              />
+                            </div>
+                            <span className="font-semibold text-[#64748B]">{p.progress}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-[#64748B]">{p.due_date}</td>
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/internal/projects/proj-peak-web`);
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-[#EEF2FF] border border-[#CBD5E1] hover:border-[#5B4BDB] text-[#5B4BDB] font-semibold rounded-lg text-xs transition-all shadow-xs"
+                          >
+                            Workspace →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Deliverables Scope Checklist (1 col) */}

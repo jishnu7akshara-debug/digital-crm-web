@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   TrendingUp,
   Plus,
@@ -150,6 +151,7 @@ const STAGES = [
 ] as const;
 
 export default function OpportunitiesPage() {
+  const router = useRouter();
   const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -322,7 +324,9 @@ export default function OpportunitiesPage() {
                   return (
                     <div
                       key={opp.id}
-                      className="bg-[#F8F9FB] hover:bg-white border border-[#E5E7EB] hover:border-[#CBD5E1] rounded-xl p-3.5 transition-all shadow-soft group"
+                      onClick={() => router.push(`/internal/opportunities/${opp.id}`)}
+                      className="bg-[#F8F9FB] hover:bg-white border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-xl p-3.5 transition-all shadow-soft group cursor-pointer hover:shadow-dropdown"
+                      title={`Open ${opp.title} workspace`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}`}>
@@ -333,13 +337,19 @@ export default function OpportunitiesPage() {
                         </span>
                       </div>
 
-                      <h4 className="text-[13.5px] font-semibold text-[#0F172A] leading-snug mb-1">
+                      <h4 className="text-[13.5px] font-semibold text-[#0F172A] leading-snug mb-1 group-hover:text-[#5B4BDB] transition-colors">
                         {opp.title}
                       </h4>
 
                       <div className="flex items-center space-x-1.5 text-[12px] text-[#64748B] mb-2.5">
                         <Building2 className="h-3.5 w-3.5 text-[#94A3B8]" />
-                        <span>{opp.client}</span>
+                        <Link
+                          href={`/internal/clients?search=${encodeURIComponent(opp.client)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-[#5B4BDB] hover:underline"
+                        >
+                          {opp.client}
+                        </Link>
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]/80 text-[11px] text-[#64748B]">
@@ -355,22 +365,31 @@ export default function OpportunitiesPage() {
 
                       {/* Advance Stage button */}
                       {col.key !== "won" ? (
-                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex justify-end">
+                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-between">
+                          <span className="text-[11px] font-medium text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">
+                            Open Deal →
+                          </span>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               const nextStage = STAGES[idx + 1]?.key;
                               if (nextStage) moveStage(opp.id, nextStage);
                             }}
-                            className="text-[11.5px] font-semibold text-[#5B4BDB] hover:text-[#4B3DC7] flex items-center space-x-1"
+                            className="text-[11.5px] font-semibold text-[#5B4BDB] hover:text-[#4B3DC7] flex items-center space-x-1 bg-white px-2 py-0.5 rounded-md border border-[#E5E7EB] hover:border-[#5B4BDB]"
                           >
                             <span>Advance Stage</span>
                             <ArrowRight className="h-3 w-3" />
                           </button>
                         </div>
                       ) : (
-                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-end text-[11.5px] font-semibold text-[#059669]">
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          <span>Deal Closed</span>
+                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-between text-[11.5px]">
+                          <span className="text-[11px] font-medium text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">
+                            Open Deal →
+                          </span>
+                          <span className="font-semibold text-[#059669] flex items-center">
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            <span>Deal Closed</span>
+                          </span>
                         </div>
                       )}
                     </div>

@@ -34,6 +34,50 @@ class InvoiceSummaryItem(BaseModel):
     gst_type: str
 
 
+class InvoiceLineItemDetail(BaseModel):
+    id: str
+    description: str
+    hsn_sac_code: str
+    quantity: int
+    unit_price_rupees: float
+    tax_rate_percent: int
+    tax_rupees: float
+    total_rupees: float
+
+
+class InvoicePaymentDetail(BaseModel):
+    id: str
+    amount_rupees: float
+    payment_method: str
+    transaction_reference: Optional[str] = None
+    payment_date: str
+    notes: Optional[str] = None
+
+
+class InvoiceDetailResponse(BaseModel):
+    id: str
+    invoice_number: str
+    client_id: str
+    client_name: str
+    client_address: Optional[str] = None
+    client_gstin: Optional[str] = None
+    client_email: Optional[str] = None
+    client_phone: Optional[str] = None
+    issue_date: str
+    due_date: str
+    status: str
+    subtotal_rupees: float
+    tax_rupees: float
+    total_rupees: float
+    amount_paid_rupees: float
+    balance_rupees: float
+    gst_type: str
+    notes: Optional[str] = None
+    terms: Optional[str] = None
+    line_items: List[InvoiceLineItemDetail] = []
+    payments: List[InvoicePaymentDetail] = []
+
+
 class LineItemPayload(BaseModel):
     description: str
     hsn_sac_code: str = "998314"
@@ -118,6 +162,82 @@ def list_invoices(
             page=page,
             page_size=page_size,
             total_pages=(total + page_size - 1) // page_size if total > 0 else 1,
+        ),
+    )
+
+
+@router.get("/{invoice_id}", response_model=ApiResponse[InvoiceDetailResponse])
+def get_invoice(
+    invoice_id: str,
+    scope: AccessScope = Depends(require_permission("invoices.read")),
+    db: Session = Depends(get_db),
+):
+    """Get single invoice details by id or invoice number."""
+    inv = db.query(Invoice).filter(Invoice.is_deleted == False).filter(
+        (Invoice.id == invoice_id) | (Invoice.invoice_number == invoice_id)
+    ).first()
+
+    if not inv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
+
+    verify_client_isolation(inv.client_id, scope)
+
+    client = db.query(Client).filter_by(id=inv.client_id).first()
+    line_items_db = db.query(InvoiceLineItem).filter_by(invoice_id=inv.id).all()
+    payments_db = db.query(Payment).filter_by(invoice_id=inv.id).order_by(desc(Payment.payment_date)).all()
+
+    line_items = [
+        InvoiceLineItemDetail(
+            id=li.id,
+            description=li.description,
+            hsn_sac_code=li.hsn_sac_code or "998314",
+            quantity=li.quantity,
+            unit_price_rupees=round(li.unit_price_paise / 100.0, 2),
+            tax_rate_percent=li.tax_rate_percent,
+            tax_rupees=round(li.tax_amount_paise / 100.0, 2),
+            total_rupees=round(li.total_amount_paise / 100.0, 2),
+        )
+        for li in line_items_db
+    ]
+
+    payments = [
+        InvoicePaymentDetail(
+            id=p.id,
+            amount_rupees=round(p.amount_paise / 100.0, 2),
+            payment_method=p.payment_method,
+            transaction_reference=p.transaction_reference,
+            payment_date=p.payment_date.isoformat(),
+            notes=p.notes,
+        )
+        for p in payments_db
+    ]
+
+    client_addr = f"{client.city or ''}, {client.state or ''}, {client.country or 'India'}".strip(", ") if client else None
+
+    return ApiResponse(
+        success=True,
+        data=InvoiceDetailResponse(
+            id=inv.id,
+            invoice_number=inv.invoice_number,
+            client_id=inv.client_id,
+            client_name=inv.client_name_snapshot,
+            client_address=client_addr,
+            client_gstin=client.gstin if client else None,
+            client_email=None,
+            client_phone=None,
+            issue_date=inv.issue_date.isoformat(),
+            due_date=inv.due_date.isoformat(),
+            status=inv.status,
+            subtotal_rupees=round(inv.subtotal_paise / 100.0, 2),
+            tax_rupees=round(inv.total_tax_paise / 100.0, 2),
+            total_rupees=round(inv.total_paise / 100.0, 2),
+            amount_paid_rupees=round(inv.amount_paid_paise / 100.0, 2),
+            balance_rupees=round(inv.balance_paise / 100.0, 2),
+            gst_type=inv.gst_type,
+            notes=inv.notes,
+            terms=inv.terms,
+            line_items=line_items,
+            payments=payments,
         ),
     )
 

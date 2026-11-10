@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
@@ -98,6 +99,7 @@ const DEFAULT_AGREEMENTS: AgreementItem[] = [
 ];
 
 export default function ServiceAgreementsPage() {
+  const router = useRouter();
   const [agreements, setAgreements] = useState<AgreementItem[]>(DEFAULT_AGREEMENTS);
   const [activeMailDraft, setActiveMailDraft] = useState<AgreementItem | null>(null);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -256,18 +258,26 @@ Reference: DFA-TEMPLATE-STANDARD
                 return (
                   <tr
                     key={agr.agreement_no}
-                    className="hover:bg-[#F8F9FB] transition-colors group"
+                    onClick={() => router.push(`/internal/agreements/${agr.id}`)}
+                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                    title={`Open Agreement ${agr.agreement_no}`}
                   >
                     <td className="py-3.5 px-4">
                       <Link
-                        href="/portal/agreements"
-                        className="text-[#5B4BDB] hover:underline font-semibold"
+                        href={`/internal/agreements/${agr.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[#5B4BDB] hover:underline font-semibold flex items-center space-x-1.5"
                       >
-                        {agr.agreement_no}
+                        <span>{agr.agreement_no}</span>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#5B4BDB]" />
                       </Link>
                     </td>
                     <td className="py-3.5 px-3 text-[#0F172A] font-medium">
-                      <Link href="/internal/clients/CLI-PEAK-001" className="hover:text-[#5B4BDB] hover:underline">
+                      <Link
+                        href={`/internal/clients?search=${encodeURIComponent(agr.account)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:text-[#5B4BDB] hover:underline"
+                      >
                         {agr.account}
                       </Link>
                     </td>
@@ -288,12 +298,24 @@ Reference: DFA-TEMPLATE-STANDARD
                         {agr.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right space-x-2">
                       <button
-                        onClick={() => setActiveMailDraft(agr)}
-                        className="text-[#5B4BDB] hover:text-[#4B3DC7] text-[13px] font-semibold hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMailDraft(agr);
+                        }}
+                        className="text-[#64748B] hover:text-[#5B4BDB] text-xs font-semibold hover:underline"
                       >
-                        Open mail draft
+                        Mail draft
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/internal/agreements/${agr.id}`);
+                        }}
+                        className="px-2.5 py-1 bg-white hover:bg-[#EEF2FF] border border-[#CBD5E1] hover:border-[#5B4BDB] text-[#5B4BDB] text-xs font-semibold rounded-lg transition-all shadow-xs"
+                      >
+                        View →
                       </button>
                     </td>
                   </tr>
