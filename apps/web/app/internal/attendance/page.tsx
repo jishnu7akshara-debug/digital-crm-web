@@ -248,12 +248,37 @@ export default function AttendancePage() {
     },
   });
 
+  // Body scroll lock & Escape listener for open modals
+  useEffect(() => {
+    if (isPunchModalOpen || viewDetailModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isPunchModalOpen, viewDetailModalOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsPunchModalOpen(false);
+        setViewDetailModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleOpenPunchModal = () => {
     refetchPunchStatus();
+    setViewDetailModalOpen(false);
     setIsPunchModalOpen(true);
   };
 
   const handleViewRecord = (id: string) => {
+    setIsPunchModalOpen(false);
     setSelectedRecordId(id);
     setViewDetailModalOpen(true);
     setAdminStatusCorrection("");
@@ -749,12 +774,19 @@ export default function AttendancePage() {
       {/* 4. RECORD PUNCH CONFIRMATION MODAL (CRITICAL BEHAVIOUR FIX) */}
       {/* ========================================================================= */}
       {isPunchModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-7 text-[13px] animate-in fade-in zoom-in-95 duration-150 relative">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-[#E5E7EB]">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          {/* Backdrop dismiss */}
+          <div
+            className="fixed inset-0 -z-10"
+            onClick={() => setIsPunchModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="bg-white border border-[#E5E7EB] rounded-3xl w-full max-w-md shadow-2xl flex flex-col max-h-[88vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150 relative">
+            {/* Modal Header (Fixed at top) */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB] shrink-0 bg-white">
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-2xl bg-[#EEF2FF] text-[#5B4BDB] flex items-center justify-center shadow-xs">
+                <div className="h-10 w-10 rounded-2xl bg-[#EEF2FF] text-[#5B4BDB] flex items-center justify-center shadow-xs shrink-0">
                   <Fingerprint className="h-6 w-6 stroke-[2]" />
                 </div>
                 <div>
@@ -769,18 +801,19 @@ export default function AttendancePage() {
 
               <button
                 onClick={() => setIsPunchModalOpen(false)}
-                className="text-[#94A3B8] hover:text-[#0F172A] p-1.5 rounded-xl hover:bg-[#F8F9FB] transition-colors"
+                className="text-[#94A3B8] hover:text-[#0F172A] p-1.5 rounded-xl hover:bg-[#F8F9FB] transition-colors cursor-pointer shrink-0 ml-2"
+                aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Modal Body: Employee, Today's State, and Actions */}
-            <div className="mt-5 space-y-4">
+            {/* Modal Body (Scrollable if needed) */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
               {/* Employee Summary Card */}
               <div className="p-4 rounded-2xl bg-[#F8F9FD] border border-[#E5E7EB] flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-full bg-[#5B4BDB] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                  <div className="h-10 w-10 rounded-full bg-[#5B4BDB] text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
                     {punchStatusData?.employee_name
                       ?.split(" ")
                       .map((n) => n[0])
@@ -799,7 +832,7 @@ export default function AttendancePage() {
                 </div>
 
                 {/* State Tag */}
-                <div>
+                <div className="shrink-0 ml-2">
                   {punchStatusData?.state === "not_punched_in" && (
                     <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F1F5F9] text-[#64748B]">
                       Not Punched In
@@ -819,7 +852,7 @@ export default function AttendancePage() {
               </div>
 
               {/* Attendance Flow State Action */}
-              <div className="pt-2">
+              <div className="pt-1">
                 {punchStatusData?.state === "not_punched_in" && (
                   <button
                     onClick={() => punchMutation.mutate("check_in")}
@@ -883,14 +916,22 @@ export default function AttendancePage() {
       {/* 5. VIEW DETAILS MODAL */}
       {/* ========================================================================= */}
       {viewDetailModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-3xl w-full max-w-lg shadow-2xl p-6 sm:p-7 text-[13px] animate-in fade-in zoom-in-95 duration-150 relative">
-            <div className="flex items-start justify-between pb-4 border-b border-[#E5E7EB]">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          {/* Backdrop dismiss */}
+          <div
+            className="fixed inset-0 -z-10"
+            onClick={() => setViewDetailModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="bg-white border border-[#E5E7EB] rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[88vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150 relative">
+            {/* Modal Header (Fixed at top) */}
+            <div className="flex items-start justify-between px-6 py-4 border-b border-[#E5E7EB] shrink-0 bg-white">
               <div>
-                <span className="text-[11px] font-bold text-[#5B4BDB] uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-[#5B4BDB] uppercase tracking-wider block">
                   ATTENDANCE AUDIT RECORD
                 </span>
-                <h3 className="font-extrabold text-lg text-[#0F172A] tracking-tight mt-0.5">
+                <h3 className="font-extrabold text-base sm:text-lg text-[#0F172A] tracking-tight mt-0.5">
                   Record Details — {detailData?.date ? formatDisplayDate(detailData.date) : "Loading..."}
                 </h3>
                 <p className="text-xs text-[#64748B]">
@@ -900,150 +941,162 @@ export default function AttendancePage() {
 
               <button
                 onClick={() => setViewDetailModalOpen(false)}
-                className="text-[#94A3B8] hover:text-[#0F172A] p-1.5 rounded-xl hover:bg-[#F8F9FB] transition-colors"
+                className="text-[#94A3B8] hover:text-[#0F172A] p-1.5 rounded-xl hover:bg-[#F8F9FB] transition-colors cursor-pointer shrink-0 ml-3"
+                aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {isDetailLoading ? (
-              <div className="py-12 text-center text-[#64748B]">
-                <div className="h-6 w-6 rounded-full border-2 border-[#5B4BDB] border-t-transparent animate-spin mx-auto mb-2" />
-                <span>Loading record audit trail...</span>
-              </div>
-            ) : detailData ? (
-              <div className="mt-5 space-y-4">
-                {/* Employee Info Header */}
-                <div className="p-4 rounded-2xl bg-[#F8F9FD] border border-[#E5E7EB] flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-[#0F172A] text-sm">
-                      {detailData.employee_name}
+            {/* Modal Body (Scrollable) */}
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+              {isDetailLoading ? (
+                <div className="py-12 text-center text-[#64748B]">
+                  <div className="h-6 w-6 rounded-full border-2 border-[#5B4BDB] border-t-transparent animate-spin mx-auto mb-2" />
+                  <span>Loading record audit trail...</span>
+                </div>
+              ) : detailData ? (
+                <>
+                  {/* Employee Info Header */}
+                  <div className="p-4 rounded-2xl bg-[#F8F9FD] border border-[#E5E7EB] flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-[#0F172A] text-sm">
+                        {detailData.employee_name}
+                      </div>
+                      <div className="text-xs text-[#64748B]">
+                        {detailData.designation} · {detailData.department}
+                      </div>
                     </div>
-                    <div className="text-xs text-[#64748B]">
-                      {detailData.designation} · {detailData.department}
-                    </div>
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-white border border-[#E5E7EB] text-[#5B4BDB]">
-                    {detailData.employee_code}
-                  </span>
-                </div>
-
-                {/* Timing Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
-                    <span className="text-[11px] text-[#64748B] font-semibold block">Check In (IST)</span>
-                    <span className="text-base font-bold text-[#0F172A] mt-0.5 block">
-                      {detailData.check_in_local || "—"}
-                    </span>
-                    <span className="text-[10px] text-[#94A3B8]">UTC: {detailData.check_in_utc ? detailData.check_in_utc.slice(11, 19) : "—"}</span>
-                  </div>
-
-                  <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
-                    <span className="text-[11px] text-[#64748B] font-semibold block">Check Out (IST)</span>
-                    <span className="text-base font-bold text-[#0F172A] mt-0.5 block">
-                      {detailData.check_out_local || "—"}
-                    </span>
-                    <span className="text-[10px] text-[#94A3B8]">UTC: {detailData.check_out_utc ? detailData.check_out_utc.slice(11, 19) : "—"}</span>
-                  </div>
-                </div>
-
-                {/* Working Hours & Status */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
-                    <span className="text-[11px] text-[#64748B] font-semibold block">Total Logged Time</span>
-                    <span className="text-base font-bold text-[#5B4BDB] mt-0.5 block">
-                      {detailData.working_hours_display}
-                    </span>
-                    <span className="text-[10px] text-[#94A3B8]">{detailData.working_minutes} total minutes</span>
-                  </div>
-
-                  <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
-                    <span className="text-[11px] text-[#64748B] font-semibold block">Calculated Status</span>
-                    <span className="text-base font-bold text-[#0F172A] mt-0.5 block capitalize">
-                      {detailData.status.replace("_", " ")}
-                    </span>
-                    <span className="text-[10px] text-[#94A3B8]">
-                      {detailData.is_missing_punch ? "⚠️ Missing Punch" : "✓ Complete"}
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white border border-[#E5E7EB] text-[#5B4BDB]">
+                      {detailData.employee_code}
                     </span>
                   </div>
-                </div>
 
-                {/* Rule Evaluation Explanation Box */}
-                <div className="p-3.5 rounded-2xl bg-[#EEF2FF] border border-[#5B4BDB]/20 text-xs">
-                  <div className="font-bold text-[#5B4BDB] mb-1 flex items-center space-x-1.5">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>Kolkata Business Rule Evaluation:</span>
-                  </div>
-                  <p className="text-[#3730A3] leading-relaxed">
-                    {detailData.status_rule_explanation}
-                  </p>
-                </div>
-
-                {/* Admin Correction Tool */}
-                {user?.is_super_admin && (
-                  <div className="p-4 rounded-2xl bg-[#F8F9FD] border border-[#E5E7EB] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#0F172A] flex items-center space-x-1.5">
-                        <ShieldAlert className="h-3.5 w-3.5 text-[#5B4BDB]" />
-                        <span>Admin Attendance Correction</span>
+                  {/* Timing Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
+                      <span className="text-[11px] text-[#64748B] font-semibold block">Check In (IST)</span>
+                      <span className="text-base font-bold text-[#0F172A] mt-0.5 block">
+                        {detailData.check_in_local || "—"}
                       </span>
-                      {correctionSuccessMsg && (
-                        <span className="text-[11px] text-emerald-600 font-semibold">
-                          {correctionSuccessMsg}
-                        </span>
-                      )}
+                      <span className="text-[10px] text-[#94A3B8]">
+                        UTC: {detailData.check_in_utc ? detailData.check_in_utc.slice(11, 19) : "—"}
+                      </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="block text-[11px] text-[#64748B] mb-1">Adjust Status</label>
-                        <select
-                          value={adminStatusCorrection}
-                          onChange={(e) => setAdminStatusCorrection(e.target.value)}
-                          className="w-full bg-white border border-[#E5E7EB] rounded-xl px-2.5 py-1.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B4BDB]"
-                        >
-                          <option value="">Leave as is ({detailData.status})</option>
-                          <option value="present">Present</option>
-                          <option value="late">Late</option>
-                          <option value="half_day">Half Day</option>
-                          <option value="absent">Absent</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-[#64748B] mb-1">Correction Reason</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Approved biometric fix"
-                          value={adminCorrectionReason}
-                          onChange={(e) => setAdminCorrectionReason(e.target.value)}
-                          className="w-full bg-white border border-[#E5E7EB] rounded-xl px-2.5 py-1.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B4BDB]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-1">
-                      <button
-                        onClick={() => adminCorrectMutation.mutate()}
-                        disabled={adminCorrectMutation.isPending || (!adminStatusCorrection && !adminCorrectionReason)}
-                        className="px-3.5 py-1.5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-40 transition-all"
-                      >
-                        {adminCorrectMutation.isPending ? "Applying..." : "Apply Admin Adjustment"}
-                      </button>
+                    <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
+                      <span className="text-[11px] text-[#64748B] font-semibold block">Check Out (IST)</span>
+                      <span className="text-base font-bold text-[#0F172A] mt-0.5 block">
+                        {detailData.check_out_local || "—"}
+                      </span>
+                      <span className="text-[10px] text-[#94A3B8]">
+                        UTC: {detailData.check_out_utc ? detailData.check_out_utc.slice(11, 19) : "—"}
+                      </span>
                     </div>
                   </div>
-                )}
 
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => setViewDetailModalOpen(false)}
-                    className="px-5 py-2.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] rounded-2xl text-xs font-bold transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            ) : null}
+                  {/* Working Hours & Status */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
+                      <span className="text-[11px] text-[#64748B] font-semibold block">Total Logged Time</span>
+                      <span className="text-base font-bold text-[#5B4BDB] mt-0.5 block">
+                        {detailData.working_hours_display}
+                      </span>
+                      <span className="text-[10px] text-[#94A3B8]">{detailData.working_minutes} total minutes</span>
+                    </div>
+
+                    <div className="p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
+                      <span className="text-[11px] text-[#64748B] font-semibold block">Calculated Status</span>
+                      <span className="text-base font-bold text-[#0F172A] mt-0.5 block capitalize">
+                        {detailData.status.replace("_", " ")}
+                      </span>
+                      <span className="text-[10px] text-[#94A3B8]">
+                        {detailData.is_missing_punch ? "⚠️ Missing Punch" : "✓ Complete"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Rule Evaluation Explanation Box */}
+                  <div className="p-3.5 rounded-2xl bg-[#EEF2FF] border border-[#5B4BDB]/20 text-xs">
+                    <div className="font-bold text-[#5B4BDB] mb-1 flex items-center space-x-1.5">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>Kolkata Business Rule Evaluation:</span>
+                    </div>
+                    <p className="text-[#3730A3] leading-relaxed">
+                      {detailData.status_rule_explanation}
+                    </p>
+                  </div>
+
+                  {/* Admin Correction Tool */}
+                  {user?.is_super_admin && (
+                    <div className="p-4 rounded-2xl bg-[#F8F9FD] border border-[#E5E7EB] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#0F172A] flex items-center space-x-1.5">
+                          <ShieldAlert className="h-3.5 w-3.5 text-[#5B4BDB]" />
+                          <span>Admin Attendance Correction</span>
+                        </span>
+                        {correctionSuccessMsg && (
+                          <span className="text-[11px] text-emerald-600 font-semibold">
+                            {correctionSuccessMsg}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] text-[#64748B] mb-1 font-semibold">Adjust Status</label>
+                          <select
+                            value={adminStatusCorrection}
+                            onChange={(e) => setAdminStatusCorrection(e.target.value)}
+                            className="w-full bg-white border border-[#E5E7EB] rounded-xl px-2.5 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
+                          >
+                            <option value="">Leave as is ({detailData.status})</option>
+                            <option value="present">Present</option>
+                            <option value="late">Late</option>
+                            <option value="half_day">Half Day</option>
+                            <option value="absent">Absent</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] text-[#64748B] mb-1 font-semibold">Correction Reason</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Approved biometric fix"
+                            value={adminCorrectionReason}
+                            onChange={(e) => setAdminCorrectionReason(e.target.value)}
+                            className="w-full bg-white border border-[#E5E7EB] rounded-xl px-2.5 py-2 text-xs text-[#0F172A] focus:outline-none focus:border-[#5B4BDB] focus:ring-1 focus:ring-[#5B4BDB]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-1">
+                        <button
+                          onClick={() => adminCorrectMutation.mutate()}
+                          disabled={adminCorrectMutation.isPending || (!adminStatusCorrection && !adminCorrectionReason)}
+                          className="px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-40 transition-all cursor-pointer"
+                        >
+                          {adminCorrectMutation.isPending ? "Applying..." : "Apply Admin Adjustment"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+
+            {/* Modal Footer (Fixed at bottom) */}
+            <div className="flex items-center justify-between px-6 py-3.5 border-t border-[#F1F5F9] bg-[#F8F9FB] rounded-b-3xl shrink-0">
+              <span className="text-[11px] text-[#94A3B8]">
+                Asia/Kolkata (IST) Audit Trail
+              </span>
+              <button
+                onClick={() => setViewDetailModalOpen(false)}
+                className="px-5 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
