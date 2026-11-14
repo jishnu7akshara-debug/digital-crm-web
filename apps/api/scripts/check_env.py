@@ -3,6 +3,7 @@
 Validates that required environment variables are set and database endpoints are reachable.
 CRITICAL: Never prints secret values, connection strings, or masked credentials.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -158,9 +159,8 @@ def main() -> int:
 
     # 3. Database separation assertion
     print("\n[3/3] Checking database branch isolation...")
-    is_same = (
-        (direct_url and test_url and is_same_database(direct_url, test_url))
-        or (db_url and test_url and is_same_database(db_url, test_url))
+    is_same = (direct_url and test_url and is_same_database(direct_url, test_url)) or (
+        db_url and test_url and is_same_database(db_url, test_url)
     )
     comparison = "SAME" if is_same else "DIFFERENT"
     print(f" - Dev vs Test branch comparison: {comparison}")

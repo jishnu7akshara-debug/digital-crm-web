@@ -1,19 +1,19 @@
 """Finance & Invoicing API: Indian GST, Integer Paise, Payments, Pure-Python PDF Generation."""
-from datetime import datetime, date, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
-from fpdf import FPDF
 
-from app.core.database import get_db
-from app.policies.rbac import require_permission, verify_client_isolation, AccessScope
-from app.core.audit import log_audit_event
+from datetime import UTC, date, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fpdf import FPDF
+from pydantic import BaseModel
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from app.api.schemas import ApiResponse, PaginatedData
-from app.db.models.finance import Invoice, InvoiceLineItem, Payment
+from app.core.audit import log_audit_event
+from app.core.database import get_db
 from app.db.models.crm import Client
-from app.db.models.projects import Project
+from app.db.models.finance import Invoice, InvoiceLineItem, Payment
+from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -49,9 +49,9 @@ class InvoicePaymentDetail(BaseModel):
     id: str
     amount_rupees: float
     payment_method: str
-    transaction_reference: Optional[str] = None
+    transaction_reference: str | None = None
     payment_date: str
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class InvoiceDetailResponse(BaseModel):
@@ -59,10 +59,10 @@ class InvoiceDetailResponse(BaseModel):
     invoice_number: str
     client_id: str
     client_name: str
-    client_address: Optional[str] = None
-    client_gstin: Optional[str] = None
-    client_email: Optional[str] = None
-    client_phone: Optional[str] = None
+    client_address: str | None = None
+    client_gstin: str | None = None
+    client_email: str | None = None
+    client_phone: str | None = None
     issue_date: str
     due_date: str
     status: str
@@ -72,10 +72,10 @@ class InvoiceDetailResponse(BaseModel):
     amount_paid_rupees: float
     balance_rupees: float
     gst_type: str
-    notes: Optional[str] = None
-    terms: Optional[str] = None
-    line_items: List[InvoiceLineItemDetail] = []
-    payments: List[InvoicePaymentDetail] = []
+    notes: str | None = None
+    terms: str | None = None
+    line_items: list[InvoiceLineItemDetail] = []
+    payments: list[InvoicePaymentDetail] = []
 
 
 class LineItemPayload(BaseModel):
@@ -88,30 +88,30 @@ class LineItemPayload(BaseModel):
 
 class CreateInvoiceRequest(BaseModel):
     client_id: str
-    project_id: Optional[str] = None
+    project_id: str | None = None
     invoice_number: str
     issue_date: date
     due_date: date
     gst_type: str = "intra_state"  # "intra_state", "inter_state", "exempt"
-    line_items: List[LineItemPayload]
-    notes: Optional[str] = None
-    terms: Optional[str] = "Payment due within 15 days of invoice date."
+    line_items: list[LineItemPayload]
+    notes: str | None = None
+    terms: str | None = "Payment due within 15 days of invoice date."
 
 
 class RecordPaymentRequest(BaseModel):
     amount_paise: int
     payment_method: str = "bank_transfer"  # "bank_transfer", "upi", "card", "cheque"
-    transaction_reference: Optional[str] = None
+    transaction_reference: str | None = None
     payment_date: date
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 @router.get("", response_model=ApiResponse[PaginatedData[InvoiceSummaryItem]])
 def list_invoices(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status_filter: Optional[str] = None,
-    client_id: Optional[str] = None,
+    status_filter: str | None = None,
+    client_id: str | None = None,
     scope: AccessScope = Depends(require_permission("invoices.read")),
     db: Session = Depends(get_db),
 ):
@@ -173,9 +173,12 @@ def get_invoice(
     db: Session = Depends(get_db),
 ):
     """Get single invoice details by id or invoice number."""
-    inv = db.query(Invoice).filter(Invoice.is_deleted == False).filter(
-        (Invoice.id == invoice_id) | (Invoice.invoice_number == invoice_id)
-    ).first()
+    inv = (
+        db.query(Invoice)
+        .filter(Invoice.is_deleted == False)
+        .filter((Invoice.id == invoice_id) | (Invoice.invoice_number == invoice_id))
+        .first()
+    )
 
     if not inv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
@@ -184,7 +187,9 @@ def get_invoice(
 
     client = db.query(Client).filter_by(id=inv.client_id).first()
     line_items_db = db.query(InvoiceLineItem).filter_by(invoice_id=inv.id).all()
-    payments_db = db.query(Payment).filter_by(invoice_id=inv.id).order_by(desc(Payment.payment_date)).all()
+    payments_db = (
+        db.query(Payment).filter_by(invoice_id=inv.id).order_by(desc(Payment.payment_date)).all()
+    )
 
     line_items = [
         InvoiceLineItemDetail(
@@ -212,7 +217,11 @@ def get_invoice(
         for p in payments_db
     ]
 
-    client_addr = f"{client.city or ''}, {client.state or ''}, {client.country or 'India'}".strip(", ") if client else None
+    client_addr = (
+        f"{client.city or ''}, {client.state or ''}, {client.country or 'India'}".strip(", ")
+        if client
+        else None
+    )
 
     return ApiResponse(
         success=True,
@@ -253,9 +262,14 @@ def create_invoice(
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
 
-    existing_inv = db.query(Invoice).filter_by(invoice_number=payload.invoice_number.strip()).first()
+    existing_inv = (
+        db.query(Invoice).filter_by(invoice_number=payload.invoice_number.strip()).first()
+    )
     if existing_inv:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invoice #{payload.invoice_number} already exists.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invoice #{payload.invoice_number} already exists.",
+        )
 
     # Calculate item totals and GST in integer paise
     subtotal_paise = 0
@@ -319,7 +333,7 @@ def create_invoice(
         client_address_snapshot=f"{client.address or ''}, {client.city or ''}, {client.state or ''} - {client.postal_code or ''}".strip(),
         notes=payload.notes,
         terms=payload.terms,
-        issued_at=datetime.now(timezone.utc),
+        issued_at=datetime.now(UTC),
         line_items=items_to_create,
     )
     db.add(invoice)
@@ -335,7 +349,9 @@ def create_invoice(
         new_values={"invoice_number": invoice.invoice_number, "total_paise": total_paise},
     )
 
-    return ApiResponse(success=True, data=invoice.id, message=f"Invoice #{invoice.invoice_number} issued.")
+    return ApiResponse(
+        success=True, data=invoice.id, message=f"Invoice #{invoice.invoice_number} issued."
+    )
 
 
 @router.post("/{invoice_id}/payments", response_model=ApiResponse[str])
@@ -351,15 +367,21 @@ def record_invoice_payment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
 
     if invoice.status == "cancelled":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot record payments on cancelled invoices.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot record payments on cancelled invoices.",
+        )
 
     if payload.amount_paise <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment amount must be greater than zero.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment amount must be greater than zero.",
+        )
 
     if payload.amount_paise > invoice.balance_paise:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Payment (₹{payload.amount_paise/100:.2f}) exceeds outstanding balance (₹{invoice.balance_paise/100:.2f}).",
+            detail=f"Payment (₹{payload.amount_paise / 100:.2f}) exceeds outstanding balance (₹{invoice.balance_paise / 100:.2f}).",
         )
 
     # Generate payment number
@@ -385,7 +407,7 @@ def record_invoice_payment(
     invoice.balance_paise -= payload.amount_paise
     if invoice.balance_paise == 0:
         invoice.status = "paid"
-        invoice.paid_at = datetime.now(timezone.utc)
+        invoice.paid_at = datetime.now(UTC)
     else:
         invoice.status = "partially_paid"
 
@@ -400,7 +422,11 @@ def record_invoice_payment(
         new_values={"invoice_id": invoice.id, "amount_paise": payload.amount_paise},
     )
 
-    return ApiResponse(success=True, data=payment.id, message=f"Payment of ₹{payload.amount_paise/100:.2f} recorded.")
+    return ApiResponse(
+        success=True,
+        data=payment.id,
+        message=f"Payment of ₹{payload.amount_paise / 100:.2f} recorded.",
+    )
 
 
 @router.get("/{invoice_id}/pdf")
@@ -429,7 +455,9 @@ def download_invoice_pdf(
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(119, 115, 138)  # #77738A Secondary
     pdf.cell(0, 5, "Digital Footprint Solutions Pvt Ltd | GSTIN: 27AABCD1234E1Z5", ln=True)
-    pdf.cell(0, 5, "Level 5, Technology Tower, Pune, MH, India | support@digitalfootprint.in", ln=True)
+    pdf.cell(
+        0, 5, "Level 5, Technology Tower, Pune, MH, India | support@digitalfootprint.in", ln=True
+    )
     pdf.ln(5)
 
     # Invoice Title & Meta
@@ -456,7 +484,12 @@ def download_invoice_pdf(
     pdf.cell(0, 5, "BILLED TO:", ln=True)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_x(12)
-    pdf.cell(0, 5, f"{invoice.client_name_snapshot} | GSTIN: {invoice.client_gstin_snapshot or 'N/A'}", ln=True)
+    pdf.cell(
+        0,
+        5,
+        f"{invoice.client_name_snapshot} | GSTIN: {invoice.client_gstin_snapshot or 'N/A'}",
+        ln=True,
+    )
     pdf.set_x(12)
     pdf.cell(0, 5, f"{invoice.client_address_snapshot or 'India'}", ln=True)
     pdf.ln(8)
@@ -478,8 +511,8 @@ def download_invoice_pdf(
         pdf.cell(90, 7, f" {item.description[:45]}", 1, 0, "L")
         pdf.cell(25, 7, item.hsn_sac_code, 1, 0, "C")
         pdf.cell(15, 7, str(item.quantity), 1, 0, "C")
-        pdf.cell(30, 7, f"{item.unit_price_paise/100:,.2f}", 1, 0, "R")
-        pdf.cell(30, 7, f"{item.total_paise/100:,.2f}", 1, 1, "R")
+        pdf.cell(30, 7, f"{item.unit_price_paise / 100:,.2f}", 1, 0, "R")
+        pdf.cell(30, 7, f"{item.total_paise / 100:,.2f}", 1, 1, "R")
 
     pdf.ln(4)
 
@@ -487,42 +520,43 @@ def download_invoice_pdf(
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(130, 6, "", 0, 0)
     pdf.cell(30, 6, "Subtotal:", 0, 0, "R")
-    pdf.cell(30, 6, f"INR {invoice.subtotal_paise/100:,.2f}", 0, 1, "R")
+    pdf.cell(30, 6, f"INR {invoice.subtotal_paise / 100:,.2f}", 0, 1, "R")
 
     if invoice.gst_type == "intra_state":
         pdf.cell(130, 6, "", 0, 0)
         pdf.cell(30, 6, "CGST (9%):", 0, 0, "R")
-        pdf.cell(30, 6, f"INR {invoice.cgst_paise/100:,.2f}", 0, 1, "R")
+        pdf.cell(30, 6, f"INR {invoice.cgst_paise / 100:,.2f}", 0, 1, "R")
 
         pdf.cell(130, 6, "", 0, 0)
         pdf.cell(30, 6, "SGST (9%):", 0, 0, "R")
-        pdf.cell(30, 6, f"INR {invoice.sgst_paise/100:,.2f}", 0, 1, "R")
+        pdf.cell(30, 6, f"INR {invoice.sgst_paise / 100:,.2f}", 0, 1, "R")
     elif invoice.gst_type == "inter_state":
         pdf.cell(130, 6, "", 0, 0)
         pdf.cell(30, 6, "IGST (18%):", 0, 0, "R")
-        pdf.cell(30, 6, f"INR {invoice.igst_paise/100:,.2f}", 0, 1, "R")
+        pdf.cell(30, 6, f"INR {invoice.igst_paise / 100:,.2f}", 0, 1, "R")
 
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(108, 59, 219)
     pdf.cell(130, 8, "", 0, 0)
     pdf.cell(30, 8, "Total Payable:", 0, 0, "R")
-    pdf.cell(30, 8, f"INR {invoice.total_paise/100:,.2f}", 0, 1, "R")
+    pdf.cell(30, 8, f"INR {invoice.total_paise / 100:,.2f}", 0, 1, "R")
 
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(119, 115, 138)
     pdf.cell(130, 6, "", 0, 0)
     pdf.cell(30, 6, "Amount Paid:", 0, 0, "R")
-    pdf.cell(30, 6, f"INR {invoice.amount_paid_paise/100:,.2f}", 0, 1, "R")
+    pdf.cell(30, 6, f"INR {invoice.amount_paid_paise / 100:,.2f}", 0, 1, "R")
 
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(130, 6, "", 0, 0)
     pdf.cell(30, 6, "Balance Due:", 0, 0, "R")
-    pdf.cell(30, 6, f"INR {invoice.balance_paise/100:,.2f}", 0, 1, "R")
+    pdf.cell(30, 6, f"INR {invoice.balance_paise / 100:,.2f}", 0, 1, "R")
 
     pdf_bytes = bytes(pdf.output())
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+        },
     )
-

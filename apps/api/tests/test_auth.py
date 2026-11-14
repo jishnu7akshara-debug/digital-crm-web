@@ -1,6 +1,7 @@
 """Unit & integration tests for authentication and RBAC."""
-import pytest
+
 from starlette.testclient import TestClient
+
 from app.main import app
 
 client = TestClient(app)
@@ -40,4 +41,3 @@ def test_unauthenticated_protected_route():
     unauthed_client = TestClient(app)
     response = unauthed_client.get("/api/v1/dashboard/kpis")
     assert response.status_code == 401
-

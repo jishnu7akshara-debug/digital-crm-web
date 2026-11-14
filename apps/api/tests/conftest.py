@@ -1,4 +1,5 @@
 """Pytest configuration and dev-database isolation guard."""
+
 from __future__ import annotations
 
 import os

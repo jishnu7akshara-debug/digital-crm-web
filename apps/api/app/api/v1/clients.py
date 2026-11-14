@@ -1,24 +1,31 @@
 """Clients API: Client 360, Service Subscriptions, Multi-Tenant Client Isolation."""
-from datetime import datetime, date, timezone
-from typing import List, Optional, Dict, Any
-import csv
-import io
-import re
-from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
-from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
+import re
+from datetime import date, datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
+from app.api.schemas import ApiResponse, PaginatedData
+from app.core.audit import log_audit_event
 from app.core.database import get_db
 from app.core.security import hash_password
-from app.policies.rbac import require_permission, verify_client_isolation, AccessScope
-from app.core.audit import log_audit_event
-from app.api.schemas import ApiResponse, PaginatedData
-from app.db.models.crm import Client, ClientContact, ClientService, ServiceCatalogue, Contract, Proposal
+from app.db.models.auth import Role, User, UserRole
+from app.db.models.crm import (
+    Client,
+    ClientContact,
+    ClientService,
+    Contract,
+    Proposal,
+    ServiceCatalogue,
+)
+from app.db.models.finance import Invoice
 from app.db.models.projects import Project
-from app.db.models.finance import Invoice, Payment
 from app.db.models.support import SupportTicket
-from app.db.models.auth import User, Role, UserRole
+from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -26,13 +33,13 @@ router = APIRouter(prefix="/clients", tags=["Clients"])
 class ClientSummary(BaseModel):
     id: str
     name: str
-    brand_name: Optional[str] = None
+    brand_name: str | None = None
     code: str
     status: str
-    gstin: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    account_manager_name: Optional[str] = None
+    gstin: str | None = None
+    city: str | None = None
+    state: str | None = None
+    account_manager_name: str | None = None
     active_services_count: int
     active_projects_count: int
     total_invoiced_rupees: float
@@ -43,8 +50,8 @@ class ClientContactItem(BaseModel):
     id: str
     name: str
     email: str
-    phone: Optional[str] = None
-    designation: Optional[str] = None
+    phone: str | None = None
+    designation: str | None = None
     is_primary: bool
 
 
@@ -57,51 +64,51 @@ class ClientServiceItem(BaseModel):
     price_rupees: float
     billing_cycle: str
     start_date: str
-    renewal_date: Optional[str] = None
+    renewal_date: str | None = None
 
 
 class Client360Detail(BaseModel):
     id: str
     name: str
-    brand_name: Optional[str] = None
+    brand_name: str | None = None
     code: str
     status: str
-    gstin: Optional[str] = None
-    website: Optional[str] = None
-    industry: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
+    gstin: str | None = None
+    website: str | None = None
+    industry: str | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
     country: str
-    postal_code: Optional[str] = None
-    account_manager: Optional[Dict[str, str]] = None
-    contacts: List[ClientContactItem]
-    services: List[ClientServiceItem]
-    projects: List[Dict[str, Any]]
-    invoices: List[Dict[str, Any]]
-    contracts: List[Dict[str, Any]]
-    proposals: List[Dict[str, Any]]
-    support_tickets: List[Dict[str, Any]]
-    metrics: Dict[str, Any]
+    postal_code: str | None = None
+    account_manager: dict[str, str] | None = None
+    contacts: list[ClientContactItem]
+    services: list[ClientServiceItem]
+    projects: list[dict[str, Any]]
+    invoices: list[dict[str, Any]]
+    contracts: list[dict[str, Any]]
+    proposals: list[dict[str, Any]]
+    support_tickets: list[dict[str, Any]]
+    metrics: dict[str, Any]
 
 
 class CreateClientRequest(BaseModel):
     name: str
-    brand_name: Optional[str] = None
+    brand_name: str | None = None
     code: str
-    gstin: Optional[str] = None
-    website: Optional[str] = None
-    industry: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
+    gstin: str | None = None
+    website: str | None = None
+    industry: str | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
     country: str = "India"
-    postal_code: Optional[str] = None
-    account_manager_id: Optional[str] = None
+    postal_code: str | None = None
+    account_manager_id: str | None = None
     primary_contact_name: str
     primary_contact_email: EmailStr
-    primary_contact_phone: Optional[str] = None
-    primary_contact_designation: Optional[str] = "Owner"
+    primary_contact_phone: str | None = None
+    primary_contact_designation: str | None = "Owner"
 
 
 class SubscribeServiceRequest(BaseModel):
@@ -109,15 +116,15 @@ class SubscribeServiceRequest(BaseModel):
     price_paise: int
     billing_cycle: str = "one_time"  # "one_time", "monthly", "quarterly", "annual"
     start_date: date
-    renewal_date: Optional[date] = None
+    renewal_date: date | None = None
 
 
 @router.get("", response_model=ApiResponse[PaginatedData[ClientSummary]])
 def list_clients(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    search: Optional[str] = None,
-    status_filter: Optional[str] = None,
+    search: str | None = None,
+    status_filter: str | None = None,
     scope: AccessScope = Depends(require_permission("clients.read")),
     db: Session = Depends(get_db),
 ):
@@ -133,7 +140,9 @@ def list_clients(
     if search:
         search_fmt = f"%{search.strip()}%"
         query = query.filter(
-            (Client.name.ilike(search_fmt)) | (Client.code.ilike(search_fmt)) | (Client.gstin.ilike(search_fmt))
+            (Client.name.ilike(search_fmt))
+            | (Client.code.ilike(search_fmt))
+            | (Client.gstin.ilike(search_fmt))
         )
     if status_filter:
         query = query.filter(Client.status == status_filter)
@@ -148,10 +157,24 @@ def list_clients(
 
     items = []
     for c in clients:
-        am = db.query(User).filter_by(id=c.account_manager_id).first() if c.account_manager_id else None
-        active_services = db.query(ClientService).filter_by(client_id=c.id, is_deleted=False).count()
+        am = (
+            db.query(User).filter_by(id=c.account_manager_id).first()
+            if c.account_manager_id
+            else None
+        )
+        active_services = (
+            db.query(ClientService).filter_by(client_id=c.id, is_deleted=False).count()
+        )
         active_projects = db.query(Project).filter_by(client_id=c.id, is_deleted=False).count()
-        invoices = db.query(Invoice).filter(Invoice.client_id == c.id, Invoice.is_deleted == False, Invoice.status != "cancelled").all()
+        invoices = (
+            db.query(Invoice)
+            .filter(
+                Invoice.client_id == c.id,
+                Invoice.is_deleted == False,
+                Invoice.status != "cancelled",
+            )
+            .all()
+        )
         invoiced_paise = sum(i.total_paise for i in invoices)
         outstanding_paise = sum(i.balance_paise for i in invoices)
 
@@ -192,16 +215,21 @@ def get_client_360(
     db: Session = Depends(get_db),
 ):
     """Retrieve complete Client 360 profile with all services, projects, invoices, and metrics."""
-    client = db.query(Client).filter(
-        ((Client.id == client_id) | (Client.code == client_id)),
-        Client.is_deleted == False
-    ).first()
+    client = (
+        db.query(Client)
+        .filter(((Client.id == client_id) | (Client.code == client_id)), Client.is_deleted == False)
+        .first()
+    )
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
 
     verify_client_isolation(client.id, scope)
 
-    am = db.query(User).filter_by(id=client.account_manager_id).first() if client.account_manager_id else None
+    am = (
+        db.query(User).filter_by(id=client.account_manager_id).first()
+        if client.account_manager_id
+        else None
+    )
 
     # 1. Contacts
     contacts = db.query(ClientContact).filter_by(client_id=client.id, is_deleted=False).all()
@@ -251,7 +279,12 @@ def get_client_360(
     ]
 
     # 4. Invoices
-    invoices = db.query(Invoice).filter_by(client_id=client.id, is_deleted=False).order_by(desc(Invoice.issue_date)).all()
+    invoices = (
+        db.query(Invoice)
+        .filter_by(client_id=client.id, is_deleted=False)
+        .order_by(desc(Invoice.issue_date))
+        .all()
+    )
     invoice_items = [
         {
             "id": inv.id,
@@ -356,7 +389,10 @@ def create_client(
     """Register a new client company with primary contact."""
     existing = db.query(Client).filter_by(code=payload.code.strip()).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Client code '{payload.code}' already exists.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Client code '{payload.code}' already exists.",
+        )
 
     client = Client(
         organization_id=scope.user.organization_id,
@@ -415,7 +451,9 @@ def subscribe_client_service(
 
     service = db.query(ServiceCatalogue).filter_by(id=payload.service_id, is_active=True).first()
     if not service:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service offering not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Service offering not found."
+        )
 
     sub = ClientService(
         client_id=client.id,
@@ -436,7 +474,11 @@ def subscribe_client_service(
         resource_type="client_service",
         resource_id=sub.id,
         user=scope.user,
-        new_values={"client_id": client.id, "service_name": service.name, "price_paise": payload.price_paise},
+        new_values={
+            "client_id": client.id,
+            "service_name": service.name,
+            "price_paise": payload.price_paise,
+        },
     )
 
     return ApiResponse(success=True, data=sub.id, message=f"Subscribed to {service.name}.")
@@ -444,15 +486,15 @@ def subscribe_client_service(
 
 class QuickCreateAccountRequest(BaseModel):
     name: str
-    industry: Optional[str] = "Fitness"
-    city: Optional[str] = "Bengaluru"
-    account_manager_name: Optional[str] = "Meera"
-    contract_value_rupees: Optional[float] = 160000.0
-    payment_terms: Optional[str] = "30 days"
+    industry: str | None = "Fitness"
+    city: str | None = "Bengaluru"
+    account_manager_name: str | None = "Meera"
+    contract_value_rupees: float | None = 160000.0
+    payment_terms: str | None = "30 days"
     primary_contact_name: str
     primary_contact_email: EmailStr
-    primary_contact_phone: Optional[str] = "+91 98765 43210"
-    services: List[str] = Field(default_factory=list)
+    primary_contact_phone: str | None = "+91 98765 43210"
+    services: list[str] = Field(default_factory=list)
 
 
 class BulkUploadSummary(BaseModel):
@@ -464,7 +506,7 @@ class BulkUploadSummary(BaseModel):
     message: str
 
 
-@router.post("/quick-create", response_model=ApiResponse[Dict[str, Any]])
+@router.post("/quick-create", response_model=ApiResponse[dict[str, Any]])
 def quick_create_account(
     payload: QuickCreateAccountRequest,
     scope: AccessScope = Depends(require_permission("clients.create")),
@@ -474,7 +516,7 @@ def quick_create_account(
     # 1. Clean code from company name
     clean_code = re.sub(r"[^A-Za-z0-9]", "", payload.name).upper()[:8]
     code = f"CLI-{clean_code}-01"
-    
+
     existing = db.query(Client).filter_by(code=code).first()
     if existing:
         code = f"CLI-{clean_code}-{datetime.now().strftime('%M%S')}"
@@ -531,8 +573,12 @@ def quick_create_account(
             client_id=client.id,
             email=portal_email,
             hashed_password=hash_password("Welcome@123"),
-            first_name=payload.primary_contact_name.split()[0] if payload.primary_contact_name else "Client",
-            last_name=" ".join(payload.primary_contact_name.split()[1:]) if " " in payload.primary_contact_name else "User",
+            first_name=payload.primary_contact_name.split()[0]
+            if payload.primary_contact_name
+            else "Client",
+            last_name=" ".join(payload.primary_contact_name.split()[1:])
+            if " " in payload.primary_contact_name
+            else "User",
             phone=payload.primary_contact_phone,
             user_type="client",
             is_active=True,
@@ -554,7 +600,9 @@ def quick_create_account(
 
     # 6. Subscribe services
     for svc_name in payload.services:
-        cat = db.query(ServiceCatalogue).filter(ServiceCatalogue.name.ilike(f"%{svc_name}%")).first()
+        cat = (
+            db.query(ServiceCatalogue).filter(ServiceCatalogue.name.ilike(f"%{svc_name}%")).first()
+        )
         if not cat:
             cat = ServiceCatalogue(
                 name=svc_name,
@@ -579,8 +627,11 @@ def quick_create_account(
 
     # 7. Generate Service Agreement
     from app.api.v1.agreements import generate_next_agreement_number
+
     agr_no = generate_next_agreement_number(db)
-    service_title = " + ".join(payload.services) if payload.services else "Comprehensive Digital Services"
+    service_title = (
+        " + ".join(payload.services) if payload.services else "Comprehensive Digital Services"
+    )
     val_paise = int((payload.contract_value_rupees or 160000) * 100)
     contract = Contract(
         contract_number=agr_no,
@@ -612,13 +663,13 @@ def quick_create_account(
 
 @router.post("/bulk-upload", response_model=ApiResponse[BulkUploadSummary])
 async def bulk_upload_clients(
-    file: Optional[UploadFile] = File(None),
+    file: UploadFile | None = File(None),
     scope: AccessScope = Depends(require_permission("clients.create")),
     db: Session = Depends(get_db),
 ):
     """Screen 6: Parse bulk Excel/CSV spreadsheet and create client accounts."""
     filename = file.filename if file else "clients_nov.xlsx"
-    
+
     # Standard realistic response matching Screen 6 of the PDF
     # "clients_nov.xlsx Done · 42 rows · 40 imported · 2 need review"
     total_rows = 42
@@ -650,5 +701,3 @@ async def bulk_upload_clients(
         ),
         message="Bulk upload processed successfully.",
     )
-
-

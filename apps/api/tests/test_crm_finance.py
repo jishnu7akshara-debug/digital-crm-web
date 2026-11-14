@@ -1,6 +1,8 @@
 """Tests for CRM Client 360, Multi-Tenant isolation, and Finance GST calculations."""
+
 import pytest
 from starlette.testclient import TestClient
+
 from app.main import app
 
 client = TestClient(app)
@@ -100,4 +102,3 @@ def test_lead_conversion_idempotence(auth_client):
     dup_convert = auth_client.post(f"/api/v1/leads/{lead_id}/convert", json=convert_payload)
     assert dup_convert.status_code == 400
     assert "already been converted" in dup_convert.json()["error"]["message"]
-

@@ -1,19 +1,20 @@
 """Attendance & Leave API: Asia/Kolkata Timezone Rules, Ledger-Based Leave, Concurrency-Safe Punch, and Detailed Auditing."""
-from datetime import datetime, date, timezone, time, timedelta
-from typing import List, Optional, Dict, Any
+
+from datetime import UTC, date, datetime, time, timedelta
+
+import pytz
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_, or_, func
-import pytz
 
+from app.api.schemas import ApiResponse, PaginatedData
+from app.core.audit import log_audit_event
 from app.core.config import settings
 from app.core.database import get_db
-from app.policies.rbac import require_permission, AccessScope
-from app.core.audit import log_audit_event
-from app.api.schemas import ApiResponse, PaginatedData
-from app.db.models.hr import Employee, Attendance, LeaveBalance, LeaveLedger, LeaveRequest
 from app.db.models.auth import User
+from app.db.models.hr import Attendance, Employee, LeaveBalance, LeaveLedger, LeaveRequest
+from app.policies.rbac import AccessScope, require_permission
 
 router = APIRouter(prefix="/attendance", tags=["Attendance & Leave"])
 
@@ -29,14 +30,14 @@ class AttendanceRecordItem(BaseModel):
     employee_initials: str = "EM"
     date: str
     day_of_week: str = ""
-    check_in_local: Optional[str] = None
-    check_out_local: Optional[str] = None
+    check_in_local: str | None = None
+    check_out_local: str | None = None
     status: str
     working_minutes: int
     working_hours_display: str = "0h 0m"
     is_missing_punch: bool
     is_correction: bool
-    correction_status: Optional[str] = None
+    correction_status: str | None = None
 
 
 class AttendanceRecordDetail(BaseModel):
@@ -48,22 +49,24 @@ class AttendanceRecordDetail(BaseModel):
     department: str
     date: str
     day_of_week: str
-    check_in_local: Optional[str] = None
-    check_out_local: Optional[str] = None
-    check_in_utc: Optional[str] = None
-    check_out_utc: Optional[str] = None
+    check_in_local: str | None = None
+    check_out_local: str | None = None
+    check_in_utc: str | None = None
+    check_out_utc: str | None = None
     working_minutes: int
     working_hours_display: str
     status: str
     status_rule_explanation: str
     is_missing_punch: bool
     is_correction: bool
-    correction_status: Optional[str] = None
-    correction_reason: Optional[str] = None
+    correction_status: str | None = None
+    correction_reason: str | None = None
 
 
 class PunchRequest(BaseModel):
-    action: Optional[str] = Field(None, description="'check_in' or 'check_out', or null for auto-detect")
+    action: str | None = Field(
+        None, description="'check_in' or 'check_out', or null for auto-detect"
+    )
 
 
 class PunchResponse(BaseModel):
@@ -88,11 +91,11 @@ class TodayPunchStatusResponse(BaseModel):
     can_punch_in: bool
     can_punch_out: bool
     is_completed: bool
-    check_in_local: Optional[str] = None
-    check_out_local: Optional[str] = None
+    check_in_local: str | None = None
+    check_out_local: str | None = None
     working_minutes: int = 0
     working_hours_display: str = "0h 0m"
-    status: Optional[str] = None
+    status: str | None = None
 
 
 class AttendanceSummaryResponse(BaseModel):
@@ -105,14 +108,14 @@ class AttendanceSummaryResponse(BaseModel):
 
 class SubmitCorrectionRequest(BaseModel):
     corrected_check_in_local: str  # e.g. "09:30 AM" or "09:30"
-    corrected_check_out_local: Optional[str] = None
+    corrected_check_out_local: str | None = None
     reason: str
 
 
 class AdminCorrectionRequest(BaseModel):
-    check_in_local: Optional[str] = None
-    check_out_local: Optional[str] = None
-    status: Optional[str] = None
+    check_in_local: str | None = None
+    check_out_local: str | None = None
+    status: str | None = None
     reason: str
 
 
@@ -126,7 +129,7 @@ class ApplyLeaveRequest(BaseModel):
 
 class ReviewLeaveRequest(BaseModel):
     status: str  # "approved" or "rejected"
-    rejection_reason: Optional[str] = None
+    rejection_reason: str | None = None
 
 
 def format_working_hours(minutes: int) -> str:
@@ -135,16 +138,18 @@ def format_working_hours(minutes: int) -> str:
     return f"{h}h {m}m"
 
 
-def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+def ensure_utc(dt: datetime | None) -> datetime | None:
     """Normalize datetime to timezone-aware UTC, handling naive datetimes from SQLite."""
     if dt is None:
         return None
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
-def get_rule_explanation(status_val: str, check_in_dt: Optional[datetime], check_out_dt: Optional[datetime], working_mins: int) -> str:
+def get_rule_explanation(
+    status_val: str, check_in_dt: datetime | None, check_out_dt: datetime | None, working_mins: int
+) -> str:
     check_in_utc = ensure_utc(check_in_dt)
     check_out_utc = ensure_utc(check_out_dt)
     if not check_in_utc:
@@ -176,7 +181,9 @@ def get_rule_explanation(status_val: str, check_in_dt: Optional[datetime], check
     return f"On-time check-in at {in_time_str} (<= 10:30 AM) — Marked Present (Awaiting Punch Out)."
 
 
-def evaluate_attendance_status(check_in_dt: Optional[datetime], check_out_dt: Optional[datetime]) -> tuple[str, int, bool]:
+def evaluate_attendance_status(
+    check_in_dt: datetime | None, check_out_dt: datetime | None
+) -> tuple[str, int, bool]:
     """Apply Asia/Kolkata rules: Late > 10:30, Half-day > 11:00 or < 7h, Absent < 4h, Saturday adjustments."""
     check_in_utc = ensure_utc(check_in_dt)
     check_out_utc = ensure_utc(check_out_dt)
@@ -223,8 +230,10 @@ def evaluate_attendance_status(check_in_dt: Optional[datetime], check_out_dt: Op
     return "present", working_mins, is_missing
 
 
-def get_date_range_bounds(filter_range: str, start_date: Optional[date] = None, end_date: Optional[date] = None) -> tuple[Optional[date], Optional[date], str]:
-    today = datetime.now(timezone.utc).astimezone(KOLKATA_TZ).date()
+def get_date_range_bounds(
+    filter_range: str, start_date: date | None = None, end_date: date | None = None
+) -> tuple[date | None, date | None, str]:
+    today = datetime.now(UTC).astimezone(KOLKATA_TZ).date()
     if filter_range == "today":
         return today, today, "Today"
     elif filter_range == "this_week":
@@ -241,7 +250,11 @@ def get_date_range_bounds(filter_range: str, start_date: Optional[date] = None, 
         return start, end, "This Month"
     elif filter_range == "custom":
         if start_date and end_date:
-            return start_date, end_date, f"{start_date.strftime('%d %b')} – {end_date.strftime('%d %b')}"
+            return (
+                start_date,
+                end_date,
+                f"{start_date.strftime('%d %b')} – {end_date.strftime('%d %b')}",
+            )
         elif start_date:
             return start_date, today, f"Since {start_date.strftime('%d %b')}"
         return None, None, "Custom Date"
@@ -268,6 +281,7 @@ def get_or_create_employee(db: Session, user: User) -> Employee:
 
 # Endpoints
 
+
 @router.get("/today-status", response_model=ApiResponse[TodayPunchStatusResponse])
 def get_today_punch_status(
     scope: AccessScope = Depends(require_permission("attendance.read")),
@@ -275,7 +289,7 @@ def get_today_punch_status(
 ):
     """Retrieve today's current punch state for the logged-in employee."""
     emp = get_or_create_employee(db, scope.user)
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     now_local = now_utc.astimezone(KOLKATA_TZ)
     today_local = now_local.date()
 
@@ -342,7 +356,7 @@ def get_today_punch_status(
 
 @router.post("/punch", response_model=ApiResponse[PunchResponse])
 def punch_attendance(
-    payload: Optional[PunchRequest] = None,
+    payload: PunchRequest | None = None,
     scope: AccessScope = Depends(require_permission("attendance.punch")),
     db: Session = Depends(get_db),
 ):
@@ -351,12 +365,17 @@ def punch_attendance(
     Prevents duplicate punch-in, duplicate punch-out, and unauthorized transitions.
     """
     emp = get_or_create_employee(db, scope.user)
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     now_local = now_utc.astimezone(KOLKATA_TZ)
     today_local = now_local.date()
 
     # Atomic transaction query
-    att = db.query(Attendance).filter_by(employee_id=emp.id, date=today_local).with_for_update().first()
+    att = (
+        db.query(Attendance)
+        .filter_by(employee_id=emp.id, date=today_local)
+        .with_for_update()
+        .first()
+    )
 
     requested_action = payload.action if payload else None
 
@@ -459,8 +478,8 @@ def punch_attendance(
 @router.get("/summary", response_model=ApiResponse[AttendanceSummaryResponse])
 def get_attendance_summary(
     filter_range: str = Query("this_month", description="today, this_week, this_month, custom"),
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
     scope: AccessScope = Depends(require_permission("attendance.read")),
     db: Session = Depends(get_db),
 ):
@@ -508,9 +527,9 @@ def get_attendance_summary(
 def list_attendance_records(
     page: int = Query(1, ge=1),
     page_size: int = Query(30, ge=1, le=100),
-    filter_range: Optional[str] = Query(None, description="today, this_week, this_month, custom"),
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
+    filter_range: str | None = Query(None, description="today, this_week, this_month, custom"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
     scope: AccessScope = Depends(require_permission("attendance.read")),
     db: Session = Depends(get_db),
 ):
@@ -530,7 +549,9 @@ def list_attendance_records(
             query = query.filter(Attendance.date >= start_bound, Attendance.date <= end_bound)
 
     total = query.count()
-    records = query.order_by(desc(Attendance.date)).offset((page - 1) * page_size).limit(page_size).all()
+    records = (
+        query.order_by(desc(Attendance.date)).offset((page - 1) * page_size).limit(page_size).all()
+    )
 
     items = []
     for r in records:
@@ -591,14 +612,18 @@ def get_attendance_record_detail(
     """Retrieve full audit detail for an individual attendance record."""
     r = db.query(Attendance).filter_by(id=record_id).first()
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attendance record not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Attendance record not found."
+        )
 
     e = db.query(Employee).filter_by(id=r.employee_id).first()
     u = db.query(User).filter_by(id=e.user_id).first() if e else None
 
     # Scope check
     if scope.scope == "own" and e and e.user_id != scope.user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this attendance record.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this attendance record."
+        )
 
     in_utc = ensure_utc(r.check_in_utc)
     out_utc = ensure_utc(r.check_out_utc)
@@ -650,7 +675,9 @@ def admin_correct_attendance(
     """Admin endpoint to manually correct check-in, check-out, or status with audit log."""
     r = db.query(Attendance).filter_by(id=record_id).first()
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attendance record not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Attendance record not found."
+        )
 
     old_values = {
         "check_in": r.check_in_utc.isoformat() if r.check_in_utc else None,
@@ -678,7 +705,9 @@ def admin_correct_attendance(
         new_values={"status": r.status, "reason": payload.reason},
     )
 
-    return ApiResponse(success=True, data=True, message="Attendance record corrected successfully by Admin.")
+    return ApiResponse(
+        success=True, data=True, message="Attendance record corrected successfully by Admin."
+    )
 
 
 @router.post("/records/{record_id}/correction", response_model=ApiResponse[bool])
@@ -691,7 +720,9 @@ def submit_attendance_correction(
     """Employee submits a correction request for an attendance punch."""
     r = db.query(Attendance).filter_by(id=record_id).first()
     if not r:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attendance record not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Attendance record not found."
+        )
 
     r.is_correction = True
     r.correction_reason = payload.reason
@@ -707,7 +738,9 @@ def submit_attendance_correction(
         new_values={"reason": payload.reason, "status": "pending"},
     )
 
-    return ApiResponse(success=True, data=True, message="Correction request submitted to HR for approval.")
+    return ApiResponse(
+        success=True, data=True, message="Correction request submitted to HR for approval."
+    )
 
 
 @router.post("/leave/request", response_model=ApiResponse[str])
@@ -719,7 +752,9 @@ def apply_leave(
     """Submit a leave application."""
     emp = db.query(Employee).filter_by(user_id=scope.user.id).first()
     if not emp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Employee record not found.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Employee record not found."
+        )
 
     leave_req = LeaveRequest(
         employee_id=emp.id,
@@ -734,7 +769,9 @@ def apply_leave(
     db.commit()
     db.refresh(leave_req)
 
-    return ApiResponse(success=True, data=leave_req.id, message="Leave request submitted for review.")
+    return ApiResponse(
+        success=True, data=leave_req.id, message="Leave request submitted for review."
+    )
 
 
 @router.put("/leave/{request_id}/review", response_model=ApiResponse[bool])
@@ -747,20 +784,29 @@ def review_leave_request(
     """Approve or reject leave request with transactional ledger balance update."""
     leave_req = db.query(LeaveRequest).filter_by(id=request_id).first()
     if not leave_req:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found."
+        )
 
     if leave_req.status != "pending":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Request is already {leave_req.status}.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Request is already {leave_req.status}.",
+        )
 
     leave_req.status = payload.status
     leave_req.reviewed_by_id = scope.user.id
-    leave_req.reviewed_at = datetime.now(timezone.utc)
+    leave_req.reviewed_at = datetime.now(UTC)
     leave_req.rejection_reason = payload.rejection_reason
 
     if payload.status == "approved":
         bal = (
             db.query(LeaveBalance)
-            .filter_by(employee_id=leave_req.employee_id, leave_type=leave_req.leave_type, year=leave_req.start_date.year)
+            .filter_by(
+                employee_id=leave_req.employee_id,
+                leave_type=leave_req.leave_type,
+                year=leave_req.start_date.year,
+            )
             .first()
         )
         if not bal:
@@ -801,4 +847,6 @@ def review_leave_request(
         new_values={"status": payload.status, "days": leave_req.days_count},
     )
 
-    return ApiResponse(success=True, data=True, message=f"Leave request marked as {payload.status}.")
+    return ApiResponse(
+        success=True, data=True, message=f"Leave request marked as {payload.status}."
+    )

@@ -1,27 +1,43 @@
-"""Seed exact records from Digital Footprint OS — CRM look and feel.pdf."""
+"""Seed reference mock records from Digital Footprint OS design PDF.
+
+Guard: This script may ONLY execute when APP_ENV=development.
+"""
+
 import datetime
+import os
+import sys
+
 from sqlalchemy.orm import Session
+
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.db.models import (
-    Organization,
-    User,
-    Role,
-    UserRole,
     Client,
     ClientContact,
     ClientService,
-    ServiceCatalogue,
-    Lead,
     Contract,
-    Project,
-    Task,
     Deliverable,
     Invoice,
-    InvoiceLineItem,
+    Lead,
+    Organization,
+    Project,
+    Role,
+    ServiceCatalogue,
+    Task,
+    User,
+    UserRole,
 )
 
-def seed_pdf():
+
+def seed_pdf() -> None:
+    """Populate reference mock data for local development only."""
+    app_env = os.getenv("APP_ENV", settings.APP_ENV).lower()
+    if app_env not in ("development", "dev", "local"):
+        print(f"ERROR: Refusing to seed mock PDF data in '{app_env}' environment.", file=sys.stderr)
+        print("This script is restricted to local development only.", file=sys.stderr)
+        sys.exit(1)
+
     db: Session = SessionLocal()
     try:
         org = db.query(Organization).first()
@@ -38,7 +54,7 @@ def seed_pdf():
             ("divya@digitalfootprint.in", "Divya", "Reddy", "Designer"),
         ]
         staff_dict = {}
-        for email, fn, ln, desig in staff_members:
+        for email, fn, ln, _desig in staff_members:
             u = db.query(User).filter_by(email=email).first()
             if not u:
                 u = User(
@@ -57,12 +73,60 @@ def seed_pdf():
 
         # 2. Key Accounts
         accounts_data = [
-            ("Peak Fitness", "CLI-PEAK-001", "Fitness", "+91 98765 43210", "peakfitness.in", "Bengaluru", "Meera"),
-            ("Akshara Enterprises", "CLI-AKSHARA-01", "Manufacturing", "+91 98450 12345", "akshara.in", "Hyderabad", "Karan"),
-            ("Nova Learning", "CLI-NOVA-001", "EdTech", "+91 97312 34567", "novalearning.com", "Bengaluru", "Meera"),
-            ("Greenleaf Organics", "CLI-GREEN-001", "FMCG", "+91 98860 98765", "greenleaforganics.in", "Chennai", "Karan"),
-            ("Bloom Dental Clinic", "CLI-BLOOM-001", "Healthcare", "+91 99001 22334", "bloomdental.in", "Bengaluru", "Karan"),
-            ("Mehta Interiors", "CLI-MEHTA-001", "Design", "+91 98220 55667", "mehtainteriors.in", "Mumbai", "Meera"),
+            (
+                "Peak Fitness",
+                "CLI-PEAK-001",
+                "Fitness",
+                "+91 98765 43210",
+                "peakfitness.in",
+                "Bengaluru",
+                "Meera",
+            ),
+            (
+                "Akshara Enterprises",
+                "CLI-AKSHARA-01",
+                "Manufacturing",
+                "+91 98450 12345",
+                "akshara.in",
+                "Hyderabad",
+                "Karan",
+            ),
+            (
+                "Nova Learning",
+                "CLI-NOVA-001",
+                "EdTech",
+                "+91 97312 34567",
+                "novalearning.com",
+                "Bengaluru",
+                "Meera",
+            ),
+            (
+                "Greenleaf Organics",
+                "CLI-GREEN-001",
+                "FMCG",
+                "+91 98860 98765",
+                "greenleaforganics.in",
+                "Chennai",
+                "Karan",
+            ),
+            (
+                "Bloom Dental Clinic",
+                "CLI-BLOOM-001",
+                "Healthcare",
+                "+91 99001 22334",
+                "bloomdental.in",
+                "Bengaluru",
+                "Karan",
+            ),
+            (
+                "Mehta Interiors",
+                "CLI-MEHTA-001",
+                "Design",
+                "+91 98220 55667",
+                "mehtainteriors.in",
+                "Mumbai",
+                "Meera",
+            ),
         ]
         clients_dict = {}
         for name, code, ind, phone, web, city, mgr_name in accounts_data:
@@ -77,7 +141,9 @@ def seed_pdf():
                     city=city,
                     website=web,
                     status="active",
-                    account_manager_id=staff_dict.get(mgr_name).id if staff_dict.get(mgr_name) else None,
+                    account_manager_id=staff_dict.get(mgr_name).id
+                    if staff_dict.get(mgr_name)
+                    else None,
                 )
                 db.add(c)
                 db.commit()
@@ -86,7 +152,11 @@ def seed_pdf():
 
         # 3. Primary Contact & Portal User for Peak Fitness (Arjun S)
         peak = clients_dict["Peak Fitness"]
-        arjun_contact = db.query(ClientContact).filter_by(client_id=peak.id, email="arjun@peakfitness.in").first()
+        arjun_contact = (
+            db.query(ClientContact)
+            .filter_by(client_id=peak.id, email="arjun@peakfitness.in")
+            .first()
+        )
         if not arjun_contact:
             arjun_contact = ClientContact(
                 client_id=peak.id,
@@ -123,11 +193,7 @@ def seed_pdf():
                 db.add(UserRole(user_id=arjun_user.id, role_id=client_role.id))
                 db.commit()
 
-        # 4. Peak Fitness Subscribed Services (Screen 3 & 5)
-        # Website development 80,000
-        # SEO 30,000 / month
-        # Social media management 20,000 / month
-        # Custom CRM 1,20,000
+        # 4. Peak Fitness Subscribed Services
         peak_services = [
             ("Website development", 8000000, "one_time"),
             ("SEO", 3000000, "monthly"),
@@ -135,7 +201,9 @@ def seed_pdf():
             ("Custom CRM", 12000000, "one_time"),
         ]
         for sname, paise, cycle in peak_services:
-            cat = db.query(ServiceCatalogue).filter(ServiceCatalogue.name.ilike(f"%{sname}%")).first()
+            cat = (
+                db.query(ServiceCatalogue).filter(ServiceCatalogue.name.ilike(f"%{sname}%")).first()
+            )
             if not cat:
                 cat = ServiceCatalogue(
                     name=sname,
@@ -159,7 +227,7 @@ def seed_pdf():
                 db.add(cs)
                 db.commit()
 
-        # 5. Peak Fitness Project: Website redesign (Screen 4)
+        # 5. Peak Fitness Project: Website redesign
         proj = db.query(Project).filter_by(code="PRJ-PEAK-WEB").first()
         if not proj:
             proj = Project(
@@ -179,7 +247,6 @@ def seed_pdf():
             db.commit()
             db.refresh(proj)
 
-            # 6 Tasks
             tasks_data = [
                 ("Contact page copy", "todo", "medium", staff_dict["Divya"].id),
                 ("Pricing page", "in_progress", "high", staff_dict["Karan"].id),
@@ -200,7 +267,6 @@ def seed_pdf():
                 db.add(t)
             db.commit()
 
-            # Deliverable for Screen 5 (Needs your approval: Home page design, version 2)
             deliv = Deliverable(
                 project_id=proj.id,
                 title="Home page design, version 2",
@@ -247,14 +313,54 @@ def seed_pdf():
             db.add(inv1)
         db.commit()
 
-        # 7. Service Agreements (Screen 7 & 8)
+        # 7. Service Agreements
         agreements = [
-            ("DFA-2026-0007", "Peak Fitness", "Website + SEO", 11000000, datetime.date(2026, 11, 4), False, "sent"),
-            ("DFA-2026-0006", "Akshara Enterprises", "CRM development", 12000000, datetime.date(2026, 10, 22), True, "signed"),
-            ("DFA-2026-0005", "Nova Learning", "EdTech platform", 24000000, datetime.date(2026, 10, 18), True, "signed"),
-            ("DFA-2026-0004", "Greenleaf Organics", "Social media", 2000000, datetime.date(2026, 10, 10), False, "sent"),
+            (
+                "DFA-2026-0007",
+                "Peak Fitness",
+                "Website + SEO",
+                11000000,
+                datetime.date(2026, 11, 4),
+                False,
+                "sent",
+            ),
+            (
+                "DFA-2026-0006",
+                "Akshara Enterprises",
+                "CRM development",
+                12000000,
+                datetime.date(2026, 10, 22),
+                True,
+                "signed",
+            ),
+            (
+                "DFA-2026-0005",
+                "Nova Learning",
+                "EdTech platform",
+                24000000,
+                datetime.date(2026, 10, 18),
+                True,
+                "signed",
+            ),
+            (
+                "DFA-2026-0004",
+                "Greenleaf Organics",
+                "Social media",
+                2000000,
+                datetime.date(2026, 10, 10),
+                False,
+                "sent",
+            ),
             ("DFA-2026-0003", "Bloom Dental Clinic", "SEO", 3000000, None, False, "draft"),
-            ("DFA-2026-0002", "Mehta Interiors", "Branding", 6000000, datetime.date(2026, 9, 28), True, "expired"),
+            (
+                "DFA-2026-0002",
+                "Mehta Interiors",
+                "Branding",
+                6000000,
+                datetime.date(2026, 9, 28),
+                True,
+                "expired",
+            ),
         ]
         for agr_no, cl_name, title, paise, sdate, signed_copy, st in agreements:
             existing = db.query(Contract).filter_by(contract_number=agr_no).first()
@@ -274,18 +380,82 @@ def seed_pdf():
                 db.add(ctr)
         db.commit()
 
-        # 8. Leads (Screen 2)
+        # 8. Leads
         leads_data = [
-            ("Sri Venkata Traders", "Ravi K", "ravi@srivenkata.in", "Website", "new", staff_dict["Meera"].id, 4200000),
-            ("Bloom Dental Clinic", "Dr. Anita", "anita@bloomdental.in", "SEO", "contacted", staff_dict["Karan"].id, 3000000),
-            ("Nova Learning", "Suresh P", "suresh@novalearning.com", "EdTech", "qualified", staff_dict["Meera"].id, 7500000),
-            ("Greenleaf Organics", "Divya R", "divya@greenleaforganics.in", "Social media", "proposal_sent", staff_dict["Karan"].id, 2400000),
-            ("Lakshmi Silks", "Mohan T", "mohan@lakshmisilks.in", "E-commerce", "negotiation", staff_dict["Meera"].id, 5000000),
-            ("Mehta Interiors", "Rahul M", "rahul@mehtainteriors.in", "Branding", "qualified", staff_dict["Karan"].id, 1800000),
-            ("Quick Courier", "Imran S", "imran@quickcourier.in", "CRM", "new", staff_dict["Meera"].id, 3500000),
-            ("Aster Tutorials", "Neha G", "neha@astertutorials.in", "EdTech", "contacted", staff_dict["Karan"].id, 4500000),
+            (
+                "Sri Venkata Traders",
+                "Ravi K",
+                "ravi@srivenkata.in",
+                "Website",
+                "new",
+                staff_dict["Meera"].id,
+                4200000,
+            ),
+            (
+                "Bloom Dental Clinic",
+                "Dr. Anita",
+                "anita@bloomdental.in",
+                "SEO",
+                "contacted",
+                staff_dict["Karan"].id,
+                3000000,
+            ),
+            (
+                "Nova Learning",
+                "Suresh P",
+                "suresh@novalearning.com",
+                "EdTech",
+                "qualified",
+                staff_dict["Meera"].id,
+                7500000,
+            ),
+            (
+                "Greenleaf Organics",
+                "Divya R",
+                "divya@greenleaforganics.in",
+                "Social media",
+                "proposal_sent",
+                staff_dict["Karan"].id,
+                2400000,
+            ),
+            (
+                "Lakshmi Silks",
+                "Mohan T",
+                "mohan@lakshmisilks.in",
+                "E-commerce",
+                "negotiation",
+                staff_dict["Meera"].id,
+                5000000,
+            ),
+            (
+                "Mehta Interiors",
+                "Rahul M",
+                "rahul@mehtainteriors.in",
+                "Branding",
+                "qualified",
+                staff_dict["Karan"].id,
+                1800000,
+            ),
+            (
+                "Quick Courier",
+                "Imran S",
+                "imran@quickcourier.in",
+                "CRM",
+                "new",
+                staff_dict["Meera"].id,
+                3500000,
+            ),
+            (
+                "Aster Tutorials",
+                "Neha G",
+                "neha@astertutorials.in",
+                "EdTech",
+                "contacted",
+                staff_dict["Karan"].id,
+                4500000,
+            ),
         ]
-        for company, contact, email, svc, st, uid, val in leads_data:
+        for company, contact, email, _svc, st, uid, val in leads_data:
             existing_lead = db.query(Lead).filter_by(title=company).first()
             if not existing_lead:
                 ld = Lead(
@@ -304,6 +474,7 @@ def seed_pdf():
         print("Seeded all 8 PDF screens data successfully!")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed_pdf()

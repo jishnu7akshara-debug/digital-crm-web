@@ -1,8 +1,9 @@
 """Database connection engine and session factory for SQLAlchemy 2.x."""
-from typing import Generator
+
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
@@ -21,10 +22,7 @@ else:
     engine_kwargs["pool_timeout"] = settings.DB_POOL_TIMEOUT
     engine_kwargs["pool_pre_ping"] = True
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    **engine_kwargs
-)
+engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -41,4 +39,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-

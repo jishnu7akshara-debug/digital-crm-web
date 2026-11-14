@@ -1,16 +1,16 @@
 """Service Agreements API (TCRM Style): Automated DFA-YYYY-NNNN sequence, tracking, signing."""
-from datetime import datetime, date, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
-from app.core.database import get_db
-from app.policies.rbac import require_permission, verify_client_isolation, AccessScope
+from datetime import date, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from app.api.schemas import ApiResponse
-from app.db.models.crm import Contract, Client, ClientContact
-from app.db.models.auth import User
+from app.core.database import get_db
+from app.db.models.crm import Client, ClientContact, Contract
+from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
@@ -23,11 +23,11 @@ class AgreementSummaryItem(BaseModel):
     service: str
     value_formatted: str
     value_paise: int
-    sent_date: Optional[str] = None
+    sent_date: str | None = None
     signed_copy_received: bool = False
     status: str  # draft, sent, signed, expired
-    client_email: Optional[str] = None
-    terms_summary: Optional[str] = None
+    client_email: str | None = None
+    terms_summary: str | None = None
 
 
 class AgreementMetrics(BaseModel):
@@ -40,16 +40,16 @@ class AgreementMetrics(BaseModel):
 
 class AgreementListResponse(BaseModel):
     summary: AgreementMetrics
-    items: List[AgreementSummaryItem]
+    items: list[AgreementSummaryItem]
 
 
 class GenerateAgreementRequest(BaseModel):
     account_id: str
     service_name: str
     value_paise: int
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    terms_summary: Optional[str] = None
+    start_date: date | None = None
+    end_date: date | None = None
+    terms_summary: str | None = None
 
 
 def format_inr(paise: int) -> str:
@@ -103,7 +103,7 @@ def list_agreements(
 
     contracts = query.order_by(desc(Contract.created_at)).all()
 
-    items: List[AgreementSummaryItem] = []
+    items: list[AgreementSummaryItem] = []
     draft_cnt = 0
     sent_cnt = 0
     signed_cnt = 0
@@ -166,9 +166,12 @@ def get_agreement(
     db: Session = Depends(get_db),
 ):
     """Get single agreement details by id or agreement number."""
-    c = db.query(Contract).filter(Contract.is_deleted == False).filter(
-        (Contract.id == agreement_id) | (Contract.contract_number == agreement_id)
-    ).first()
+    c = (
+        db.query(Contract)
+        .filter(Contract.is_deleted == False)
+        .filter((Contract.id == agreement_id) | (Contract.contract_number == agreement_id))
+        .first()
+    )
 
     if not c:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
@@ -265,7 +268,11 @@ def sign_agreement(
     contract.signed_copy_received = True
     db.commit()
 
-    return ApiResponse(success=True, data=True, message=f"Agreement {contract.contract_number} signed successfully.")
+    return ApiResponse(
+        success=True,
+        data=True,
+        message=f"Agreement {contract.contract_number} signed successfully.",
+    )
 
 
 @router.post("/{agreement_id}/send", response_model=ApiResponse[bool])
@@ -283,5 +290,6 @@ def send_agreement(
     contract.sent_date = date.today()
     db.commit()
 
-    return ApiResponse(success=True, data=True, message=f"Agreement {contract.contract_number} sent to client.")
-
+    return ApiResponse(
+        success=True, data=True, message=f"Agreement {contract.contract_number} sent to client."
+    )

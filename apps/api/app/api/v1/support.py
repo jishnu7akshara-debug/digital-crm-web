@@ -1,18 +1,18 @@
 """Support Ticketing API: Client Portal & Internal Desk with Strict Internal Note Privacy."""
-from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
-from app.core.database import get_db
-from app.policies.rbac import require_permission, verify_client_isolation, AccessScope
-from app.core.audit import log_audit_event
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from app.api.schemas import ApiResponse, PaginatedData
-from app.db.models.support import SupportTicket, TicketComment
-from app.db.models.crm import Client
+from app.core.database import get_db
 from app.db.models.auth import User
+from app.db.models.crm import Client
+from app.db.models.support import SupportTicket, TicketComment
+from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 
 router = APIRouter(prefix="/support", tags=["Support Tickets"])
 
@@ -25,7 +25,7 @@ class TicketSummary(BaseModel):
     subject: str
     priority: str
     status: str
-    assigned_to_name: Optional[str] = None
+    assigned_to_name: str | None = None
     created_at: str
 
 
@@ -47,14 +47,14 @@ class TicketDetail(BaseModel):
     description: str
     priority: str
     status: str
-    assigned_to_name: Optional[str] = None
+    assigned_to_name: str | None = None
     created_at: str
-    comments: List[CommentItem]
+    comments: list[CommentItem]
 
 
 class CreateTicketRequest(BaseModel):
-    client_id: Optional[str] = None  # Auto-inferred for portal users
-    project_id: Optional[str] = None
+    client_id: str | None = None  # Auto-inferred for portal users
+    project_id: str | None = None
     subject: str
     description: str
     priority: str = "medium"
@@ -69,8 +69,8 @@ class AddCommentRequest(BaseModel):
 def list_tickets(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status_filter: Optional[str] = None,
-    client_id: Optional[str] = None,
+    status_filter: str | None = None,
+    client_id: str | None = None,
     scope: AccessScope = Depends(require_permission("support.read")),
     db: Session = Depends(get_db),
 ):
@@ -96,7 +96,9 @@ def list_tickets(
     items = []
     for t in tickets:
         cl = db.query(Client).filter_by(id=t.client_id).first()
-        assigned = db.query(User).filter_by(id=t.assigned_to_id).first() if t.assigned_to_id else None
+        assigned = (
+            db.query(User).filter_by(id=t.assigned_to_id).first() if t.assigned_to_id else None
+        )
         items.append(
             TicketSummary(
                 id=t.id,
@@ -137,7 +139,11 @@ def get_ticket_detail(
     verify_client_isolation(ticket.client_id, scope)
 
     cl = db.query(Client).filter_by(id=ticket.client_id).first()
-    assigned = db.query(User).filter_by(id=ticket.assigned_to_id).first() if ticket.assigned_to_id else None
+    assigned = (
+        db.query(User).filter_by(id=ticket.assigned_to_id).first()
+        if ticket.assigned_to_id
+        else None
+    )
 
     # Filter out internal comments for client users
     comments_query = db.query(TicketComment).filter_by(ticket_id=ticket.id)
@@ -186,7 +192,9 @@ def create_ticket(
     """Create a new support ticket."""
     target_client_id = scope.client_id if scope.user.user_type == "client" else payload.client_id
     if not target_client_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Client ID is required.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Client ID is required."
+        )
 
     t_count = db.query(SupportTicket).count() + 1
     ticket_number = f"TICK-{datetime.now().year}-{t_count:04d}"
@@ -205,7 +213,9 @@ def create_ticket(
     db.commit()
     db.refresh(ticket)
 
-    return ApiResponse(success=True, data=ticket.id, message=f"Ticket #{ticket.ticket_number} created.")
+    return ApiResponse(
+        success=True, data=ticket.id, message=f"Ticket #{ticket.ticket_number} created."
+    )
 
 
 @router.post("/tickets/{ticket_id}/comments", response_model=ApiResponse[str])
@@ -237,10 +247,9 @@ def add_ticket_comment(
     if scope.user.user_type == "internal" and ticket.status == "open":
         ticket.status = "in_progress"
         if not ticket.first_response_at:
-            ticket.first_response_at = datetime.now(timezone.utc)
+            ticket.first_response_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(comment)
 
     return ApiResponse(success=True, data=comment.id, message="Comment posted.")
-

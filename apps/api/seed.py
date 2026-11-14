@@ -1,28 +1,28 @@
 """Database seed script for Digital Footprint OS."""
+
 import datetime
+
 from sqlalchemy.orm import Session
+
 from app.core.config import settings
-from app.core.database import SessionLocal, engine
+from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.db.models import (
-    Organization,
-    User,
-    Role,
-    Permission,
-    RolePermission,
-    UserRole,
-    Department,
-    Employee,
-    ServiceCatalogue,
     Client,
     ClientContact,
     ClientService,
-    Project,
-    Milestone,
-    Task,
     Invoice,
     InvoiceLineItem,
-    SystemSetting,
+    Milestone,
+    Organization,
+    Permission,
+    Project,
+    Role,
+    RolePermission,
+    ServiceCatalogue,
+    Task,
+    User,
+    UserRole,
 )
 
 # Standard modules in Digital Footprint OS
@@ -80,7 +80,12 @@ PERMISSIONS_DEF = [
     ("attendance.manage", "attendance", "Manage Attendance", "Can approve corrections and reports"),
     # Employees
     ("employees.read", "employees", "View Employees", "Can view employee directory"),
-    ("employees.manage", "employees", "Manage Employees", "Can add/edit employees and compensation"),
+    (
+        "employees.manage",
+        "employees",
+        "Manage Employees",
+        "Can add/edit employees and compensation",
+    ),
     # Reports
     ("reports.read", "reports", "View Reports", "Can view and export reports"),
     # Support
@@ -88,7 +93,12 @@ PERMISSIONS_DEF = [
     ("support.manage", "support", "Manage Support Tickets", "Can resolve and comment on tickets"),
     # Settings & RBAC
     ("settings.read", "settings", "View Settings", "Can view system settings"),
-    ("settings.manage", "settings", "Manage Settings", "Can edit roles, permissions and configurations"),
+    (
+        "settings.manage",
+        "settings",
+        "Manage Settings",
+        "Can edit roles, permissions and configurations",
+    ),
 ]
 
 # Matrix Mapping: role_code -> { module: scope }
@@ -225,9 +235,11 @@ def seed_database() -> None:
             for module, scope in matrix.items():
                 if scope and module in permissions_by_module:
                     for perm in permissions_by_module[module]:
-                        rp = db.query(RolePermission).filter_by(
-                            role_id=role.id, permission_id=perm.id
-                        ).first()
+                        rp = (
+                            db.query(RolePermission)
+                            .filter_by(role_id=role.id, permission_id=perm.id)
+                            .first()
+                        )
                         if not rp:
                             rp = RolePermission(
                                 role_id=role.id,
@@ -286,13 +298,62 @@ def seed_database() -> None:
 
         # 6. Service Catalogue (Web, App, SEO, Social, Branding, CRM/ERP, EdTech)
         catalogue_items = [
-            ("Custom Web Application", "WEB-CUSTOM", "web", "Full stack custom web app built on Next.js & Python", "fixed", 8000000),  # ₹80,000
-            ("Enterprise Mobile App (iOS/Android)", "APP-CROSS", "app", "React Native / Flutter production mobile app", "fixed", 15000000),  # ₹1,50,000
-            ("Search Engine Optimization (SEO)", "SEO-MONTHLY", "seo", "Technical SEO, keyword strategy and backlink growth", "subscription", 3000000),  # ₹30,000/mo
-            ("Social Media Marketing & Growth", "SOCIAL-MONTHLY", "social", "Content creation, campaign design and social management", "subscription", 2000000),  # ₹20,000/mo
-            ("Branding & Corporate Identity", "BRAND-ID", "branding", "Logo, typography, design system, brand manifesto", "fixed", 4500000),  # ₹45,000
-            ("Custom CRM / ERP Platform", "CRM-ERP-SYS", "crm_erp", "End-to-end bespoke operational ERP & CRM suite", "custom", 12000000),  # ₹1,20,000
-            ("EdTech LMS Platform", "EDTECH-LMS", "edtech", "Student management, video classes, test engine", "custom", 20000000),  # ₹2,00,000
+            (
+                "Custom Web Application",
+                "WEB-CUSTOM",
+                "web",
+                "Full stack custom web app built on Next.js & Python",
+                "fixed",
+                8000000,
+            ),  # ₹80,000
+            (
+                "Enterprise Mobile App (iOS/Android)",
+                "APP-CROSS",
+                "app",
+                "React Native / Flutter production mobile app",
+                "fixed",
+                15000000,
+            ),  # ₹1,50,000
+            (
+                "Search Engine Optimization (SEO)",
+                "SEO-MONTHLY",
+                "seo",
+                "Technical SEO, keyword strategy and backlink growth",
+                "subscription",
+                3000000,
+            ),  # ₹30,000/mo
+            (
+                "Social Media Marketing & Growth",
+                "SOCIAL-MONTHLY",
+                "social",
+                "Content creation, campaign design and social management",
+                "subscription",
+                2000000,
+            ),  # ₹20,000/mo
+            (
+                "Branding & Corporate Identity",
+                "BRAND-ID",
+                "branding",
+                "Logo, typography, design system, brand manifesto",
+                "fixed",
+                4500000,
+            ),  # ₹45,000
+            (
+                "Custom CRM / ERP Platform",
+                "CRM-ERP-SYS",
+                "crm_erp",
+                "End-to-end bespoke operational ERP & CRM suite",
+                "custom",
+                12000000,
+            ),  # ₹1,20,000
+            (
+                "EdTech LMS Platform",
+                "EDTECH-LMS",
+                "edtech",
+                "Student management, video classes, test engine",
+                "custom",
+                20000000,
+            ),  # ₹2,00,000
         ]
         services_dict = {}
         for name, code, category, desc, p_type, price in catalogue_items:
@@ -409,7 +470,7 @@ def seed_database() -> None:
                 title="Phase 1: Architecture & UX Wireframes",
                 due_date=datetime.date.today() - datetime.timedelta(days=5),
                 is_completed=True,
-                completed_at=datetime.datetime.now(datetime.timezone.utc),
+                completed_at=datetime.datetime.now(datetime.UTC),
                 order_index=1,
             )
             m2 = Milestone(
@@ -462,11 +523,11 @@ def seed_database() -> None:
                 status="issued",
                 subtotal_paise=8000000,  # ₹80,000
                 discount_paise=0,
-                cgst_paise=720000,       # 9% = ₹7,200
-                sgst_paise=720000,       # 9% = ₹7,200
+                cgst_paise=720000,  # 9% = ₹7,200
+                sgst_paise=720000,  # 9% = ₹7,200
                 igst_paise=0,
-                total_tax_paise=1440000, # 18% = ₹14,400
-                total_paise=9440000,     # ₹94,400
+                total_tax_paise=1440000,  # 18% = ₹14,400
+                total_paise=9440000,  # ₹94,400
                 amount_paid_paise=0,
                 balance_paise=9440000,
                 currency="INR",
@@ -474,7 +535,7 @@ def seed_database() -> None:
                 client_name_snapshot=sample_client.name,
                 client_gstin_snapshot=sample_client.gstin,
                 client_address_snapshot=sample_client.address,
-                issued_at=datetime.datetime.now(datetime.timezone.utc),
+                issued_at=datetime.datetime.now(datetime.UTC),
             )
             db.add(inv)
             db.commit()
@@ -501,4 +562,3 @@ def seed_database() -> None:
 
 if __name__ == "__main__":
     seed_database()
-

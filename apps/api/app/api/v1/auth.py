@@ -1,31 +1,30 @@
 """Authentication API Router: Login, Logout, Session, Password Reset."""
-from datetime import datetime, timezone, timedelta
-from typing import Optional, List
+
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
+from app.api.schemas import ApiResponse
+from app.core.audit import log_audit_event
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
-    verify_password,
-    hash_password,
     generate_secure_token,
     hash_token,
+    verify_password,
 )
-from app.core.audit import log_audit_event
-from app.policies.rbac import get_current_user
-from app.api.schemas import ApiResponse
 from app.db.models.auth import (
-    User,
-    UserSession,
-    Role,
     Permission,
+    Role,
     RolePermission,
+    User,
     UserRole,
-    PasswordResetToken,
+    UserSession,
 )
 from app.db.models.crm import ClientContact
+from app.policies.rbac import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -33,7 +32,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-    portal_type: Optional[str] = None  # "internal", "portal", or None (auto-detect)
+    portal_type: str | None = None  # "internal", "portal", or None (auto-detect)
 
 
 class UserProfileResponse(BaseModel):
@@ -44,13 +43,13 @@ class UserProfileResponse(BaseModel):
     full_name: str
     user_type: str
     is_super_admin: bool
-    roles: List[str]
-    permissions: List[str]
-    client_id: Optional[str] = None
+    roles: list[str]
+    permissions: list[str]
+    client_id: str | None = None
     home_route: str
 
 
-def determine_home_route(user: User, roles: List[str]) -> str:
+def determine_home_route(user: User, roles: list[str]) -> str:
     """Determine role-based landing page based on server-side roles."""
     if user.user_type == "client":
         if "client_finance" in roles:
@@ -78,7 +77,7 @@ def determine_home_route(user: User, roles: List[str]) -> str:
     return "/internal/dashboard"
 
 
-def get_user_permissions(user: User, db: Session) -> tuple[List[str], List[str]]:
+def get_user_permissions(user: User, db: Session) -> tuple[list[str], list[str]]:
     """Retrieve list of role codes and distinct permission codes for a user."""
     user_roles = (
         db.query(Role)
@@ -90,7 +89,9 @@ def get_user_permissions(user: User, db: Session) -> tuple[List[str], List[str]]
 
     if user.is_super_admin:
         all_perms = db.query(Permission.code).all()
-        return ["super_admin"] + [r for r in role_codes if r != "super_admin"], [p[0] for p in all_perms]
+        return ["super_admin"] + [r for r in role_codes if r != "super_admin"], [
+            p[0] for p in all_perms
+        ]
 
     perms = (
         db.query(Permission.code)
@@ -113,9 +114,7 @@ def login(
 ):
     """Authenticate user with Argon2id, create DB session, and set secure HTTP-only cookie."""
     user = (
-        db.query(User)
-        .filter(User.email == payload.email.lower(), User.is_deleted == False)
-        .first()
+        db.query(User).filter(User.email == payload.email.lower(), User.is_deleted == False).first()
     )
 
     if not user or not verify_password(payload.password, user.hashed_password):
@@ -151,7 +150,7 @@ def login(
     # Generate session token and store hash
     token = generate_secure_token(32)
     token_hash = hash_token(token)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.SESSION_EXPIRE_DAYS)
+    expires_at = datetime.now(UTC) + timedelta(days=settings.SESSION_EXPIRE_DAYS)
 
     session_entry = UserSession(
         user_id=user.id,
@@ -163,7 +162,7 @@ def login(
     db.add(session_entry)
 
     # Update last login
-    user.last_login_at = datetime.now(timezone.utc)
+    user.last_login_at = datetime.now(UTC)
     db.commit()
 
     # Set secure HTTP-only cookie
@@ -275,4 +274,3 @@ def get_current_user_profile(
             home_route=home_route,
         ),
     )
-

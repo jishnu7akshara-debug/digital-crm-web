@@ -1,15 +1,10 @@
 """Application configuration using Pydantic Settings."""
-from typing import List, Optional
-from pydantic import Field
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     APP_ENV: str = "development"
     APP_NAME: str = "Digital Footprint OS"
@@ -26,7 +21,7 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "sqlite:///./digitalfootprint_os.db"
-    DATABASE_DIRECT_URL: Optional[str] = None
+    DATABASE_DIRECT_URL: str | None = None
     SQLITE_FALLBACK: bool = True
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 2
@@ -34,21 +29,21 @@ class Settings(BaseSettings):
 
     # Storage (S3 / Cloudflare R2 / MinIO)
     STORAGE_PROVIDER: str = "local"  # "s3" or "local"
-    S3_ENDPOINT_URL: Optional[str] = None
+    S3_ENDPOINT_URL: str | None = None
     S3_BUCKET_NAME: str = "df-crm-assets"
     S3_REGION: str = "auto"
-    S3_ACCESS_KEY_ID: Optional[str] = None
-    S3_SECRET_ACCESS_KEY: Optional[str] = None
+    S3_ACCESS_KEY_ID: str | None = None
+    S3_SECRET_ACCESS_KEY: str | None = None
     S3_PRESIGNED_URL_EXPIRE_SECONDS: int = 3600
     LOCAL_STORAGE_DIR: str = "./uploads"
 
     # Email
     EMAIL_PROVIDER: str = "console"  # "smtp", "resend", "console"
-    RESEND_API_KEY: Optional[str] = None
-    SMTP_HOST: Optional[str] = None
+    RESEND_API_KEY: str | None = None
+    SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
     SMTP_FROM_EMAIL: str = "notifications@digitalfootprint.in"
     SMTP_FROM_NAME: str = "Digital Footprint OS"
 
@@ -65,7 +60,7 @@ class Settings(BaseSettings):
         return self.APP_ENV.lower() in ("production", "prod")
 
     @property
-    def cors_origins(self) -> List[str]:
+    def cors_origins(self) -> list[str]:
         return [
             self.FRONTEND_URL,
             f"https://{self.APP_DOMAIN}",
@@ -75,4 +70,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

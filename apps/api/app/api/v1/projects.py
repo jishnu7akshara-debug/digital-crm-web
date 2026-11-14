@@ -1,18 +1,19 @@
 """Projects & Tasks API: Workspaces, Milestones, Tasks, Deliverables, Approvals."""
-from datetime import datetime, date, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
-from app.core.database import get_db
-from app.policies.rbac import require_permission, verify_client_isolation, AccessScope
-from app.core.audit import log_audit_event
+from datetime import UTC, date, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from app.api.schemas import ApiResponse, PaginatedData
-from app.db.models.projects import Project, ProjectMember, Milestone, Task, TaskAssignee, Deliverable, Comment
-from app.db.models.crm import Client
+from app.core.audit import log_audit_event
+from app.core.database import get_db
 from app.db.models.auth import User
+from app.db.models.crm import Client
+from app.db.models.projects import Deliverable, Milestone, Project, Task
+from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -26,8 +27,8 @@ class ProjectSummary(BaseModel):
     status: str
     priority: str
     progress_percent: int
-    due_date: Optional[str] = None
-    manager_name: Optional[str] = None
+    due_date: str | None = None
+    manager_name: str | None = None
     tasks_count: int
     completed_tasks_count: int
 
@@ -35,7 +36,7 @@ class ProjectSummary(BaseModel):
 class MilestoneItem(BaseModel):
     id: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     due_date: str
     is_completed: bool
     order_index: int
@@ -44,15 +45,15 @@ class MilestoneItem(BaseModel):
 class TaskItem(BaseModel):
     id: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     status: str
     priority: str
-    owner_name: Optional[str] = None
+    owner_name: str | None = None
     estimated_hours: float
     logged_hours: float
-    due_date: Optional[str] = None
+    due_date: str | None = None
     is_client_visible: bool
-    milestone_id: Optional[str] = None
+    milestone_id: str | None = None
 
 
 class DeliverableItem(BaseModel):
@@ -61,51 +62,51 @@ class DeliverableItem(BaseModel):
     file_url: str
     version: int
     status: str
-    client_feedback: Optional[str] = None
-    approved_at: Optional[str] = None
+    client_feedback: str | None = None
+    approved_at: str | None = None
 
 
 class ProjectWorkspaceDetail(BaseModel):
     id: str
     name: str
     code: str
-    description: Optional[str] = None
+    description: str | None = None
     client_id: str
     client_name: str
     status: str
     priority: str
     progress_percent: int
-    start_date: Optional[str] = None
-    due_date: Optional[str] = None
+    start_date: str | None = None
+    due_date: str | None = None
     budget_rupees: float
-    manager: Optional[Dict[str, str]] = None
-    members: List[Dict[str, str]]
-    milestones: List[MilestoneItem]
-    tasks: List[TaskItem]
-    deliverables: List[DeliverableItem]
+    manager: dict[str, str] | None = None
+    members: list[dict[str, str]]
+    milestones: list[MilestoneItem]
+    tasks: list[TaskItem]
+    deliverables: list[DeliverableItem]
 
 
 class CreateProjectRequest(BaseModel):
     client_id: str
     name: str
     code: str
-    description: Optional[str] = None
+    description: str | None = None
     priority: str = "medium"
-    manager_id: Optional[str] = None
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
+    manager_id: str | None = None
+    start_date: date | None = None
+    due_date: date | None = None
     budget_paise: int = 0
 
 
 class CreateTaskRequest(BaseModel):
     title: str
-    description: Optional[str] = None
-    milestone_id: Optional[str] = None
+    description: str | None = None
+    milestone_id: str | None = None
     status: str = "todo"
     priority: str = "medium"
-    owner_id: Optional[str] = None
+    owner_id: str | None = None
     estimated_hours: float = 0.0
-    due_date: Optional[date] = None
+    due_date: date | None = None
     is_client_visible: bool = True
 
 
@@ -115,16 +116,16 @@ class UpdateTaskStatusRequest(BaseModel):
 
 class DeliverableApprovalRequest(BaseModel):
     status: str  # "approved" or "revision_requested"
-    feedback: Optional[str] = None
+    feedback: str | None = None
 
 
 @router.get("", response_model=ApiResponse[PaginatedData[ProjectSummary]])
 def list_projects(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    search: Optional[str] = None,
-    status_filter: Optional[str] = None,
-    client_id: Optional[str] = None,
+    search: str | None = None,
+    status_filter: str | None = None,
+    client_id: str | None = None,
     scope: AccessScope = Depends(require_permission("projects.read")),
     db: Session = Depends(get_db),
 ):
@@ -160,7 +161,9 @@ def list_projects(
         cl = db.query(Client).filter_by(id=p.client_id).first()
         mgr = db.query(User).filter_by(id=p.manager_id).first() if p.manager_id else None
         tasks_count = db.query(Task).filter_by(project_id=p.id, is_deleted=False).count()
-        completed_tasks_count = db.query(Task).filter_by(project_id=p.id, status="completed", is_deleted=False).count()
+        completed_tasks_count = (
+            db.query(Task).filter_by(project_id=p.id, status="completed", is_deleted=False).count()
+        )
 
         items.append(
             ProjectSummary(
@@ -199,15 +202,19 @@ def get_project_workspace(
 ):
     """Retrieve full project workspace including milestones, tasks, and deliverables."""
     clean_code = project_id.replace("proj-", "PRJ-")
-    project = db.query(Project).filter(
-        (
-            (Project.id == project_id)
-            | (Project.code == project_id)
-            | (Project.code.ilike(clean_code))
-            | (Project.code.ilike(f"%{project_id}%"))
-        ),
-        Project.is_deleted == False,
-    ).first()
+    project = (
+        db.query(Project)
+        .filter(
+            (
+                (Project.id == project_id)
+                | (Project.code == project_id)
+                | (Project.code.ilike(clean_code))
+                | (Project.code.ilike(f"%{project_id}%"))
+            ),
+            Project.is_deleted == False,
+        )
+        .first()
+    )
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 
@@ -308,7 +315,10 @@ def create_project(
     """Create a new client project workspace."""
     existing = db.query(Project).filter_by(code=payload.code.strip()).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Project code '{payload.code}' already exists.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Project code '{payload.code}' already exists.",
+        )
 
     project = Project(
         client_id=payload.client_id,
@@ -383,7 +393,7 @@ def update_task_status(
 
     task.status = payload.status
     if payload.status == "completed":
-        task.completed_at = datetime.now(timezone.utc)
+        task.completed_at = datetime.now(UTC)
     db.commit()
 
     return ApiResponse(success=True, data=True, message="Task status updated.")
@@ -426,13 +436,13 @@ def review_deliverable(
     deliverable.status = payload.status
     deliverable.client_feedback = payload.feedback
     if payload.status == "approved":
-        deliverable.approved_at = datetime.now(timezone.utc)
+        deliverable.approved_at = datetime.now(UTC)
     db.commit()
 
     return ApiResponse(
         success=True,
         data=True,
-        message="Deliverable approved successfully." if payload.status == "approved" else "Revision request recorded.",
+        message="Deliverable approved successfully."
+        if payload.status == "approved"
+        else "Revision request recorded.",
     )
-
-

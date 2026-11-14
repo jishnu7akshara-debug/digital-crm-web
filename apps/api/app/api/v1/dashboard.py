@@ -1,19 +1,15 @@
 """Dashboard API: Scoped KPIs, Revenue Analytics, Pipeline, Service Breakdown, and Tasks."""
-from datetime import datetime, timezone, timedelta, date
-from typing import List, Optional, Any, Dict
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
 
-from app.core.database import get_db
-from app.policies.rbac import get_current_user, require_permission, AccessScope
 from app.api.schemas import ApiResponse
-from app.db.models.crm import Client, Lead, ClientService, ServiceCatalogue
-from app.db.models.projects import Project, Task
-from app.db.models.finance import Invoice, Payment
-from app.db.models.common import AuditLog
-from app.db.models.auth import User
+from app.core.database import get_db
+from app.db.models.crm import Client, Lead
+from app.db.models.finance import Invoice
+from app.db.models.projects import Project
+from app.policies.rbac import AccessScope, require_permission
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -75,21 +71,21 @@ class ExecutiveDashboardResponse(BaseModel):
 
     # Pipeline
     pipeline_total_deals: int
-    pipeline_stages: List[PipelineStageItem]
+    pipeline_stages: list[PipelineStageItem]
 
     # Service-Wise Revenue (MTD)
-    service_revenue: List[ServiceRevenueItem]
+    service_revenue: list[ServiceRevenueItem]
 
     # Active Projects List
-    active_projects_list: List[ActiveProjectItem]
+    active_projects_list: list[ActiveProjectItem]
 
     # Quick Actions (metadata)
-    quick_actions: List[Dict[str, str]]
+    quick_actions: list[dict[str, str]]
 
     # Charts & Tiles
-    revenue_trend: List[MonthlyTrendPoint]
-    clients_by_service: List[ClientsByServiceItem]
-    upcoming_tasks: List[UpcomingTaskItem]
+    revenue_trend: list[MonthlyTrendPoint]
+    clients_by_service: list[ClientsByServiceItem]
+    upcoming_tasks: list[UpcomingTaskItem]
 
 
 @router.get("/kpis", response_model=ApiResponse[ExecutiveDashboardResponse])
@@ -106,10 +102,14 @@ def get_dashboard_kpis(
     total_clients = max(client_count, 142)
 
     # 2. Active Projects
-    active_projects_count = db.query(Project).filter(
-        Project.is_deleted == False,
-        Project.status.in_(["planning", "in_progress", "internal_review", "client_review"]),
-    ).count()
+    active_projects_count = (
+        db.query(Project)
+        .filter(
+            Project.is_deleted == False,
+            Project.status.in_(["planning", "in_progress", "internal_review", "client_review"]),
+        )
+        .count()
+    )
     active_projects_count = max(active_projects_count, 38)
 
     # 3. Pipeline Value
@@ -120,7 +120,9 @@ def get_dashboard_kpis(
         pipeline_val_rupees = 2480000.00
 
     # 4. Monthly Revenue
-    invoices = db.query(Invoice).filter(Invoice.is_deleted == False, Invoice.status != "cancelled").all()
+    invoices = (
+        db.query(Invoice).filter(Invoice.is_deleted == False, Invoice.status != "cancelled").all()
+    )
     monthly_rev_paise = sum(i.total_paise for i in invoices)
     monthly_rev_rupees = round(monthly_rev_paise / 100.0, 2)
     if monthly_rev_rupees < 900000:
@@ -128,20 +130,42 @@ def get_dashboard_kpis(
 
     # 5. Pipeline Stages
     pipeline_stages = [
-        PipelineStageItem(stage="leads", label="Leads", count=18, value_rupees=420000.0, is_active=False),
-        PipelineStageItem(stage="qualified", label="Qualified", count=11, value_rupees=610000.0, is_active=False),
-        PipelineStageItem(stage="proposal", label="Proposal", count=8, value_rupees=750000.0, is_active=False),
-        PipelineStageItem(stage="negotiation", label="Negotiation", count=5, value_rupees=400000.0, is_active=False),
+        PipelineStageItem(
+            stage="leads", label="Leads", count=18, value_rupees=420000.0, is_active=False
+        ),
+        PipelineStageItem(
+            stage="qualified", label="Qualified", count=11, value_rupees=610000.0, is_active=False
+        ),
+        PipelineStageItem(
+            stage="proposal", label="Proposal", count=8, value_rupees=750000.0, is_active=False
+        ),
+        PipelineStageItem(
+            stage="negotiation",
+            label="Negotiation",
+            count=5,
+            value_rupees=400000.0,
+            is_active=False,
+        ),
         PipelineStageItem(stage="won", label="Won", count=4, value_rupees=300000.0, is_active=True),
     ]
 
     # 6. Service-Wise Revenue (MTD)
     service_revenue = [
-        ServiceRevenueItem(service_name="Web Development", percentage=40, amount_rupees=390000.0, color="#6C3BDB"),
-        ServiceRevenueItem(service_name="Digital Marketing", percentage=25, amount_rupees=243750.0, color="#38BDF8"),
-        ServiceRevenueItem(service_name="CRM / ERP", percentage=15, amount_rupees=146250.0, color="#10B981"),
-        ServiceRevenueItem(service_name="Branding & Media", percentage=10, amount_rupees=97500.0, color="#F59E0B"),
-        ServiceRevenueItem(service_name="Others", percentage=10, amount_rupees=97500.0, color="#EC4899"),
+        ServiceRevenueItem(
+            service_name="Web Development", percentage=40, amount_rupees=390000.0, color="#6C3BDB"
+        ),
+        ServiceRevenueItem(
+            service_name="Digital Marketing", percentage=25, amount_rupees=243750.0, color="#38BDF8"
+        ),
+        ServiceRevenueItem(
+            service_name="CRM / ERP", percentage=15, amount_rupees=146250.0, color="#10B981"
+        ),
+        ServiceRevenueItem(
+            service_name="Branding & Media", percentage=10, amount_rupees=97500.0, color="#F59E0B"
+        ),
+        ServiceRevenueItem(
+            service_name="Others", percentage=10, amount_rupees=97500.0, color="#EC4899"
+        ),
     ]
 
     # 7. Active Projects List
@@ -211,10 +235,21 @@ def get_dashboard_kpis(
 
     # 10. Upcoming Tasks
     upcoming_tasks = [
-        UpcomingTaskItem(id="t-1", title="Follow up – Sashikiran Surveyors", due_text="Today, 4:00 PM", is_urgent=True),
-        UpcomingTaskItem(id="t-2", title="Send proposal – New Lead", due_text="Tomorrow", is_urgent=False),
-        UpcomingTaskItem(id="t-3", title="Project review – Talenty Consulting", due_text="Nov 6", is_urgent=False),
-        UpcomingTaskItem(id="t-4", title="Invoice reminder – Aroma Dew", due_text="Nov 6", is_urgent=False),
+        UpcomingTaskItem(
+            id="t-1",
+            title="Follow up – Sashikiran Surveyors",
+            due_text="Today, 4:00 PM",
+            is_urgent=True,
+        ),
+        UpcomingTaskItem(
+            id="t-2", title="Send proposal – New Lead", due_text="Tomorrow", is_urgent=False
+        ),
+        UpcomingTaskItem(
+            id="t-3", title="Project review – Talenty Consulting", due_text="Nov 6", is_urgent=False
+        ),
+        UpcomingTaskItem(
+            id="t-4", title="Invoice reminder – Aroma Dew", due_text="Nov 6", is_urgent=False
+        ),
     ]
 
     quick_actions = [

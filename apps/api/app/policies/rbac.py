@@ -1,29 +1,31 @@
 """RBAC Policy Engine & FastAPI Dependencies."""
-from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any, Callable
+
+from collections.abc import Callable
 from dataclasses import dataclass
-from fastapi import Depends, HTTPException, Request, Response, status
+from datetime import UTC, datetime
+
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import hash_token
-from app.db.models.auth import User, UserSession, Role, Permission, RolePermission, UserRole
+from app.db.models.auth import Permission, RolePermission, User, UserRole, UserSession
 from app.db.models.crm import ClientContact
 
 
 @dataclass
 class AccessScope:
     """Resolved access scope for a requested operation."""
+
     user: User
     permission: str
     scope: str  # "all", "department", "assigned", "own", "client"
     is_super_admin: bool
-    client_id: Optional[str] = None  # Populated for client portal users
+    client_id: str | None = None  # Populated for client portal users
 
 
-def get_current_session_token(request: Request) -> Optional[str]:
+def get_current_session_token(request: Request) -> str | None:
     """Retrieve session token from HTTP-only cookie or Authorization header."""
     cookie_token = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if cookie_token:
@@ -49,7 +51,7 @@ def get_current_user(
         )
 
     token_hash = hash_token(token)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Query active session
     user_session = (
@@ -102,7 +104,7 @@ def require_super_admin(
     return current_user
 
 
-def require_permission(permission_code: str, module: Optional[str] = None) -> Callable:
+def require_permission(permission_code: str, module: str | None = None) -> Callable:
     """FastAPI dependency factory enforcing granular RBAC and returning resolved AccessScope."""
 
     def _dependency(
@@ -126,11 +128,7 @@ def require_permission(permission_code: str, module: Optional[str] = None) -> Ca
                 client_id = contact.client_id
 
         # Query user's assigned roles
-        user_roles = (
-            db.query(UserRole)
-            .filter(UserRole.user_id == current_user.id)
-            .all()
-        )
+        user_roles = db.query(UserRole).filter(UserRole.user_id == current_user.id).all()
         role_ids = [ur.role_id for ur in user_roles]
 
         if not role_ids:
@@ -185,4 +183,3 @@ def verify_client_isolation(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied: Cross-client access is strictly forbidden.",
             )
-

@@ -1,8 +1,10 @@
 """Security utilities: Argon2id password hashing and session tokens."""
+
 import hashlib
 import secrets
+
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, InvalidHashError
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
 ph = PasswordHasher(
     time_cost=3,
@@ -34,4 +36,3 @@ def generate_secure_token(nbytes: int = 32) -> str:
 def hash_token(token: str) -> str:
     """Hash token using SHA-256 for secure database storage."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-

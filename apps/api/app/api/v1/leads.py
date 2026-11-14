@@ -1,17 +1,18 @@
 """Leads API: Pipeline, Kanban Stages, Follow-ups, and Safe Client Conversion."""
-from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
-from app.core.database import get_db
-from app.policies.rbac import require_permission, AccessScope
-from app.core.audit import log_audit_event
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from app.api.schemas import ApiResponse, PaginatedData
-from app.db.models.crm import Lead, LeadActivity, Client, ClientContact
+from app.core.audit import log_audit_event
+from app.core.database import get_db
 from app.db.models.auth import User
+from app.db.models.crm import Client, ClientContact, Lead
+from app.policies.rbac import AccessScope, require_permission
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
@@ -19,61 +20,61 @@ router = APIRouter(prefix="/leads", tags=["Leads"])
 class LeadDetailItem(BaseModel):
     id: str
     title: str
-    company_name: Optional[str] = None
+    company_name: str | None = None
     contact_name: str
     email: str
-    phone: Optional[str] = None
+    phone: str | None = None
     source: str
     status: str
     estimated_value_rupees: float
-    assigned_to_name: Optional[str] = None
-    assigned_to_id: Optional[str] = None
-    notes: Optional[str] = None
-    converted_client_id: Optional[str] = None
+    assigned_to_name: str | None = None
+    assigned_to_id: str | None = None
+    notes: str | None = None
+    converted_client_id: str | None = None
     created_at: str
 
 
 class LeadItem(BaseModel):
     id: str
     title: str
-    company_name: Optional[str] = None
+    company_name: str | None = None
     contact_name: str
     email: str
-    phone: Optional[str] = None
+    phone: str | None = None
     source: str
     status: str
     estimated_value_rupees: float
-    assigned_to_name: Optional[str] = None
-    converted_client_id: Optional[str] = None
+    assigned_to_name: str | None = None
+    converted_client_id: str | None = None
     created_at: str
 
 
 class CreateLeadRequest(BaseModel):
     title: str
-    company_name: Optional[str] = None
+    company_name: str | None = None
     contact_name: str
     email: EmailStr
-    phone: Optional[str] = None
+    phone: str | None = None
     source: str = "website"
     status: str = "new"
     estimated_value_paise: int = 0
-    assigned_to_id: Optional[str] = None
-    notes: Optional[str] = None
+    assigned_to_id: str | None = None
+    notes: str | None = None
 
 
 class ConvertLeadRequest(BaseModel):
     client_code: str
-    gstin: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
+    gstin: str | None = None
+    city: str | None = None
+    state: str | None = None
 
 
 @router.get("", response_model=ApiResponse[PaginatedData[LeadItem]])
 def list_leads(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
-    status_filter: Optional[str] = None,
-    search: Optional[str] = None,
+    status_filter: str | None = None,
+    search: str | None = None,
     scope: AccessScope = Depends(require_permission("leads.read")),
     db: Session = Depends(get_db),
 ):
@@ -97,15 +98,14 @@ def list_leads(
 
     total = query.count()
     leads = (
-        query.order_by(desc(Lead.created_at))
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
+        query.order_by(desc(Lead.created_at)).offset((page - 1) * page_size).limit(page_size).all()
     )
 
     items = []
     for l in leads:
-        assigned = db.query(User).filter_by(id=l.assigned_to_id).first() if l.assigned_to_id else None
+        assigned = (
+            db.query(User).filter_by(id=l.assigned_to_id).first() if l.assigned_to_id else None
+        )
         items.append(
             LeadItem(
                 id=l.id,
@@ -142,14 +142,19 @@ def get_lead(
     db: Session = Depends(get_db),
 ):
     """Get single lead by id or title search."""
-    lead = db.query(Lead).filter(Lead.is_deleted == False).filter(
-        (Lead.id == lead_id) | (Lead.title.ilike(f"%{lead_id}%"))
-    ).first()
+    lead = (
+        db.query(Lead)
+        .filter(Lead.is_deleted == False)
+        .filter((Lead.id == lead_id) | (Lead.title.ilike(f"%{lead_id}%")))
+        .first()
+    )
 
     if not lead:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found.")
 
-    assigned = db.query(User).filter_by(id=lead.assigned_to_id).first() if lead.assigned_to_id else None
+    assigned = (
+        db.query(User).filter_by(id=lead.assigned_to_id).first() if lead.assigned_to_id else None
+    )
 
     return ApiResponse(
         success=True,
@@ -167,7 +172,9 @@ def get_lead(
             assigned_to_id=lead.assigned_to_id,
             notes=lead.notes,
             converted_client_id=lead.converted_client_id,
-            created_at=lead.created_at.isoformat() if lead.created_at else datetime.now(timezone.utc).isoformat(),
+            created_at=lead.created_at.isoformat()
+            if lead.created_at
+            else datetime.now(UTC).isoformat(),
         ),
     )
 
@@ -282,4 +289,3 @@ def convert_lead_to_client(
         data=client.id,
         message=f"Lead converted to client '{client.name}' successfully.",
     )
-

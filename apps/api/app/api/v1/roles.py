@@ -1,14 +1,14 @@
 """Roles and Permissions Management API (Super Admin Enforced)."""
-from typing import List, Optional, Dict, Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
-from app.policies.rbac import require_super_admin, require_permission, AccessScope
-from app.core.audit import log_audit_event
 from app.api.schemas import ApiResponse
-from app.db.models.auth import Role, Permission, RolePermission, UserRole, User
+from app.core.audit import log_audit_event
+from app.core.database import get_db
+from app.db.models.auth import Permission, Role, RolePermission, User, UserRole
+from app.policies.rbac import require_super_admin
 
 router = APIRouter(prefix="/roles", tags=["Roles & Permissions"])
 
@@ -18,7 +18,7 @@ class PermissionItem(BaseModel):
     code: str
     module: str
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     scope: str = "none"  # "all", "assigned", "own", "none"
 
 
@@ -26,38 +26,40 @@ class RoleDetail(BaseModel):
     id: str
     name: str
     code: str
-    description: Optional[str] = None
+    description: str | None = None
     is_system: bool
     role_type: str
     user_count: int
-    permissions: List[PermissionItem]
+    permissions: list[PermissionItem]
 
 
 class CreateRoleRequest(BaseModel):
     name: str
     code: str
-    description: Optional[str] = None
+    description: str | None = None
     role_type: str = "internal"  # "internal" or "client"
-    permissions: Dict[str, str] = Field(default_factory=dict)  # permission_id or code -> scope ("all", "assigned", "own")
+    permissions: dict[str, str] = Field(
+        default_factory=dict
+    )  # permission_id or code -> scope ("all", "assigned", "own")
 
 
 class UpdateRoleRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    permissions: Optional[Dict[str, str]] = None  # code -> scope ("all", "assigned", "own", "none")
+    name: str | None = None
+    description: str | None = None
+    permissions: dict[str, str] | None = None  # code -> scope ("all", "assigned", "own", "none")
 
 
 class AssignRoleRequest(BaseModel):
     user_id: str
-    role_ids: List[str]
+    role_ids: list[str]
 
 
 class UserStatusUpdateRequest(BaseModel):
-    is_active: Optional[bool] = None
-    is_suspended: Optional[bool] = None
+    is_active: bool | None = None
+    is_suspended: bool | None = None
 
 
-@router.get("", response_model=ApiResponse[List[RoleDetail]])
+@router.get("", response_model=ApiResponse[list[RoleDetail]])
 def list_roles(
     current_admin: User = Depends(require_super_admin),
     db: Session = Depends(get_db),
@@ -102,14 +104,14 @@ def list_roles(
     return ApiResponse(success=True, data=result)
 
 
-@router.get("/matrix/modules", response_model=ApiResponse[Dict[str, List[Dict[str, str]]]])
+@router.get("/matrix/modules", response_model=ApiResponse[dict[str, list[dict[str, str]]]])
 def get_permission_matrix_modules(
     current_admin: User = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
     """Retrieve all system permissions grouped by module."""
     perms = db.query(Permission).order_by(Permission.module, Permission.code).all()
-    grouped: Dict[str, List[Dict[str, str]]] = {}
+    grouped: dict[str, list[dict[str, str]]] = {}
     for p in perms:
         grouped.setdefault(p.module, []).append(
             {"id": p.id, "code": p.code, "name": p.name, "description": p.description or ""}
@@ -146,9 +148,11 @@ def create_custom_role(
     # Attach permissions
     for p_key, scope in payload.permissions.items():
         if scope and scope != "none":
-            perm = db.query(Permission).filter(
-                (Permission.id == p_key) | (Permission.code == p_key)
-            ).first()
+            perm = (
+                db.query(Permission)
+                .filter((Permission.id == p_key) | (Permission.code == p_key))
+                .first()
+            )
             if perm:
                 rp = RolePermission(role_id=role.id, permission_id=perm.id, scope=scope)
                 db.add(rp)
@@ -203,9 +207,11 @@ def update_role(
         db.query(RolePermission).filter_by(role_id=role.id).delete()
         for p_key, scope in payload.permissions.items():
             if scope and scope != "none":
-                perm = db.query(Permission).filter(
-                    (Permission.id == p_key) | (Permission.code == p_key)
-                ).first()
+                perm = (
+                    db.query(Permission)
+                    .filter((Permission.id == p_key) | (Permission.code == p_key))
+                    .first()
+                )
                 if perm:
                     db.add(RolePermission(role_id=role.id, permission_id=perm.id, scope=scope))
 
@@ -343,4 +349,3 @@ def update_user_status(
     )
 
     return ApiResponse(success=True, data=True, message="User status updated.")
-
