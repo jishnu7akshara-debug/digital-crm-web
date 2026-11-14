@@ -114,7 +114,7 @@ def login(
 ):
     """Authenticate user with Argon2id, create DB session, and set secure HTTP-only cookie."""
     user = (
-        db.query(User).filter(User.email == payload.email.lower(), User.is_deleted == False).first()
+        db.query(User).filter(User.email == payload.email.lower(), User.is_deleted.is_(False)).first()
     )
 
     if not user or not verify_password(payload.password, user.hashed_password):

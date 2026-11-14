@@ -116,7 +116,7 @@ def list_invoices(
     db: Session = Depends(get_db),
 ):
     """List invoices with GST breakdowns and scoping."""
-    query = db.query(Invoice).filter(Invoice.is_deleted == False)
+    query = db.query(Invoice).filter(Invoice.is_deleted.is_(False))
 
     if scope.user.user_type == "client":
         query = query.filter(Invoice.client_id == scope.client_id)
@@ -175,7 +175,7 @@ def get_invoice(
     """Get single invoice details by id or invoice number."""
     inv = (
         db.query(Invoice)
-        .filter(Invoice.is_deleted == False)
+        .filter(Invoice.is_deleted.is_(False))
         .filter((Invoice.id == invoice_id) | (Invoice.invoice_number == invoice_id))
         .first()
     )

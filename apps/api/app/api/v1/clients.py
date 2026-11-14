@@ -129,7 +129,7 @@ def list_clients(
     db: Session = Depends(get_db),
 ):
     """List clients with scoping, pagination, and calculated financial summaries."""
-    query = db.query(Client).filter(Client.is_deleted == False)
+    query = db.query(Client).filter(Client.is_deleted.is_(False))
 
     # Multi-tenant and RBAC scoping
     if scope.user.user_type == "client":
@@ -170,7 +170,7 @@ def list_clients(
             db.query(Invoice)
             .filter(
                 Invoice.client_id == c.id,
-                Invoice.is_deleted == False,
+                Invoice.is_deleted.is_(False),
                 Invoice.status != "cancelled",
             )
             .all()
@@ -217,7 +217,7 @@ def get_client_360(
     """Retrieve complete Client 360 profile with all services, projects, invoices, and metrics."""
     client = (
         db.query(Client)
-        .filter(((Client.id == client_id) | (Client.code == client_id)), Client.is_deleted == False)
+        .filter(((Client.id == client_id) | (Client.code == client_id)), Client.is_deleted.is_(False))
         .first()
     )
     if not client:

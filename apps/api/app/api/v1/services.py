@@ -31,7 +31,7 @@ def list_services(
 ):
     """List configurable services in the catalogue."""
     query = db.query(ServiceCatalogue).filter(
-        ServiceCatalogue.is_deleted == False, ServiceCatalogue.is_active == True
+        ServiceCatalogue.is_deleted.is_(False), ServiceCatalogue.is_active.is_(True)
     )
     if category:
         query = query.filter(ServiceCatalogue.category == category)

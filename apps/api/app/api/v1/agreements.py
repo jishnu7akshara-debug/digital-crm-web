@@ -95,7 +95,7 @@ def list_agreements(
     db: Session = Depends(get_db),
 ):
     """List service agreements with TCRM metrics and mail draft support."""
-    query = db.query(Contract).filter(Contract.is_deleted == False)
+    query = db.query(Contract).filter(Contract.is_deleted.is_(False))
 
     # Scoping for clients vs internal staff
     if scope.user.user_type == "client":
@@ -168,7 +168,7 @@ def get_agreement(
     """Get single agreement details by id or agreement number."""
     c = (
         db.query(Contract)
-        .filter(Contract.is_deleted == False)
+        .filter(Contract.is_deleted.is_(False))
         .filter((Contract.id == agreement_id) | (Contract.contract_number == agreement_id))
         .first()
     )

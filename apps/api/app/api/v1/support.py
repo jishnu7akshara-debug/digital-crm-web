@@ -75,7 +75,7 @@ def list_tickets(
     db: Session = Depends(get_db),
 ):
     """List tickets with multi-tenant client isolation."""
-    query = db.query(SupportTicket).filter(SupportTicket.is_deleted == False)
+    query = db.query(SupportTicket).filter(SupportTicket.is_deleted.is_(False))
 
     if scope.user.user_type == "client":
         query = query.filter(SupportTicket.client_id == scope.client_id)
@@ -148,7 +148,7 @@ def get_ticket_detail(
     # Filter out internal comments for client users
     comments_query = db.query(TicketComment).filter_by(ticket_id=ticket.id)
     if scope.user.user_type == "client":
-        comments_query = comments_query.filter(TicketComment.is_internal == False)
+        comments_query = comments_query.filter(TicketComment.is_internal.is_(False))
 
     comments = comments_query.order_by(TicketComment.created_at.asc()).all()
     comment_items = []

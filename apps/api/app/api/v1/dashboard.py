@@ -98,14 +98,14 @@ def get_dashboard_kpis(
     first_name = user.first_name if user.first_name else "Sai"
 
     # 1. Total Clients
-    client_count = db.query(Client).filter(Client.is_deleted == False).count()
+    client_count = db.query(Client).filter(Client.is_deleted.is_(False)).count()
     total_clients = max(client_count, 142)
 
     # 2. Active Projects
     active_projects_count = (
         db.query(Project)
         .filter(
-            Project.is_deleted == False,
+            Project.is_deleted.is_(False),
             Project.status.in_(["planning", "in_progress", "internal_review", "client_review"]),
         )
         .count()
@@ -113,7 +113,7 @@ def get_dashboard_kpis(
     active_projects_count = max(active_projects_count, 38)
 
     # 3. Pipeline Value
-    leads = db.query(Lead).filter(Lead.is_deleted == False).all()
+    leads = db.query(Lead).filter(Lead.is_deleted.is_(False)).all()
     pipeline_val_paise = sum(l.estimated_value_paise for l in leads if l.status != "lost")
     pipeline_val_rupees = round(pipeline_val_paise / 100.0, 2)
     if pipeline_val_rupees == 0:
@@ -121,7 +121,7 @@ def get_dashboard_kpis(
 
     # 4. Monthly Revenue
     invoices = (
-        db.query(Invoice).filter(Invoice.is_deleted == False, Invoice.status != "cancelled").all()
+        db.query(Invoice).filter(Invoice.is_deleted.is_(False), Invoice.status != "cancelled").all()
     )
     monthly_rev_paise = sum(i.total_paise for i in invoices)
     monthly_rev_rupees = round(monthly_rev_paise / 100.0, 2)

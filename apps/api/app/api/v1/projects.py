@@ -130,7 +130,7 @@ def list_projects(
     db: Session = Depends(get_db),
 ):
     """List projects with scoping, search, and progress metrics."""
-    query = db.query(Project).filter(Project.is_deleted == False)
+    query = db.query(Project).filter(Project.is_deleted.is_(False))
 
     # Scoping
     if scope.user.user_type == "client":
@@ -211,7 +211,7 @@ def get_project_workspace(
                 | (Project.code.ilike(clean_code))
                 | (Project.code.ilike(f"%{project_id}%"))
             ),
-            Project.is_deleted == False,
+            Project.is_deleted.is_(False),
         )
         .first()
     )
@@ -245,7 +245,7 @@ def get_project_workspace(
     # Tasks (filter client visible if user is client)
     task_query = db.query(Task).filter_by(project_id=project.id, is_deleted=False)
     if scope.user.user_type == "client":
-        task_query = task_query.filter(Task.is_client_visible == True)
+        task_query = task_query.filter(Task.is_client_visible.is_(True))
 
     tasks = task_query.order_by(Task.due_date.asc().nulls_last()).all()
     task_items = []

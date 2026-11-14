@@ -79,7 +79,7 @@ def list_leads(
     db: Session = Depends(get_db),
 ):
     """List leads with stage filters and scoping."""
-    query = db.query(Lead).filter(Lead.is_deleted == False)
+    query = db.query(Lead).filter(Lead.is_deleted.is_(False))
 
     if scope.scope == "own":
         query = query.filter(Lead.assigned_to_id == scope.user.id)
@@ -144,7 +144,7 @@ def get_lead(
     """Get single lead by id or title search."""
     lead = (
         db.query(Lead)
-        .filter(Lead.is_deleted == False)
+        .filter(Lead.is_deleted.is_(False))
         .filter((Lead.id == lead_id) | (Lead.title.ilike(f"%{lead_id}%")))
         .first()
     )

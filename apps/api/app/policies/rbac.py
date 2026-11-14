@@ -58,7 +58,7 @@ def get_current_user(
         db.query(UserSession)
         .filter(
             UserSession.token_hash == token_hash,
-            UserSession.is_revoked == False,
+            UserSession.is_revoked.is_(False),
             UserSession.expires_at > now,
         )
         .first()
@@ -70,7 +70,7 @@ def get_current_user(
             detail="Session expired or invalid. Please log in again.",
         )
 
-    user = db.query(User).filter(User.id == user_session.user_id, User.is_deleted == False).first()
+    user = db.query(User).filter(User.id == user_session.user_id, User.is_deleted.is_(False)).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
