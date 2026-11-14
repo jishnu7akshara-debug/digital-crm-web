@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     # Seed Super Admin
     SUPER_ADMIN_EMAIL: str = "admin@digitalfootprint.in"
-    SUPER_ADMIN_PASSWORD: str = "Admin@123456!"
+    SUPER_ADMIN_PASSWORD: str = ""
     SUPER_ADMIN_NAME: str = "System Super Admin"
 
     # Timezone

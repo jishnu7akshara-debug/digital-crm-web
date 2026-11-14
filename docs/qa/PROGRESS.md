@@ -35,7 +35,7 @@ These steps are managed by the owner directly. Credentials and sensitive values 
 - [x] Both `seed.py` and `scripts/dev_only/seed_pdf_data.py` executed successfully against live database.
 - [x] Backend running on `http://127.0.0.1:8000` (`/api/v1/health` status: ok).
 - [x] Frontend running on `http://localhost:3000` (status: 200).
-- [x] Super admin authentication confirmed (`admin@digitalfootprint.in` / `Admin@123456!`).
+- [x] Super admin authentication confirmed (`admin@digitalfootprint.in`).
 - [x] Real Client Data Audit completed (§2.5): `seed_pdf_data.py` moved to `scripts/dev_only/` with `APP_ENV=development` guard; `git remote -v` confirmed 0 remotes.
 - [x] QA Users created idempotently via `scripts/dev_only/create_qa_users.py` (`qa.sales` and `qa.client`).
 - [x] Automated baseline route sweep executed across 39 routes and 4 roles (`unauthenticated`, `super_admin`, `sales`, `client_owner`) with full-page screenshots in `docs/qa/screens/baseline/`.

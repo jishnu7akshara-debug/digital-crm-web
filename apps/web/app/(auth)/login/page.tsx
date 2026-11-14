@@ -90,17 +90,6 @@ export default function UnifiedLoginPage() {
               Sign In <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </form>
-
-          {/* Quick Pre-fill Credentials for Pair Programming / Review */}
-          <div className="mt-6 pt-5 border-t border-[#E9E5F0] text-xs text-[#77738A]">
-            <p className="font-semibold text-[#1D1930] mb-2 flex items-center">
-              <ShieldCheck className="h-3.5 w-3.5 mr-1 text-[#6C3BDB]" /> Seeded Demo Credentials:
-            </p>
-            <div className="bg-[#F5F1FF] p-2.5 rounded-md font-mono text-[11px] text-[#25124D] space-y-1">
-              <div>Email: admin@digitalfootprint.in</div>
-              <div>Pass: Admin@123456!</div>
-            </div>
-          </div>
         </div>
 
         {/* Dedicated Portal Links */}

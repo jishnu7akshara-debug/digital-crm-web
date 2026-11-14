@@ -104,12 +104,4 @@ Includes test suites for:
 1. `test_auth.py`: Login with Argon2id, cookie persistence, invalid credentials rejection, unauthenticated route protection.
 2. `test_crm_finance.py`: Client 360 data retrieval, multi-service subscriptions, Indian GST tax calculations, and idempotent lead-to-client conversion.
 
----
-
-## 🛡️ Seeded Credentials for Testing
-
-- **Super Admin**: `admin@digitalfootprint.in`
-- **Password**: `Admin@123456!`
-- **Role**: `super_admin` (Full access to all modules and permission management)
-- **Sample Client**: `Apex Global Technologies` (Code: `CLI-APEX-001`, GSTIN: `27AAACA1234F1Z1`)
 

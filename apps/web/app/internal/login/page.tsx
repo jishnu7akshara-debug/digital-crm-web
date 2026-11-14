@@ -100,18 +100,7 @@ export default function InternalLoginPage() {
             </Button>
           </form>
 
-          {/* Seeded Credentials Helper */}
-          <div className="mt-6 pt-5 border-t border-[#ECE9F4] text-xs text-[#77738A]">
-            <p className="font-semibold text-[#1D1930] mb-2 flex items-center">
-              <ShieldCheck className="h-3.5 w-3.5 mr-1 text-[#6437EA]" /> Seeded Administrator Credentials:
-            </p>
-            <div className="bg-[#F5F1FF] p-2.5 rounded-xl font-mono text-[11px] text-[#25124D] space-y-1">
-              <div>Email: admin@digitalfootprint.in</div>
-              <div>Password: Admin@123456!</div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 text-xs text-[#77738A] text-center">
+          <div className="mt-6 pt-5 border-t border-[#ECE9F4] text-xs text-[#77738A] text-center">
             Client representative?{" "}
             <Link href="/portal/login" className="text-[#6437EA] font-semibold hover:underline">
               Switch to Client Portal
