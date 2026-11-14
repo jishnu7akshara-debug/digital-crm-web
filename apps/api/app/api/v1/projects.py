@@ -418,6 +418,63 @@ def update_project_stage(
     return ApiResponse(success=True, data=True, message=f"Project stage moved to {payload.stage}.")
 
 
+class DeliverableOutItem(BaseModel):
+    id: str
+    project_id: str
+    project_name: str
+    client_name: str
+    title: str
+    description: str | None = None
+    file_url: str
+    version: int
+    status: str
+    client_feedback: str | None = None
+    approved_at: str | None = None
+    created_at: str
+
+
+@router.get("/deliverables/pending", response_model=ApiResponse[list[DeliverableOutItem]])
+def list_pending_deliverables(
+    scope: AccessScope = Depends(require_permission("projects.read")),
+    db: Session = Depends(get_db),
+):
+    """List deliverables pending approval or review (for client portal & managers)."""
+    query = (
+        db.query(Deliverable)
+        .join(Project, Deliverable.project_id == Project.id)
+        .filter(Deliverable.is_deleted.is_(False), Project.is_deleted.is_(False))
+    )
+
+    if scope.user.user_type == "client" and scope.user.client_id:
+        query = query.filter(Project.client_id == scope.user.client_id)
+
+    deliverables = query.order_by(desc(Deliverable.created_at)).all()
+
+    items = []
+    for d in deliverables:
+        proj = db.query(Project).filter_by(id=d.project_id).first()
+        client = db.query(Client).filter_by(id=proj.client_id).first() if proj else None
+
+        items.append(
+            DeliverableOutItem(
+                id=d.id,
+                project_id=d.project_id,
+                project_name=proj.name if proj else "Project",
+                client_name=client.name if client else "Client",
+                title=d.title,
+                description=d.description,
+                file_url=d.file_url or "",
+                version=d.version,
+                status=d.status,
+                client_feedback=d.client_feedback,
+                approved_at=d.approved_at.isoformat() if d.approved_at else None,
+                created_at=d.created_at.isoformat() if d.created_at else datetime.now(UTC).isoformat(),
+            )
+        )
+
+    return ApiResponse(success=True, data=items)
+
+
 @router.post("/deliverables/{deliverable_id}/review", response_model=ApiResponse[bool])
 def review_deliverable(
     deliverable_id: str,
