@@ -230,3 +230,68 @@ Here is a plain-English explanation of the key concepts and changes made during 
 
 5. **Real vs. Fake Data (Rule R2):**
    *Plain English:* A common pitfall in frontend apps is having a page that *looks* functional because it displays hardcoded JavaScript sample arrays (like `REVENUE_TREND_DATA = [...]`), even though the backend endpoint isn't actually being called. Our sweep documented that `/internal/dashboard` is currently doing this, giving us the exact blueprint for what to connect in Phase 1 and 2.
+
+---
+
+## Phase 1: Foundations, Tooling Hygiene & Architecture Hardening
+
+### 1. Phase 1 Checklist & Verification Status
+- [x] **Phase 1.0: Tooling Hygiene**
+  - Ruff configuration (`select = ["E", "F", "I", "UP", "B", "SIM", "N", "S", "DTZ", "RUF"]`).
+  - Safe autofix + format (Commit `01edc37`).
+  - Hand fix of E712 boolean comparisons with AST regression tests (Commit `aeb8f58`).
+  - Timezone awareness (`datetime.now(UTC)`) replacing naive datetimes (Commit `281e4fa`).
+  - Flat ESLint 9 configuration in `apps/web/eslint.config.mjs` (`pnpm lint`: 0 errors, Commit `ebdc1b8`).
+  - Clean repository hygiene (0 `.db` files tracked).
+- [x] **Phase 1.1: Isolated Test Harness & Factories (B-16)**
+  - Created `apps/api/tests/factories.py` (`make_org`, `make_role`, `make_user`, `make_client`, `make_contact`, `make_service`, `make_lead`, `make_project`, `make_invoice`).
+  - Isolated memory tests in `tests/test_boolean_comparisons.py` (Commit `22ad757`).
+- [x] **Phase 1.2: Config Safety (B-14)**
+  - Pydantic `@model_validator(mode="after")` enforcing >= 64-char non-default `SECRET_KEY`, `SECURE_COOKIES=True`, and non-SQLite `DATABASE_URL` in production.
+  - Verified with 4 unit tests in `tests/test_config.py` (Commit `28f77ca`).
+- [x] **Phase 1.3: Serverless DB Engine (B-15)**
+  - Configured `NullPool` for serverless environments (`VERCEL=1` or `SERVERLESS=1`) and `QueuePool` with `pool_pre_ping=True` for container/VM deployments.
+  - Verified with 4 unit tests in `tests/test_database.py` (Commit `b08e3b7`).
+- [x] **Phase 1.4: Atomic Audit & Transaction Helper (B-13)**
+  - Removed rogue `db.commit()` inside `log_audit_event()`.
+  - Created `app/core/tx.py` with `transactional(db)` context manager.
+  - Rewrote all write endpoints (`leads.py`, `clients.py`, `projects.py`, `invoices.py`, `roles.py`, `attendance.py`, `auth.py`) to commit entity and audit records atomically.
+  - Verified with 3 unit tests in `tests/test_audit_atomicity.py` (Commit `8fa5e47`).
+- [x] **Phase 1.5: Unified Scoping Engine (B-12, B-20)**
+  - Implemented `app/policies/scoping.py` (`apply_scope` and `assert_can_access`).
+  - Wired into `invoices.py`, `leads.py`, `clients.py`, `projects.py`, and `support.py`.
+  - Fixed B-20: removed fallback `"Meera Sharma"` string from `leads.py:166`.
+  - Verified with 3 unit tests in `tests/test_scoping.py` (Commit `1b4fb52`).
+- [x] **Phase 1.6: Login Hardening (B-14)**
+  - Created `login_attempts` model & applied Alembic migration `ae55bf25660c`. Verified zero drift with `alembic check`.
+  - Enforced 5 failed attempts per 15-minute window rate limiting (HTTP 429).
+  - Enforced generic authentication error message (`"Invalid email or password."`) preventing account enumeration.
+  - Verified with 3 unit tests in `tests/test_login_hardening.py` (Commit `8b412a9`).
+- [x] **Phase 1.7: Frontend Foundations (F-09, F-11, F-12, F-16)**
+  - Deleted orphaned `sidebar.tsx`, `header.tsx`, `sf-header.tsx` (Commit `938957a`).
+  - Installed `sonner` and replaced all 9 `alert()` calls across attendance, clients, reports, roles, and support (Commit `0075c85`).
+  - Created `apps/web/components/ui/states.tsx` (`PageSkeleton`, `EmptyState`, `ErrorState`).
+  - Created `apps/web/lib/query-keys.ts` with centralized query key factory.
+  - Created `apps/web/components/ui/can.tsx` `<Can permission="...">` RBAC guard.
+  - Filtered sidebar navigation links by user permissions via `hasPermission`.
+  - Cleared hardcoded fake count badges (`"8"`, `"142"`, `"46"`, `"38"`, `"3"`, `"7"`) and fallback name `"Sai Varshith"`.
+  - Full production build passes with 0 errors (`pnpm build`: 29/29 routes compiled).
+
+---
+
+### 2. What Changed and Why (For the Undergraduate Developer)
+
+1. **Atomic Transaction (B-13):**
+   *Plain English:* In database systems, "atomic" comes from the Greek word for indivisible. When you create an invoice, you also need to write an audit log row saying "User X created invoice Y". Previously, the code wrote the invoice, committed it, and then separately wrote the audit log. If the server crashed between those two steps, the database was left in an inconsistent state. Now, using `transactional(db)` or staging both with `db.flush()`, both changes commit together or neither does.
+
+2. **Idempotency:**
+   *Plain English:* Idempotency means that performing the same operation multiple times produces the exact same result as performing it once. For example, if a user accidentally double-clicks "Convert Lead to Client", the system converts it the first time and rejects the second click with an error instead of creating two duplicate client records.
+
+3. **Paise vs. Rupees (Rule R5):**
+   *Plain English:* Computers store decimal numbers (floats) using binary fractions, which causes subtle math errors (e.g. `0.1 + 0.2 === 0.30000000000000004`). In financial software, this leads to ₹0.01 rounding errors on GST tax calculations. To prevent this, the database *only* stores whole integers of paise (₹100.50 is stored as `10050`). We only convert to rupees when presenting the number to the user.
+
+4. **Scoping Engine (B-12):**
+   *Plain English:* When an employee asks for "list of invoices", the server shouldn't return all invoices in the agency. The scoping engine (`apply_scope`) automatically attaches a SQL `WHERE` clause: if you are a client, you only see your company's invoices; if you are an account manager, you only see invoices for your assigned clients; only administrators see everything.
+
+5. **Brute-Force Rate Limiting (B-14):**
+   *Plain English:* An attacker might try thousands of passwords against an account. By recording login attempts in the database and blocking any email or IP address after 5 failed attempts in 15 minutes, brute-force attacks are stopped in their tracks.
