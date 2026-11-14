@@ -10,7 +10,7 @@
 
 | Tool | Version / Status | Notes |
 |------|------------------|-------|
-| OS | Windows 11 (AMD64) | Smart App Control (SAC) Enforced (`VerifiedAndReputablePolicyState: 1`) |
+| OS | Windows 11 (AMD64) | Smart App Control (SAC) Enforced (`VerifiedAndReputablePolicyState: 1`, `SmartAppControlState: On`) |
 | Python | 3.12.10 | Active virtual environment at `apps/api/.venv` |
 | uv | 0.12.23 | Fast Python package management |
 | Node.js | v24.19.0 | |
@@ -18,6 +18,75 @@
 | Next.js | 15.5.29 | React 19.3.1, Tailwind 3.4.19 |
 | Docker | 29.8.0 | Daemon not running |
 | WSL | Not installed | Native Windows execution |
+
+### 1.2 Dev DB Contamination Audit (§2.3)
+
+Identified via `python -m scripts.audit_test_pollution`:
+
+| Table | Suspicious Row ID | How Identified | Proposed Action |
+|---|---|---|---|
+| `invoices` | `81284fd4-9430-4502-9de8-7d6c7aa5ee96` | `invoice_number='INV-TEST-099'` (from `test_invoice_gst_calculation`) | Option A: Reset dev branch / Option B: Delete test invoice & line items |
+| `clients` | `5c3ef2f4-e34d-47b3-809b-c6cfb32f5a72` | `code='CLI-ZENITH-01'` (from `test_lead_conversion_idempotence`) | Option A: Reset dev branch / Option B: Delete test client |
+| `client_contacts` | `6abde056-2baa-46b9-bb5a-05e96a5039c8` | `name='Rohan Deshmukh'` linked to `CLI-ZENITH-01` | Option A: Reset dev branch / Option B: Delete test contact |
+| `leads` | `31f51560-d11b-456f-8c92-4267bae6a9a9` | `title='Inbound Enterprise ERP Inquiry'` from lead convert test | Option A: Reset dev branch / Option B: Delete test lead |
+| `audit_logs` | `2ec6199c-1068-4f1c-ba42-fd9a4716594f` | `action='invoice.issue'` referencing test invoice ID | Option A: Reset dev branch / Option B: Delete test audit entry |
+| `user_sessions` | `f3bb1754-aebf-45a3-90e4-393a15c4017b` | TestClient user agent from `test_login_success` | Option A: Reset dev branch / Option B: Revoke test session |
+| `user_sessions` | `4d65286e-94c8-44f1-9ca6-46af210ac4f5` | TestClient user agent from `test_login_success` | Option A: Reset dev branch / Option B: Revoke test session |
+
+**Proposed Cleanup Choices for Owner:**
+- **Option A (Preferred):** Recreate/reset Neon `dev` branch, then `alembic upgrade head && python seed.py`. Clean, deterministic, zero leftover artifacts.
+- **Option B:** Run targeted cleanup script `apps/api/scripts/cleanup_test_pollution.py` in single transaction (dry-run on by default).
+
+*(Awaiting Owner decision before executing cleanup).*
+
+### 1.3 Real Client Data Audit & Repository Privacy (§2.5)
+
+- **Git Remote Audit:** Executed `git remote -v`. Output is empty (0 remotes configured; the repository is strictly local and has not been pushed to GitHub or any public remote).
+- **Reference Mock Data Categories (from `seed_pdf_data.py`):**
+  - *Staff Members:* Meera Sharma, Karan Verma, Divya Reddy (`@digitalfootprint.in`).
+  - *Client Accounts:* Peak Fitness, Akshara Enterprises, Nova Learning, Greenleaf Organics, Bloom Dental Clinic, Mehta Interiors.
+  - *Client Contacts:* Arjun S (`arjun@peakfitness.in`, test phone `+91 98765 43210`).
+  - *Subscribed Services:* Web development (₹80k), SEO (₹30k/mo), Social media (₹20k/mo), Custom CRM (₹1.2L).
+  - *Invoices & Agreements:* DF-2026-0001, DF-2026-0002, DFA-2026-0002 through DFA-2026-0007.
+  - *Leads Pipeline:* 8 records with company and contact names from design PDF.
+- **Data Safety Assessment:** All items are mock design artifacts representing an agency portfolio reference mock rather than active client PII or live credentials. No production secrets, live payment keys, or personal passwords exist in the dataset.
+- **Data Handling Policy Implemented:**
+  1. Relocated `seed_pdf_data.py` to `apps/api/scripts/dev_only/seed_pdf_data.py`.
+  2. Guarded with mandatory `APP_ENV=development` check; aborts with exit code 1 if invoked in any other environment.
+  3. Completely isolated from production migrations and deployment scripts.
+
+---
+
+Direct empirical outputs from the active shell:
+
+```text
+> python -c "import sys, platform; print(sys.executable); print(platform.platform()); print(sys.version)"
+C:\coding\digital foot crm\DCRM\apps\api\.venv\Scripts\python.exe
+Windows-11-10.0.26300-SP0
+3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]
+
+> python -c "import psycopg; print('psycopg', psycopg.__version__, psycopg.pq.__impl__)"
+ImportError: no pq wrapper available.
+Attempts made:
+- couldn't import psycopg 'c' implementation: No module named 'psycopg_c'
+- couldn't import psycopg 'binary' implementation: DLL load failed while importing pq: An Application Control policy has blocked this file.
+- couldn't import psycopg 'python' implementation: libpq library not found
+
+> python -c "import argon2, _argon2_cffi_bindings; print('argon2 ok', argon2.__version__)"
+argon2 ok 25.1.0
+
+> python -c "import mypy.api; print('mypy import ok')"
+mypy import ok
+
+> Get-MpComputerStatus | Select-Object SmartAppControlState
+SmartAppControlState: On
+```
+
+**Runtime Truth Verdict:**
+All backend operations, database connections, and test runs in this session were executed natively on **Windows 11 (build 26300)** under Python 3.12.10 inside `apps/api/.venv`.
+- `psycopg` native `libpq.dll` is actively blocked by Windows Smart App Control (`SmartAppControlState: On`).
+- `argon2` / `_argon2_cffi_bindings` and `mypy` work reliably after clean reinstallation into the virtual environment.
+- On Windows with SAC enabled, database queries and migrations execute through `pg8000` (pure-Python TLS driver). When deployed to Linux/Vercel or executed in WSL2, `psycopg` is the target driver.
 
 ---
 

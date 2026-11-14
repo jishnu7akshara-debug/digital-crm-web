@@ -35,3 +35,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Test Outputs
+test-results/
+playwright-report/
+blob-report/
+
+
