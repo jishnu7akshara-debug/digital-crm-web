@@ -37,6 +37,7 @@ interface NavItem {
   badge?: string | number;
   matchPrefixes?: string[];
   subItems?: NavSubItem[];
+  permission?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -49,33 +50,34 @@ const NAV_ITEMS: NavItem[] = [
     label: "Leads",
     href: "/internal/leads",
     icon: Users,
-    badge: "8",
+    permission: "leads.read",
   },
   {
     label: "Clients",
     href: "/internal/clients",
     icon: Building2,
-    badge: "142",
     matchPrefixes: ["/internal/clients"],
+    permission: "clients.read",
   },
   {
     label: "Opportunities",
     href: "/internal/opportunities",
     icon: TrendingUp,
-    badge: "46",
+    permission: "leads.read",
   },
   {
     label: "Projects",
     href: "/internal/projects",
     icon: FolderKanban,
-    badge: "38",
     matchPrefixes: ["/internal/projects"],
+    permission: "projects.read",
   },
   {
     label: "Services",
     href: "/internal/services",
     icon: Briefcase,
     matchPrefixes: ["/internal/services"],
+    permission: "services.read",
     subItems: [
       { label: "Websites", href: "/internal/services?category=websites", category: "websites" },
       { label: "Digital Marketing", href: "/internal/services?category=digital-marketing", category: "digital-marketing" },
@@ -93,43 +95,50 @@ const NAV_ITEMS: NavItem[] = [
     label: "Billing & Invoices",
     href: "/internal/invoices",
     icon: Receipt,
-    badge: "3",
+    permission: "invoices.read",
   },
   {
     label: "Contracts & Docs",
     href: "/internal/agreements",
     icon: FileText,
-    badge: "7",
+    permission: "agreements.read",
   },
   {
     label: "Reports & Analytics",
     href: "/internal/reports",
     icon: BarChart3,
+    permission: "reports.read",
   },
   {
     label: "Team",
     href: "/internal/attendance",
     icon: UserCheck,
+    permission: "attendance.punch",
   },
   {
     label: "Settings",
     href: "/internal/settings/roles",
     icon: Settings,
+    permission: "roles.manage",
   },
 ];
 
 export function SaasSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const [servicesOpen, setServicesOpen] = useState(true);
 
-  const displayName = user?.full_name || "Sai Varshith";
+  const displayName = user?.full_name || user?.email?.split("@")[0] || "Staff Member";
   const initials = displayName
     .split(" ")
     .map((n) => n[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  );
 
   return (
     <aside className="w-[260px] h-screen bg-[#0B0E23] text-white flex flex-col justify-between shrink-0 select-none sticky top-0 z-30 border-r border-[#1B1F3B] shadow-2xl">
@@ -155,7 +164,7 @@ export function SaasSidebar() {
 
         {/* Navigation Items (Dark Theme matching image) */}
         <div className="px-3 py-4 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const hasSub = item.subItems && item.subItems.length > 0;
             const isDirectActive = item.matchPrefixes
               ? item.matchPrefixes.some((p) => pathname.startsWith(p))

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { UploadCloud, Download, CheckCircle2, AlertCircle, FileSpreadsheet, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 const AVAILABLE_SERVICES = [
   "Website",
@@ -20,14 +21,14 @@ export default function NewAccountPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
-  const [companyName, setCompanyName] = useState("Peak Fitness");
-  const [industry, setIndustry] = useState("Fitness");
-  const [city, setCity] = useState("Bengaluru");
-  const [accountManager, setAccountManager] = useState("Meera");
-  const [contractValue, setContractValue] = useState("₹1,60,000");
+  const [companyName, setCompanyName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [city, setCity] = useState("");
+  const [accountManager, setAccountManager] = useState("");
+  const [contractValue, setContractValue] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("30 days");
-  const [primaryContact, setPrimaryContact] = useState("Arjun S");
-  const [contactEmail, setContactEmail] = useState("arjun@peakfitness.in");
+  const [primaryContact, setPrimaryContact] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [phone, setPhone] = useState("+91 98765 43210");
   const [selectedServices, setSelectedServices] = useState<string[]>([
     "Website",
@@ -61,7 +62,7 @@ export default function NewAccountPage() {
   const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim() || !contactEmail.trim() || !primaryContact.trim()) {
-      alert("Please fill in the required fields marked with *.");
+      toast.error("Please fill in the required fields marked with *.");
       return;
     }
 

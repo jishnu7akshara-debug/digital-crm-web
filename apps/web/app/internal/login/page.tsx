@@ -9,8 +9,8 @@ import { useAuth } from "@/lib/auth-context";
 
 export default function InternalLoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@digitalfootprint.in");
-  const [password, setPassword] = useState("Admin@123456!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

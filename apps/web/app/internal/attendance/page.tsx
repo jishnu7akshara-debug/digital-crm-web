@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { toast as sonnerToast } from "sonner";
 
 interface AttendanceRecordItem {
   id: string;
@@ -244,7 +245,7 @@ export default function AttendancePage() {
       refetchSummary();
     },
     onError: (err: any) => {
-      alert(err.message || "Admin correction failed.");
+      sonnerToast.error(err.message || "Admin correction failed.");
     },
   });
 

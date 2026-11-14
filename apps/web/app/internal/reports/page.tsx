@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   BarChart3,
   TrendingUp,
@@ -75,14 +76,14 @@ export default function ReportsPage() {
 
         <div className="flex items-center space-x-3 shrink-0">
           <button
-            onClick={() => alert("Exporting Financial & Operational Report (CSV)...")}
+            onClick={() => toast.info("Exporting Financial & Operational Report (CSV)...")}
             className="h-10 px-4 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FB] text-[#0F172A] text-[13px] font-medium rounded-xl transition-colors shadow-soft flex items-center space-x-2"
           >
             <Download className="h-4 w-4 text-[#64748B]" />
             <span>Export CSV</span>
           </button>
           <button
-            onClick={() => alert("Generating Executive PDF Brief...")}
+            onClick={() => toast.info("Generating Executive PDF Brief...")}
             className="h-10 px-4 bg-[#5B4BDB] hover:bg-[#4D3DC9] text-white text-[13px] font-semibold rounded-xl transition-all shadow-soft flex items-center space-x-2"
           >
             <BarChart3 className="h-4 w-4" />

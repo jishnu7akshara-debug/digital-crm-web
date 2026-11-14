@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface TicketSummary {
   id: string;
@@ -74,7 +75,7 @@ export default function SupportDeskPage() {
       refetchDetail();
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
     },
-    onError: (err: any) => alert(err.message || "Failed to post comment."),
+    onError: (err: any) => toast.error(err.message || "Failed to post comment."),
   });
 
   return (

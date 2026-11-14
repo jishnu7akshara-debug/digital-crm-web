@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 
 interface PermissionItem {
   id: string;
@@ -98,7 +99,7 @@ export default function RolesManagementPage() {
       setTimeout(() => setSaveSuccessMsg(null), 4000);
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to save permissions.");
+      toast.error(err.message || "Failed to save permissions.");
     },
   });
 
@@ -121,7 +122,7 @@ export default function RolesManagementPage() {
       setSelectedRoleId(data.id);
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to create role.");
+      toast.error(err.message || "Failed to create role.");
     },
   });
 
@@ -135,7 +136,7 @@ export default function RolesManagementPage() {
       setSelectedRoleId(null);
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to delete role.");
+      toast.error(err.message || "Failed to delete role.");
     },
   });
 

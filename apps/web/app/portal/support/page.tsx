@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function PortalSupportPage() {
   const queryClient = useQueryClient();
@@ -37,7 +38,7 @@ export default function PortalSupportPage() {
       setSubject("");
       setDescription("");
     },
-    onError: (err: any) => alert(err.message || "Failed to create ticket."),
+    onError: (err: any) => toast.error(err.message || "Failed to create ticket."),
   });
 
   return (
