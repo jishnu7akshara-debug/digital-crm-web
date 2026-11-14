@@ -2,6 +2,7 @@
 
 from app.db.base import Base
 from app.db.models.auth import (
+    LoginAttempt,
     Organization,
     PasswordResetToken,
     Permission,
@@ -78,6 +79,7 @@ __all__ = [
     "LeaveBalance",
     "LeaveLedger",
     "LeaveRequest",
+    "LoginAttempt",
     "Milestone",
     "Notification",
     "Organization",

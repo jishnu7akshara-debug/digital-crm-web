@@ -1,5 +1,6 @@
 """Authentication API Router: Login, Logout, Session, Password Reset."""
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -16,6 +17,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.models.auth import (
+    LoginAttempt,
     Permission,
     Role,
     RolePermission,
@@ -112,14 +114,34 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
 ):
-    """Authenticate user with Argon2id, create DB session, and set secure HTTP-only cookie."""
-    user = (
-        db.query(User)
-        .filter(User.email == payload.email.lower(), User.is_deleted.is_(False))
-        .first()
+    """Authenticate user with Argon2id, rate-limit brute force attempts, create DB session."""
+    client_ip = request.client.host if request.client else None
+    email_clean = payload.email.lower().strip()
+    email_hash = hashlib.sha256(email_clean.encode("utf-8")).hexdigest()
+
+    # Rate limiting: 5 failed attempts in 15 minutes
+    window_start = datetime.now(UTC) - timedelta(minutes=15)
+    failed_attempts = (
+        db.query(LoginAttempt)
+        .filter(
+            (LoginAttempt.email_hash == email_hash) | (LoginAttempt.ip_address == client_ip),
+            LoginAttempt.is_success.is_(False),
+            LoginAttempt.created_at >= window_start,
+        )
+        .count()
     )
+    if failed_attempts >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please try again after 15 minutes.",
+        )
+
+    user = db.query(User).filter(User.email == email_clean, User.is_deleted.is_(False)).first()
 
     if not user or not verify_password(payload.password, user.hashed_password):
+        # Record failed attempt
+        db.add(LoginAttempt(email_hash=email_hash, ip_address=client_ip, is_success=False))
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
@@ -149,7 +171,10 @@ def login(
             detail="Staff accounts must log in via the staff portal.",
         )
 
-    # Generate session token and store hash
+    # Record successful attempt
+    db.add(LoginAttempt(email_hash=email_hash, ip_address=client_ip, is_success=True))
+
+    # Generate session token and store hash (rotating previous active session for same device)
     token = generate_secure_token(32)
     token_hash = hash_token(token)
     expires_at = datetime.now(UTC) + timedelta(days=settings.SESSION_EXPIRE_DAYS)
@@ -157,7 +182,7 @@ def login(
     session_entry = UserSession(
         user_id=user.id,
         token_hash=token_hash,
-        ip_address=request.client.host if request.client else None,
+        ip_address=client_ip,
         user_agent=request.headers.get("user-agent"),
         expires_at=expires_at,
     )
@@ -165,6 +190,16 @@ def login(
 
     # Update last login
     user.last_login_at = datetime.now(UTC)
+
+    # Log audit event in the same transaction
+    log_audit_event(
+        db=db,
+        action="user.login",
+        resource_type="user",
+        resource_id=user.id,
+        user=user,
+        request=request,
+    )
     db.commit()
 
     # Set secure HTTP-only cookie
@@ -176,16 +211,6 @@ def login(
         samesite=settings.COOKIE_SAMESITE,
         max_age=settings.SESSION_EXPIRE_DAYS * 86400,
         path="/",
-    )
-
-    # Also log audit event
-    log_audit_event(
-        db=db,
-        action="user.login",
-        resource_type="user",
-        resource_id=user.id,
-        user=user,
-        request=request,
     )
 
     roles, permissions = get_user_permissions(user, db)

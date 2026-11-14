@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import engine_from_config, pool
 
+import app.db.models  # noqa: F401
 from alembic import context
 from app.core.config import settings
 from app.db.base import Base

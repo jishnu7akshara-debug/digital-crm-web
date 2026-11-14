@@ -83,6 +83,17 @@ class UserSession(Base, TimestampMixin):
     user: Mapped["User"] = relationship("User", back_populates="sessions")
 
 
+class LoginAttempt(Base, TimestampMixin):
+    """Tracks login attempts for brute-force protection and rate limiting."""
+
+    __tablename__ = "login_attempts"
+
+    id: Mapped[str] = uuid_pk()
+    email_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    is_success: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
 class Role(Base, TimestampMixin):
     """System and custom roles (e.g. Super Admin, Sales, PM, Client Owner)."""
 
