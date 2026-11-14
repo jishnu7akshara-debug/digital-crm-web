@@ -26,20 +26,49 @@
 ### 2.1 Backend (`apps/api`)
 
 - **`uv pip install -e ".[dev]"`**: Succeeded (62 packages installed).
-- **`ruff check .`**: Failed with **720 errors** (528 automatically fixable).
-  - Unsorted imports across all routers and models (`I001`).
-  - Unused imports (`F401`) e.g. `pytest` in `test_auth.py`, `InvoiceLineItem` in `seed_pdf_data.py`.
-  - Unused local variables (`F841`) in `test_crm_finance.py`.
-  - Legacy `typing.Union` / `Sequence` rather than Python 3.12 modern syntax (`UP007`, `UP035`, `UP017`).
+- **`python -m scripts.check_env`**: **Passed with exit code 0** (PostgreSQL 18.7 connected on Neon; pooler vs direct assertions verified).
+- **`ruff check . --statistics`**: 728 errors total (see breakdown in §2.3).
+- **`ruff format --check .`**: Failed with 36 unformatted files.
 - **`mypy app`**: Failed at launch with `ImportError: DLL load failed while importing mypy: An Application Control policy has blocked this file.` due to Windows Smart App Control blocking mypyc-compiled `.pyd` binaries.
-- **`pytest -v`**: Failed collection with `ImportError: DLL load failed while importing _ffi: An Application Control policy has blocked this file.` from `argon2-cffi-bindings` (and `psycopg-binary` pq wrapper blocked).
+- **`pytest -v`**: **1 failed, 6 passed, 39 warnings** (Duration: 1m 45s).
+  - `test_auth.py::test_health_check` PASSED
+  - `test_auth.py::test_login_success` PASSED
+  - `test_auth.py::test_login_invalid_password` PASSED
+  - `test_auth.py::test_unauthenticated_protected_route` PASSED
+  - `test_crm_finance.py::test_client_360_retrieval` **FAILED** (`AssertionError: assert 'Mehta Interiors' == 'Apex Global Technologies'` — directly proving **B-16** seed dependence).
+  - `test_crm_finance.py::test_invoice_gst_calculation` PASSED
+  - `test_crm_finance.py::test_lead_conversion_idempotence` PASSED
 
 ### 2.2 Frontend (`apps/web`)
 
 - **`pnpm install`**: Succeeded (149 packages, lockfile verified).
 - **`pnpm tsc --noEmit`**: **Passed with 0 errors**.
-- **`pnpm lint`**: Failed (Exit code 1). Missing `.eslintrc` / `eslint.config.mjs` causing interactive configuration prompt.
+- **`pnpm lint`**: Failed (Exit code 1). Missing `.eslintrc` / `eslint.config.mjs` causing interactive configuration prompt (**F-15**).
 - **`pnpm build`**: **Succeeded** (29/29 static pages generated, production build clean).
+
+### 2.3 Ruff Errors Classification
+
+| Rule | Count | Category | Auto-fixable? | Risk & Handling |
+|---|---|---|---|---|
+| `UP045` | 295 | `Optional[T]` -> `T \| None` | yes | None (safe syntax modernization for Python 3.12) |
+| `B008` | 151 | Function call in default argument | no | False positive for FastAPI `Depends(...)` — ignore in `pyproject.toml` |
+| `F401` | 89 | Unused import | yes | Low — verify before removal in `alembic/env.py` and `models/__init__.py` |
+| `UP006` | 80 | `List` / `Dict` -> `list` / `dict` | yes | None (safe syntax modernization) |
+| `I001` | 37 | Unsorted imports | yes | None |
+| `UP035` | 35 | Deprecated imports (`collections.abc`) | yes | None |
+| `UP017` | 21 | `datetime.timezone.utc` -> `datetime.UTC` | yes | None |
+| `UP007` | 6 | `Union[X, Y]` -> `X \| Y` | yes | None |
+| `BLE001` | 4 | Blind `except Exception:` | no | Review each occurrence: replace with specific exceptions or proper logging |
+| `UP046` | 2 | Generic class syntax | no | Low |
+| `SIM102` | 1 | Collapsible `if` statements | no | Low |
+| `SIM210` | 1 | `True if ... else False` | **unsafe-fix** | Replace with `bool(...)` in `alembic/env.py` |
+| `S110` | 1 | `try ... except: pass` | no | Fix during module pass |
+| `RUF046` | 1 | Unnecessary cast to int | no | Low |
+| `PIE790` | 1 | Unnecessary placeholder pass | yes | None |
+| `RUF022` | 1 | Unsorted `__all__` | yes | None |
+| `RUF059` | 1 | Unused unpacked variable | no | Low |
+| `F841` | 1 | Unused variable | no | Remove assignment in `test_crm_finance.py` |
+| `E712` | * | Boolean comparison `== False` | **unsafe-fix** | ⚠️ **DO NOT USE AUTOFIX**: `col == False` must be rewritten by hand to `col.is_(False)`, never `not col`! |
 
 ---
 
