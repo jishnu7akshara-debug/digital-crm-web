@@ -31,6 +31,7 @@ from app.db.models.crm import (
 )
 from app.db.models.finance import (
     CreditNote,
+    DocumentSequence,
     Invoice,
     InvoiceLineItem,
     Payment,
@@ -70,6 +71,7 @@ __all__ = [
     "CreditNote",
     "Deliverable",
     "Department",
+    "DocumentSequence",
     "Employee",
     "FileAsset",
     "Invoice",

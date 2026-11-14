@@ -1,18 +1,19 @@
 """Finance & Invoicing API: Indian GST, Integer Paise, Payments, Pure-Python PDF Generation."""
 
 from datetime import UTC, date, datetime, timedelta
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fpdf import FPDF
-from pydantic import BaseModel
-from sqlalchemy import desc
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import desc, text
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ApiResponse, PaginatedData
 from app.core.audit import log_audit_event
 from app.core.database import get_db
 from app.db.models.crm import Client
-from app.db.models.finance import CreditNote, Invoice, InvoiceLineItem, Payment
+from app.db.models.finance import CreditNote, DocumentSequence, Invoice, InvoiceLineItem, Payment
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 from app.policies.scoping import apply_scope, assert_can_access
 
@@ -100,35 +101,160 @@ def get_current_fy() -> str:
         return f"{prev_year}-{curr_year:02d}"
 
 
-def generate_next_invoice_number(db: Session) -> str:
-    """Generate sequential FY invoice number e.g. DF/2026-27/0001."""
-    fy = get_current_fy()
-    prefix = f"DF/{fy}/"
-    existing = (
-        db.query(Invoice)
-        .filter(Invoice.invoice_number.like(f"{prefix}%"))
-        .order_by(desc(Invoice.invoice_number))
-        .first()
-    )
-    if existing:
-        try:
-            last_seq = int(existing.invoice_number.split("/")[-1])
-            next_seq = last_seq + 1
-        except Exception:
-            next_seq = 1
-    else:
-        next_seq = 1
+def determine_gst_type(client: Client) -> str:
+    """Derive Indian GST classification based on client state and GSTIN.
 
-    return f"{prefix}{next_seq:04d}"
+    Agency is based in Karnataka (State Code 29).
+    - If client is in Karnataka (State Code 29) -> intra_state (CGST + SGST)
+    - If client is in any other Indian state -> inter_state (IGST)
+    - If overseas client (country != India) -> export
+    """
+    agency_state_code = "29"
+
+    # 1. Check GSTIN prefix (first 2 digits)
+    if client.gstin and len(client.gstin.strip()) >= 2:
+        gstin_clean = client.gstin.strip().upper()
+        prefix = gstin_clean[:2]
+        if prefix.isdigit():
+            return "intra_state" if prefix == agency_state_code else "inter_state"
+
+    # 2. Check client state name
+    if client.state:
+        st = client.state.strip().lower()
+        if st in ("karnataka", "ka", "29"):
+            return "intra_state"
+        elif st:
+            return "inter_state"
+
+    # 3. Check country
+    if client.country and client.country.strip().lower() not in ("india", "in", ""):
+        return "export"
+
+    return "intra_state"
+
+
+def get_next_sequence_value(
+    db: Session,
+    document_type: str,
+    financial_year: str,
+    organization_id: str = "default",
+) -> int:
+    """Atomically increment and return the next sequence value for the given document type and financial year.
+
+    Guarantees concurrency safety using PostgreSQL atomic ON CONFLICT DO UPDATE ... RETURNING last_value.
+    """
+    bind = db.get_bind()
+    is_pg = bind.dialect.name == "postgresql"
+
+    # Seed baseline from existing records if sequence row does not exist yet
+    check_stmt = text(
+        "SELECT last_value FROM document_sequences WHERE organization_id = :org_id AND document_type = :doc_type AND financial_year = :fy"
+    )
+    existing_row = db.execute(
+        check_stmt, {"org_id": organization_id, "doc_type": document_type, "fy": financial_year}
+    ).scalar_one_or_none()
+
+    if existing_row is None:
+        baseline = 0
+        if document_type == "invoice":
+            prefix = f"DF/{financial_year}/"
+            invs = (
+                db.query(Invoice.invoice_number)
+                .filter(Invoice.invoice_number.like(f"{prefix}%"))
+                .all()
+            )
+            for (num,) in invs:
+                try:
+                    val = int(num.split("/")[-1])
+                    if val > baseline:
+                        baseline = val
+                except ValueError:
+                    pass
+        elif document_type == "credit_note":
+            prefix = f"CN/{financial_year}/"
+            cns = (
+                db.query(CreditNote.credit_note_number)
+                .filter(CreditNote.credit_note_number.like(f"{prefix}%"))
+                .all()
+            )
+            for (num,) in cns:
+                try:
+                    val = int(num.split("/")[-1])
+                    if val > baseline:
+                        baseline = val
+                except ValueError:
+                    pass
+
+        if baseline > 0:
+            if is_pg:
+                init_stmt = text("""
+                    INSERT INTO document_sequences (id, organization_id, document_type, financial_year, last_value, created_at, updated_at)
+                    VALUES (:id, :org_id, :doc_type, :fy, :baseline, now(), now())
+                    ON CONFLICT (organization_id, document_type, financial_year) DO NOTHING;
+                """)
+            else:
+                init_stmt = text("""
+                    INSERT INTO document_sequences (id, organization_id, document_type, financial_year, last_value, created_at, updated_at)
+                    VALUES (:id, :org_id, :doc_type, :fy, :baseline, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    ON CONFLICT (organization_id, document_type, financial_year) DO NOTHING;
+                """)
+            db.execute(
+                init_stmt,
+                {
+                    "id": str(uuid.uuid4()),
+                    "org_id": organization_id,
+                    "doc_type": document_type,
+                    "fy": financial_year,
+                    "baseline": baseline,
+                },
+            )
+
+    if is_pg:
+        stmt = text("""
+            INSERT INTO document_sequences (id, organization_id, document_type, financial_year, last_value, created_at, updated_at)
+            VALUES (:id, :org_id, :doc_type, :fy, 1, now(), now())
+            ON CONFLICT (organization_id, document_type, financial_year)
+            DO UPDATE SET last_value = document_sequences.last_value + 1, updated_at = now()
+            RETURNING last_value;
+        """)
+    else:
+        stmt = text("""
+            INSERT INTO document_sequences (id, organization_id, document_type, financial_year, last_value, created_at, updated_at)
+            VALUES (:id, :org_id, :doc_type, :fy, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (organization_id, document_type, financial_year)
+            DO UPDATE SET last_value = document_sequences.last_value + 1, updated_at = CURRENT_TIMESTAMP
+            RETURNING last_value;
+        """)
+
+    result = db.execute(
+        stmt,
+        {
+            "id": str(uuid.uuid4()),
+            "org_id": organization_id,
+            "doc_type": document_type,
+            "fy": financial_year,
+        },
+    )
+    return int(result.scalar_one())
+
+
+def generate_next_invoice_number(db: Session, organization_id: str = "default") -> str:
+    """Generate sequential FY invoice number e.g. DF/2026-27/0001 atomically."""
+    fy = get_current_fy()
+    seq = get_next_sequence_value(
+        db, document_type="invoice", financial_year=fy, organization_id=organization_id
+    )
+    return f"DF/{fy}/{seq:04d}"
 
 
 class CreateInvoiceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     client_id: str
     project_id: str | None = None
-    invoice_number: str | None = None
     issue_date: date | None = None
     due_date: date | None = None
-    gst_type: str = "intra_state"  # "intra_state", "inter_state", "exempt"
+    gst_type: str | None = None  # Auto-derived if None; validated if provided
     line_items: list[LineItemPayload]
     notes: str | None = None
     terms: str | None = "Payment due within 15 days of invoice date."
@@ -308,21 +434,24 @@ def create_invoice(
     scope: AccessScope = Depends(require_permission("invoices.issue")),
     db: Session = Depends(get_db),
 ):
-    """Generate and issue an invoice with Indian GST math and immutable snapshot."""
+    """Generate and issue an invoice with Indian GST math, atomic sequence, and immutable snapshot."""
     client = db.query(Client).filter_by(id=payload.client_id, is_deleted=False).first()
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
 
-    inv_number = payload.invoice_number.strip() if payload.invoice_number else generate_next_invoice_number(db)
+    # 1. Atomic sequence generation
+    org_id = client.organization_id if client.organization_id else "default"
+    inv_number = generate_next_invoice_number(db, organization_id=org_id)
 
-    existing_inv = (
-        db.query(Invoice).filter_by(invoice_number=inv_number).first()
-    )
-    if existing_inv:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invoice #{inv_number} already exists.",
-        )
+    # 2. Automated GST determination & compliance validation
+    derived_gst_type = determine_gst_type(client)
+    if payload.gst_type and payload.gst_type != derived_gst_type:
+        if client.gstin or client.state:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid GST type '{payload.gst_type}'. Client tax location requires '{derived_gst_type}'.",
+            )
+    gst_type = derived_gst_type
 
     # Calculate item totals and GST in integer paise
     subtotal_paise = 0
@@ -350,15 +479,15 @@ def create_invoice(
         )
 
     # Tax allocation according to GST Type
-    if payload.gst_type == "intra_state":
+    if gst_type == "intra_state":
         cgst_paise = total_tax_paise // 2
         sgst_paise = total_tax_paise - cgst_paise
         igst_paise = 0
-    elif payload.gst_type == "inter_state":
+    elif gst_type == "inter_state":
         cgst_paise = 0
         sgst_paise = 0
         igst_paise = total_tax_paise
-    else:  # Exempt
+    else:  # Exempt / Export
         cgst_paise = sgst_paise = igst_paise = total_tax_paise = 0
 
     total_paise = subtotal_paise + total_tax_paise
@@ -383,7 +512,7 @@ def create_invoice(
         amount_paid_paise=0,
         balance_paise=total_paise,
         currency="INR",
-        gst_type=payload.gst_type,
+        gst_type=gst_type,
         client_name_snapshot=client.name,
         client_gstin_snapshot=client.gstin,
         client_address_snapshot=f"{client.address or ''}, {client.city or ''}, {client.state or ''} - {client.postal_code or ''}".strip(),
@@ -441,9 +570,14 @@ def record_invoice_payment(
             detail=f"Payment (₹{payload.amount_paise / 100:.2f}) exceeds outstanding balance (₹{invoice.balance_paise / 100:.2f}).",
         )
 
-    # Generate payment number
-    p_count = db.query(Payment).count() + 1
-    payment_number = f"PAY-{datetime.now(UTC).year}-{p_count:04d}"
+    # Generate atomic payment number
+    year_str = str(datetime.now(UTC).year)
+    client = db.query(Client).filter_by(id=invoice.client_id).first()
+    org_id = client.organization_id if (client and client.organization_id) else "default"
+    p_seq = get_next_sequence_value(
+        db, document_type="payment", financial_year=year_str, organization_id=org_id
+    )
+    payment_number = f"PAY-{year_str}-{p_seq:04d}"
 
     payment = Payment(
         payment_number=payment_number,
@@ -503,9 +637,13 @@ def issue_credit_note(
     if payload.amount_paise > invoice.total_paise:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Credit note cannot exceed total invoice amount.")
 
-    cn_count = db.query(CreditNote).count() + 1
     fy = get_current_fy()
-    cn_number = f"CN/{fy}/{cn_count:04d}"
+    client = db.query(Client).filter_by(id=invoice.client_id).first()
+    org_id = client.organization_id if (client and client.organization_id) else "default"
+    cn_seq = get_next_sequence_value(
+        db, document_type="credit_note", financial_year=fy, organization_id=org_id
+    )
+    cn_number = f"CN/{fy}/{cn_seq:04d}"
 
     cn = CreditNote(
         credit_note_number=cn_number,

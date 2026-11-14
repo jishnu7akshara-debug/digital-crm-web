@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin, uuid_pk
@@ -140,3 +140,20 @@ class CreditNote(Base, TimestampMixin):
     )
 
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="credit_notes")
+
+
+class DocumentSequence(Base, TimestampMixin):
+    """Atomic sequence counter for financial documents (invoices, credit notes, payments)."""
+
+    __tablename__ = "document_sequences"
+
+    id: Mapped[str] = uuid_pk()
+    organization_id: Mapped[str] = mapped_column(String(50), default="default", nullable=False, index=True)
+    document_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    financial_year: Mapped[str] = mapped_column(String(20), nullable=False)
+    last_value: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "document_type", "financial_year", name="uq_document_sequences_org_type_fy"),
+    )
+
