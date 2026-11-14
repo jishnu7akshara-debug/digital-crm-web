@@ -378,3 +378,54 @@ Here is a plain-English explanation of the key concepts and changes made during 
 
 5. **Soft Delete vs. Hard Delete (Rule R9):**
    *Plain English:* "Hard delete" permanently deletes a row from the database using SQL `DELETE`. If a user deletes an important client or contract by mistake, it is gone forever. "Soft delete" leaves the row in the database but sets `is_deleted = True` and records `deleted_at`. All regular queries filter out deleted rows, but data can be restored if needed.
+
+---
+
+## Phase 3: Automated QA Loop & Role-Based Testing
+
+### 1. Test Execution Summary
+- **Playwright E2E Route Sweep (`baseline-sweep.spec.ts`):** 4 test suites passed (1.6m execution time).
+  1. `Unauthenticated Negative Authorization Checks`: Passed. Verified redirection to `/login` for all protected `/internal/*` routes.
+  2. `Super Admin Complete Route Sweep`: Passed. 19 routes verified end-to-end with live data and zero unhandled exceptions.
+  3. `Sales Role Route Sweep & Negative Checks`: Passed. Verified scoped access to leads/clients, and verified HTTP 403 / UI block on `/internal/settings/roles`.
+  4. `Client Owner Portal Route Sweep & Negative Checks`: Passed. Verified portal views (`/portal`, `/portal/projects`, `/portal/invoices`, `/portal/agreements`, `/portal/approvals`), and negative check verifying client cannot access internal `/internal/dashboard`.
+- **API Down Resilience Suite (`api-down.spec.ts`):** Passed (5.2s). Verified graceful degradation and UI error states when backend API is unreachable.
+- **Backend Unit & Integration Suite (`pytest`):** 35 passed, 0 failed.
+- **Full-page Visual Evidence:** Screenshots refreshed in `docs/qa/screens/baseline/`.
+
+---
+
+## Phase 4: Hardening & Production Build Verification
+
+### 1. Verification Checklist
+- [x] **Next.js Production Build (`pnpm build`):** 29 of 29 routes successfully compiled and statically optimized (exit code 0).
+- [x] **Frontend TypeScript Validation (`pnpm tsc --noEmit`):** 0 errors.
+- [x] **Frontend ESLint Validation (`pnpm lint`):** 0 errors.
+- [x] **Backend Python Linter (`ruff check .`):** 0 errors (all checks passed).
+- [x] **Database Isolation & Serverless Pool:** Verified with `tests/test_database.py`.
+- [x] **Rate Limiting & Authentication Hardening:** Verified with `tests/test_login_hardening.py`.
+
+---
+
+## Phase 5: Production Schema & Drift Verification
+
+### 1. Verification Checklist
+- [x] **Alembic Revision Status:** Migration head `ae55bf25660c` active.
+- [x] **Schema Drift Audit (`alembic check`):** `No new upgrade operations detected.` Zero drift between SQLAlchemy models and the Neon PostgreSQL schema.
+- [x] **Secrets Audit:** No secrets, credentials, or `.env` files tracked in git.
+
+---
+
+### Final "What Changed and Why" Note (For the Undergraduate Developer)
+
+1. **Role-Based Access Control Boundaries (RBAC):**
+   *Plain English:* A great CRM ensures that users can only see and do what their job requires. Developers don't see financial reports or delete invoices; clients never see internal staff cost metrics or other clients' deliverables; and sales representatives can only access their assigned prospects. In this phase, we tested every role programmatically using Playwright in headless Chrome.
+
+2. **Negative Testing:**
+   *Plain English:* Positive testing proves that the system works when users do the right thing (e.g. logging in with the correct password). Negative testing proves that the system protects itself when users try to do things they shouldn't (e.g. a client user attempting to visit `/internal/settings/roles` or an unauthenticated user requesting an invoice PDF). The system correctly returned 401 Unauthorized or 403 Forbidden on all negative checks.
+
+3. **Schema Drift (`alembic check`):**
+   *Plain English:* Schema drift happens when a developer modifies a Python database model file (adding a column or changing a type) but forgets to generate an Alembic migration. It works on their machine because of local table creation, but immediately crashes in production. Running `alembic check` compares the Python classes to the actual database catalog and confirms they are 100% in sync.
+
+4. **Production Build Optimization:**
+   *Plain English:* In development mode (`next dev`), React and Next.js do not minify code and recompile pages on the fly. Running `pnpm build` bundles, treeshakes, type-checks, and compresses all 29 routes into optimized HTML and JavaScript chunks ready for Vercel edge deployment.

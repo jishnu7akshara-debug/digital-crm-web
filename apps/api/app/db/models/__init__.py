@@ -76,6 +76,7 @@ __all__ = [
     "InvoiceLineItem",
     "Lead",
     "LeadActivity",
+    "LoginAttempt",
     "LeaveBalance",
     "LeaveLedger",
     "LeaveRequest",
