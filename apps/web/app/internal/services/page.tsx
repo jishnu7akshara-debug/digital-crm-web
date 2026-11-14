@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Briefcase,
   Monitor,
@@ -11,233 +11,150 @@ import {
   Palette,
   Sparkles,
   Plus,
-  Search,
   CheckCircle2,
   ArrowRight,
-  Building2,
   TrendingUp,
-  DollarSign,
-  Calendar,
   Clock,
-  Filter,
+  Trash2,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
 
-interface SubscribedClient {
+export interface ServiceItem {
   id: string;
   name: string;
-  contact: string;
-  plan: string;
-  value_rupees: number;
-  renewal: string;
-  status: "active" | "expiring_soon";
-}
-
-interface ServiceProject {
-  id: string;
-  name: string;
-  client: string;
-  progress: number;
-  due_date: string;
-  status: "In Progress" | "Review" | "Completed" | "Planning";
-}
-
-interface ServiceDetails {
+  code: string;
   category: string;
-  slug: string;
-  name: string;
-  tagline: string;
-  clients_count: number;
-  mtd_revenue: number;
-  revenue_share_percent: number;
-  active_projects_count: number;
-  sla_delivery: string;
-  pricing_model: string;
-  base_price_rupees: number;
-  description: string;
-  icon: any;
-  deliverables: string[];
-  clients: SubscribedClient[];
-  projects: ServiceProject[];
+  description: string | null;
+  pricing_type: string;
+  default_price_rupees: number;
+  currency: string;
+  hsn_sac_code: string | null;
+  is_active: boolean;
 }
 
-const SERVICES_DATA: Record<string, ServiceDetails> = {
-  websites: {
-    category: "Websites",
-    slug: "websites",
-    name: "Websites & Web Applications",
-    tagline: "Custom high-performance web applications, portals, and e-commerce platforms.",
-    clients_count: 56,
-    mtd_revenue: 390000,
-    revenue_share_percent: 40,
-    active_projects_count: 14,
-    sla_delivery: "3-4 Weeks",
-    pricing_model: "Fixed Milestone / Retainer",
-    base_price_rupees: 80000,
-    description: "Production-grade Next.js, React, Tailwind, and REST API integration with enterprise SEO, sub-second load times, and custom administration dashboards.",
-    icon: Monitor,
-    deliverables: [
-      "Custom Figma UI/UX Design System",
-      "Next.js App Router & React 19 Frontend",
-      "FastAPI / Node.js Backend & PostgreSQL Database",
-      "Role-Based Client & Staff Portal",
-      "Automated CI/CD Deployment & 99.9% SLA Hosting",
-      "1-Year Maintenance & Security Patching",
-    ],
-    clients: [
-      { id: "c-1", name: "Sashikiran Surveyors", contact: "Sashikiran R.", plan: "Web Portal + Maintenance", value_rupees: 180000, renewal: "Jan 2027", status: "active" },
-      { id: "c-2", name: "Talenty Consulting", contact: "Priya Sharma", plan: "Corporate Showcase", value_rupees: 120000, renewal: "Feb 2027", status: "active" },
-      { id: "c-3", name: "Aroma Dew", contact: "Kavita Rao", plan: "E-Commerce Webshop", value_rupees: 150000, renewal: "Dec 2026", status: "expiring_soon" },
-      { id: "c-4", name: "MedPulse Clinic", contact: "Dr. Vikram Seth", plan: "Patient Booking Portal", value_rupees: 240000, renewal: "Mar 2027", status: "active" },
-      { id: "c-5", name: "Skyline Infrastructure", contact: "Rahul Nair", plan: "B2B Showcase Portal", value_rupees: 95000, renewal: "Apr 2027", status: "active" },
-    ],
-    projects: [
-      { id: "p-1", name: "Sashikiran Surveyors – Website", client: "Sashikiran Surveyors", progress: 80, due_date: "Nov 10, 2026", status: "In Progress" },
-      { id: "p-2", name: "Aroma Dew – Catalogue & Store", client: "Aroma Dew", progress: 100, due_date: "Nov 5, 2026", status: "Completed" },
-      { id: "p-3", name: "MedPulse – Telehealth Portal", client: "MedPulse Clinic", progress: 35, due_date: "Dec 15, 2026", status: "In Progress" },
-    ],
-  },
-  digital_marketing: {
-    category: "Digital Marketing",
-    slug: "digital_marketing",
-    name: "Search & Growth Marketing",
-    tagline: "Data-driven SEO, Google Ads PPC management, and performance marketing funnels.",
-    clients_count: 38,
-    mtd_revenue: 243750,
-    revenue_share_percent: 25,
-    active_projects_count: 11,
-    sla_delivery: "Continuous Monthly Retainer",
-    pricing_model: "Monthly Retainer",
-    base_price_rupees: 30000,
-    description: "Complete organic search rankings, technical on-page & off-page SEO, conversion rate optimization, and high-ROI paid ad campaign management.",
-    icon: Megaphone,
-    deliverables: [
-      "Technical SEO Audit & Schema Markup",
-      "High-Intent Keyword Map & Content Briefs",
-      "Google Search Console & GA4 Setup",
-      "Google Ads Search & Display Campaigns",
-      "Monthly Organic Traffic & Ranking Reports",
-      "Conversion Funnel Optimization",
-    ],
-    clients: [
-      { id: "c-6", name: "Talenty Consulting", contact: "Priya Sharma", plan: "Quarterly SEO Retainer", value_rupees: 210000, renewal: "Dec 2026", status: "active" },
-      { id: "c-7", name: "Peak Fitness", contact: "Arjun S.", plan: "SEO + Local Map Pack", value_rupees: 90000, renewal: "Jan 2027", status: "active" },
-      { id: "c-8", name: "Delights Gourmet", contact: "Sameer Joshi", plan: "Performance Ads", value_rupees: 180000, renewal: "Nov 2026", status: "expiring_soon" },
-    ],
-    projects: [
-      { id: "p-4", name: "Talenty Consulting – SEO Sprint", client: "Talenty Consulting", progress: 60, due_date: "Nov 15, 2026", status: "In Progress" },
-      { id: "p-5", name: "Peak Fitness – Local SEO", client: "Peak Fitness", progress: 40, due_date: "Nov 30, 2026", status: "In Progress" },
-    ],
-  },
-  crm_erp: {
-    category: "CRM / ERP",
-    slug: "crm_erp",
-    name: "Custom CRM & ERP Architecture",
-    tagline: "Bespoke internal operating systems, inventory management, and automated sales workflows.",
-    clients_count: 22,
-    mtd_revenue: 146250,
-    revenue_share_percent: 15,
-    active_projects_count: 6,
-    sla_delivery: "6-8 Weeks",
-    pricing_model: "Custom Scope",
-    base_price_rupees: 120000,
-    description: "Multi-tenant operational platforms built for Indian businesses with GST compliance, WhatsApp API routing, automated lead assignment, and role-based permissions.",
-    icon: Layers,
-    deliverables: [
-      "Custom Data Schema & RBAC Permissions",
-      "Lead Capture & Sales Pipeline Kanban",
-      "Indian GST Invoicing (CGST/SGST/IGST)",
-      "WhatsApp & SMS Notification Gateways",
-      "Client Self-Service Approval Portal",
-      "Automated Daily Database Backups",
-    ],
-    clients: [
-      { id: "c-9", name: "KalpaTouch", contact: "Ananya Iyer", plan: "Enterprise CRM Suite", value_rupees: 450000, renewal: "Mar 2027", status: "active" },
-      { id: "c-10", name: "Apex Logistics Ltd", contact: "Vikram Mehta", plan: "Fleet & Inventory ERP", value_rupees: 300000, renewal: "Feb 2027", status: "active" },
-      { id: "c-11", name: "FastTrack Courier", contact: "Deepak S.", plan: "Delivery Tracker API", value_rupees: 120000, renewal: "Jan 2027", status: "active" },
-    ],
-    projects: [
-      { id: "p-6", name: "KalpaTouch – CRM Setup", client: "KalpaTouch", progress: 40, due_date: "Nov 20, 2026", status: "In Progress" },
-      { id: "p-7", name: "Apex Logistics – ERP Flow", client: "Apex Logistics Ltd", progress: 95, due_date: "Nov 12, 2026", status: "Review" },
-    ],
-  },
-  branding: {
-    category: "Branding & Media",
-    slug: "branding",
-    name: "Corporate Identity & Creative Media",
-    tagline: "Memorable brand identities, packaging, product catalogues, and high-impact corporate video.",
-    clients_count: 18,
-    mtd_revenue: 97500,
-    revenue_share_percent: 10,
-    active_projects_count: 5,
-    sla_delivery: "2-3 Weeks",
-    pricing_model: "Fixed Project",
-    base_price_rupees: 45000,
-    description: "Logo suites, comprehensive brand guidelines, corporate typography, product packaging design, and 3D product renders that command market presence.",
-    icon: Palette,
-    deliverables: [
-      "Primary & Secondary Logo Architecture",
-      "Color Palette, Typography & Usage Rules",
-      "Corporate Stationery & Digital Asset Kit",
-      "Product Packaging & Label Artwork",
-      "Catalogue & Brochure Print Ready Files",
-      "Social Media Post & Banner Templates",
-    ],
-    clients: [
-      { id: "c-12", name: "Delights Gourmet", contact: "Sameer Joshi", plan: "Brand Identity Suite", value_rupees: 250000, renewal: "May 2027", status: "active" },
-      { id: "c-13", name: "Aroma Dew", contact: "Kavita Rao", plan: "Product Catalogue Launch", value_rupees: 180000, renewal: "Jun 2027", status: "active" },
-      { id: "c-14", name: "Skyline Infra", contact: "Rahul Nair", plan: "Corporate Media Kit", value_rupees: 150000, renewal: "Apr 2027", status: "active" },
-    ],
-    projects: [
-      { id: "p-8", name: "Delights – Branding & Media", client: "Delights", progress: 90, due_date: "Nov 8, 2026", status: "Review" },
-      { id: "p-9", name: "Aroma Dew – Catalogue", client: "Aroma Dew", progress: 100, due_date: "Nov 5, 2026", status: "Completed" },
-    ],
-  },
-  others: {
-    category: "Others",
-    slug: "others",
-    name: "EdTech Platforms & Cloud Consulting",
-    tagline: "Specialized LMS systems, cloud infrastructure setup, automated student portals, and managed IT services.",
-    clients_count: 26,
-    mtd_revenue: 97500,
-    revenue_share_percent: 10,
-    active_projects_count: 2,
-    sla_delivery: "4 Weeks",
-    pricing_model: "Custom Scope",
-    base_price_rupees: 60000,
-    description: "Specialized technology solutions: automated learning management systems, secure exam testing portals, cloud cost optimization, and ongoing operational support.",
-    icon: Sparkles,
-    deliverables: [
-      "Learning Management System (LMS) Architecture",
-      "Video Streaming & Adaptive Bitrate CDN",
-      "Automated Certificate Generation & Verifier",
-      "Cloud Infrastructure Hardening & Backups",
-      "Enterprise SSO & Active Directory Integration",
-      "24/7 Server Monitoring & Incident Response SLA",
-    ],
-    clients: [
-      { id: "c-16", name: "EduSpark Academy", contact: "Dr. N. Murthy", plan: "LMS & Video Streaming", value_rupees: 280000, renewal: "Feb 2027", status: "active" },
-      { id: "c-17", name: "Prime Skills Institute", contact: "Rekha Das", plan: "Student Assessment Portal", value_rupees: 160000, renewal: "Jan 2027", status: "active" },
-    ],
-    projects: [
-      { id: "p-10", name: "EduSpark – Live Classroom Engine", client: "EduSpark Academy", progress: 50, due_date: "Dec 20, 2026", status: "In Progress" },
-    ],
-  },
+const CATEGORY_ICONS: Record<string, any> = {
+  Websites: Monitor,
+  "Mobile Apps": Sparkles,
+  "Digital Marketing": Megaphone,
+  SEO: TrendingUp,
+  Branding: Palette,
+  Enterprise: Layers,
 };
 
 function ServicesView() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const categoryParam = searchParams.get("category");
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
 
-  const normalizedParam = categoryParam ? categoryParam.toLowerCase().replace(/-/g, "_") : "websites";
-  const activeSlug = SERVICES_DATA[normalizedParam] ? normalizedParam : "websites";
-  const activeService = SERVICES_DATA[activeSlug];
+  // Modal State for New Service
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceCode, setNewServiceCode] = useState("");
+  const [newServiceCategory, setNewServiceCategory] = useState("Websites");
+  const [newServicePrice, setNewServicePrice] = useState("");
+  const [newServiceDesc, setNewServiceDesc] = useState("");
+  const [newPricingType, setNewPricingType] = useState("fixed");
 
-  const handleTabChange = (slug: string) => {
-    router.push(`/internal/services?category=${slug.replace(/_/g, "-")}`);
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<ServiceItem[]>("/services");
+      setServices(data || []);
+      if (data && data.length > 0 && !activeServiceId) {
+        setActiveServiceId(data[0].id);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to load services");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const Icon = activeService.icon;
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newServiceName.trim() || !newServiceCode.trim()) {
+      toast.error("Name and code are required.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const pricePaise = Math.round((parseFloat(newServicePrice) || 0) * 100);
+      const created = await api.post<ServiceItem>("/services", {
+        name: newServiceName.trim(),
+        code: newServiceCode.trim().toUpperCase(),
+        category: newServiceCategory,
+        description: newServiceDesc.trim() || null,
+        pricing_type: newPricingType,
+        default_price_paise: pricePaise,
+        currency: "INR",
+        hsn_sac_code: "998314",
+      });
+
+      toast.success(`Service "${created.name}" created successfully.`);
+      setShowCreateModal(false);
+      setNewServiceName("");
+      setNewServiceCode("");
+      setNewServicePrice("");
+      setNewServiceDesc("");
+      await fetchServices();
+      setActiveServiceId(created.id);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create service.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteService = async (service: ServiceItem) => {
+    if (!confirm(`Are you sure you want to archive "${service.name}"?`)) return;
+
+    try {
+      await api.delete(`/services/${service.id}`);
+      toast.success(`Service "${service.name}" archived.`);
+      await fetchServices();
+      if (activeServiceId === service.id) {
+        setActiveServiceId(null);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to archive service.");
+    }
+  };
+
+  if (loading) {
+    return <PageSkeleton />;
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={fetchServices} />;
+  }
+
+  if (services.length === 0) {
+    return (
+      <EmptyState
+        title="No Services in Catalogue"
+        description="Get started by creating your agency's first service offering."
+        actionLabel="Add Service"
+        onAction={() => setShowCreateModal(true)}
+      />
+    );
+  }
+
+  const activeService =
+    services.find((s) => s.id === activeServiceId) || services[0];
+  const ActiveIcon =
+    CATEGORY_ICONS[activeService.category] || Briefcase;
 
   return (
     <div className="space-y-6 pb-12">
@@ -250,37 +167,45 @@ function ServicesView() {
             </span>
             <span className="text-[11px] text-[#94A3B8]">·</span>
             <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
-              {activeService.clients_count} Subscribed Clients
+              {activeService.code}
             </span>
           </div>
           <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
             {activeService.name}
           </h1>
           <p className="text-[14px] text-[#64748B] mt-0.5">
-            {activeService.tagline}
+            {activeService.description || "Standard agency offering."}
           </p>
         </div>
 
         <div className="flex items-center space-x-3 shrink-0">
-          <Link
-            href="/internal/clients/new"
+          <button
+            onClick={() => setShowCreateModal(true)}
             className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
           >
             <Plus className="h-4 w-4" />
-            <span>Add Client to Service</span>
-          </Link>
+            <span>Add Service</span>
+          </button>
+          <button
+            onClick={() => handleDeleteService(activeService)}
+            className="h-10 px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors flex items-center space-x-1 text-xs font-medium"
+            title="Archive service"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Archive</span>
+          </button>
         </div>
       </div>
 
       {/* Category Pills Navigation Bar */}
       <div className="bg-white p-3 rounded-2xl border border-[#E5E7EB] shadow-card flex items-center space-x-2 overflow-x-auto text-[13px]">
-        {Object.values(SERVICES_DATA).map((srv) => {
-          const isSelected = activeSlug === srv.slug;
-          const SrvIcon = srv.icon;
+        {services.map((srv) => {
+          const isSelected = activeService.id === srv.id;
+          const SrvIcon = CATEGORY_ICONS[srv.category] || Briefcase;
           return (
             <button
-              key={srv.slug}
-              onClick={() => handleTabChange(srv.slug)}
+              key={srv.id}
+              onClick={() => setActiveServiceId(srv.id)}
               className={`flex items-center space-x-2 px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
                 isSelected
                   ? "bg-[#5B4BDB] text-white shadow-soft"
@@ -288,250 +213,239 @@ function ServicesView() {
               }`}
             >
               <SrvIcon className="h-3.5 w-3.5" />
-              <span>{srv.category}</span>
-              <span
-                className={`text-[10px] px-2 py-0.2 rounded-full font-bold ml-1 ${
-                  isSelected ? "bg-white/20 text-white" : "bg-[#E5E7EB] text-[#64748B]"
-                }`}
-              >
-                {srv.clients_count}
-              </span>
+              <span>{srv.name}</span>
             </button>
           );
         })}
       </div>
 
-      {/* 4 Metric KPI Cards */}
+      {/* KPI Specs Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
-          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">Active Clients</span>
-          <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-2xl font-bold text-[#0F172A]">{activeService.clients_count}</span>
-            <span className="text-xs font-semibold text-[#059669]">Subscribed</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
-          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">MTD Revenue</span>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">
+            Base Pricing
+          </span>
           <div className="flex items-baseline space-x-2 mt-2">
             <span className="text-2xl font-bold text-[#5B4BDB]">
-              ₹{activeService.mtd_revenue.toLocaleString("en-IN")}
+              ₹{activeService.default_price_rupees.toLocaleString("en-IN")}
             </span>
-            <span className="text-xs font-semibold text-[#64748B]">({activeService.revenue_share_percent}% MTD)</span>
+            <span className="text-xs font-semibold text-[#64748B]">
+              /{activeService.pricing_type}
+            </span>
           </div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
-          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">Active Projects</span>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">
+            Category
+          </span>
           <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-2xl font-bold text-[#0F172A]">{activeService.active_projects_count}</span>
-            <span className="text-xs font-semibold text-[#0284C7]">In Progress</span>
+            <span className="text-lg font-bold text-[#0F172A]">
+              {activeService.category}
+            </span>
           </div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
-          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">Delivery SLA</span>
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">
+            SAC Code
+          </span>
           <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-sm font-bold text-[#0F172A] truncate">{activeService.sla_delivery}</span>
+            <span className="text-lg font-bold text-[#0F172A]">
+              {activeService.hsn_sac_code || "998314"}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-card">
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider block">
+            Status
+          </span>
+          <div className="flex items-baseline space-x-2 mt-2">
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                activeService.is_active
+                  ? "bg-[#ECFDF5] text-[#059669]"
+                  : "bg-red-50 text-red-600"
+              }`}
+            >
+              {activeService.is_active ? "Active in Catalogue" : "Archived"}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Subscribed Clients & Deliverables */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Subscribed Clients Table (2 cols) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card">
-          <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E7EB]">
-            <div>
-              <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-                ACTIVE SUBSCRIBERS
-              </div>
-              <h3 className="text-base font-bold text-[#0F172A] mt-0.5">
-                Subscribed Clients ({activeService.clients.length})
-              </h3>
+      {/* Detail Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col justify-between">
+        <div>
+          <div className="pb-3 mb-4 border-b border-[#E5E7EB]">
+            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              SPECIFICATION & INCLUSIONS
             </div>
-            <Link
-              href="/internal/clients"
-              className="text-xs font-semibold text-[#5B4BDB] hover:underline flex items-center space-x-1"
-            >
-              <span>View All Clients</span>
-              <ArrowRight className="h-3 w-3" />
-            </Link>
+            <h3 className="text-base font-bold text-[#0F172A] mt-0.5">
+              Service Details
+            </h3>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13.5px]">
-              <thead className="bg-[#F8F9FB] border-b border-[#E5E7EB] text-[#94A3B8] font-bold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="py-3 px-4">Organization</th>
-                  <th className="py-3 px-4">Contact</th>
-                  <th className="py-3 px-4">Plan</th>
-                  <th className="py-3 px-4">Value</th>
-                  <th className="py-3 px-4">Renewal</th>
-                  <th className="py-3 px-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E7EB] text-[#0F172A]">
-                {activeService.clients.map((c) => (
-                  <tr
-                    key={c.id}
-                    onClick={() => router.push(`/internal/clients?search=${encodeURIComponent(c.name)}`)}
-                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
-                    title={`Open ${c.name} account`}
-                  >
-                    <td className="py-3.5 px-4 font-semibold text-[#5B4BDB]">
-                      <Link
-                        href={`/internal/clients?search=${encodeURIComponent(c.name)}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="hover:underline flex items-center space-x-1.5"
-                      >
-                        <span>{c.name}</span>
-                        <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#5B4BDB]" />
-                      </Link>
-                    </td>
-                    <td className="py-3.5 px-4 text-[#64748B]">{c.contact}</td>
-                    <td className="py-3.5 px-4 font-medium text-xs text-[#0F172A]">{c.plan}</td>
-                    <td className="py-3.5 px-4 font-bold">₹{c.value_rupees.toLocaleString("en-IN")}</td>
-                    <td className="py-3.5 px-4 text-[#64748B]">{c.renewal}</td>
-                    <td className="py-3.5 px-4">
-                      {c.status === "active" ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#059669]">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#D97706]">
-                          Renewal Due
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <p className="text-[14px] text-[#64748B] leading-relaxed mb-6">
+            {activeService.description ||
+              "Standard agency deliverable package configured in the system."}
+          </p>
 
-          {/* Active Delivery Projects Table */}
-          {activeService.projects && activeService.projects.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-[#E5E7EB]">
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#E5E7EB]">
-                <div>
-                  <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-                    ENGINEERING PIPELINE
-                  </div>
-                  <h4 className="text-sm font-bold text-[#0F172A] mt-0.5">
-                    Active Delivery Projects ({activeService.projects.length})
-                  </h4>
-                </div>
-                <Link
-                  href="/internal/projects"
-                  className="text-xs font-semibold text-[#5B4BDB] hover:underline flex items-center space-x-1"
-                >
-                  <span>All Projects</span>
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="text-[#94A3B8] font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-2 px-3">Project Workspace</th>
-                      <th className="py-2 px-3">Client</th>
-                      <th className="py-2 px-3">Progress</th>
-                      <th className="py-2 px-3">Target Due</th>
-                      <th className="py-2 px-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E5E7EB]">
-                    {activeService.projects.map((p) => (
-                      <tr
-                        key={p.id}
-                        onClick={() => router.push(`/internal/projects/proj-peak-web`)}
-                        className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
-                      >
-                        <td className="py-3 px-3 font-semibold text-[#0F172A] group-hover:text-[#5B4BDB]">
-                          {p.name}
-                        </td>
-                        <td className="py-3 px-3 text-[#64748B]">{p.client}</td>
-                        <td className="py-3 px-3">
-                          <div className="flex items-center space-x-2 w-24">
-                            <div className="w-full bg-[#E5E7EB] h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="bg-[#5B4BDB] h-full rounded-full"
-                                style={{ width: `${p.progress}%` }}
-                              />
-                            </div>
-                            <span className="font-semibold text-[#64748B]">{p.progress}%</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-[#64748B]">{p.due_date}</td>
-                        <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/internal/projects/proj-peak-web`);
-                            }}
-                            className="px-2.5 py-1 bg-white hover:bg-[#EEF2FF] border border-[#CBD5E1] hover:border-[#5B4BDB] text-[#5B4BDB] font-semibold rounded-lg text-xs transition-all shadow-xs"
-                          >
-                            Workspace →
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Deliverables Scope Checklist (1 col) */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col justify-between">
-          <div>
-            <div className="pb-3 mb-4 border-b border-[#E5E7EB]">
-              <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-                SCOPE SPECIFICATION
-              </div>
-              <h3 className="text-base font-bold text-[#0F172A] mt-0.5">Package Inclusions</h3>
-            </div>
-
-            <p className="text-[13px] text-[#64748B] leading-relaxed mb-4">{activeService.description}</p>
-
-            <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
-              {activeService.deliverables.map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-2.5 text-[13px] text-[#0F172A]">
-                  <CheckCircle2 className="h-4 w-4 text-[#059669] shrink-0 mt-0.5" />
-                  <span className="font-medium leading-snug">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
-            <div>
-              <span className="text-[11px] text-[#94A3B8] font-semibold uppercase tracking-wider block">
-                {activeService.pricing_model}
-              </span>
-              <span className="text-lg font-bold text-[#0F172A]">
-                From ₹{activeService.base_price_rupees.toLocaleString("en-IN")}
-              </span>
-            </div>
+          <div className="flex items-center space-x-4">
             <Link
               href="/internal/opportunities"
-              className="h-9 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center justify-center"
+              className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center justify-center space-x-2"
             >
-              Create Proposal
+              <span>Create Proposal with this Service</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/internal/clients"
+              className="h-10 px-5 bg-white border border-[#E5E7EB] hover:bg-[#F8F9FA] text-[#0F172A] text-[13px] font-semibold rounded-xl transition-colors flex items-center justify-center"
+            >
+              Assign to Client
             </Link>
           </div>
         </div>
       </div>
+
+      {/* Modal for Creating New Service */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-2xl w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB] mb-4">
+              <h2 className="text-base font-bold text-[#0F172A]">
+                Add Service to Catalogue
+              </h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-[#94A3B8] hover:text-[#0F172A] p-1 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateService} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                  Service Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
+                  placeholder="e.g. Next.js Web Application"
+                  className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-hidden focus:border-[#5B4BDB]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                    Service Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newServiceCode}
+                    onChange={(e) => setNewServiceCode(e.target.value)}
+                    placeholder="e.g. WEB-NEXT"
+                    className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm uppercase focus:outline-hidden focus:border-[#5B4BDB]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={newServiceCategory}
+                    onChange={(e) => setNewServiceCategory(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-hidden focus:border-[#5B4BDB]"
+                  >
+                    <option value="Websites">Websites</option>
+                    <option value="Mobile Apps">Mobile Apps</option>
+                    <option value="SEO">SEO</option>
+                    <option value="Digital Marketing">Digital Marketing</option>
+                    <option value="Branding">Branding</option>
+                    <option value="Enterprise">Enterprise</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                    Base Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={newServicePrice}
+                    onChange={(e) => setNewServicePrice(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-hidden focus:border-[#5B4BDB]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                    Pricing Model *
+                  </label>
+                  <select
+                    value={newPricingType}
+                    onChange={(e) => setNewPricingType(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-hidden focus:border-[#5B4BDB]"
+                  >
+                    <option value="fixed">Fixed</option>
+                    <option value="monthly">Monthly Retainer</option>
+                    <option value="hourly">Hourly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                  Description / Deliverables Scope
+                </label>
+                <textarea
+                  rows={3}
+                  value={newServiceDesc}
+                  onChange={(e) => setNewServiceDesc(e.target.value)}
+                  placeholder="Detail what is included in this service package..."
+                  className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-hidden focus:border-[#5B4BDB]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#E5E7EB]">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-[#64748B] hover:text-[#0F172A]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-[#5B4BDB] hover:bg-[#4C3EBE] disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors shadow-soft"
+                >
+                  {isSubmitting ? "Creating..." : "Save Service"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function ServicesPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-[#64748B]">Loading service catalogue...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <ServicesView />
     </Suspense>
   );

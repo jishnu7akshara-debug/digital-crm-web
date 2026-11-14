@@ -89,6 +89,13 @@ export const api = {
       ...options,
     }),
 
+  patch: <T>(endpoint: string, body?: any, options?: RequestInit) =>
+    fetchJson<T>(endpoint, {
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+
   delete: <T>(endpoint: string, options?: RequestInit) =>
     fetchJson<T>(endpoint, { method: "DELETE", ...options }),
 
