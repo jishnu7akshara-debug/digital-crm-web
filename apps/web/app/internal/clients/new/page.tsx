@@ -68,7 +68,7 @@ export default function NewAccountPage() {
 
     try {
       const numVal = parseFloat(contractValue.replace(/[^0-9.]/g, "")) || 160000;
-      await api.post("/clients/quick-create", {
+      const res = await api.post<any>("/clients/quick-create", {
         name: companyName,
         industry,
         city,
@@ -81,15 +81,15 @@ export default function NewAccountPage() {
         services: selectedServices,
       });
 
-      setNotification(`Account '${companyName}' created and portal access granted to ${contactEmail}!`);
-      setTimeout(() => {
-        router.push("/internal/clients/CLI-PEAK-001");
-      }, 1500);
-    } catch (e: any) {
-      setNotification(`Account '${companyName}' registered successfully.`);
-      setTimeout(() => {
-        router.push("/internal/clients/CLI-PEAK-001");
-      }, 1500);
+      const newId = res?.client_id || res?.code;
+      toast.success(`Account '${companyName}' created and portal access granted to ${contactEmail}!`);
+      if (newId) {
+        router.push(`/internal/clients/${newId}`);
+      } else {
+        router.push("/internal/clients");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create client account.");
     }
   };
 

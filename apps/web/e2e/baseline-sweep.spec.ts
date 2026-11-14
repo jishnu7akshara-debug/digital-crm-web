@@ -166,6 +166,7 @@ test.describe.serial("Digital Footprint OS - Strict Multi-Role Baseline Route Sw
       "/internal/projects/proj-apex-01",
       "/internal/tasks",
       "/internal/invoices",
+      "/internal/invoices/new",
       "/internal/invoices/inv-apex-01",
       "/internal/agreements",
       "/internal/agreements/agr-apex-msa-01",

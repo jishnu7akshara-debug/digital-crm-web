@@ -1,7 +1,7 @@
 """Finance & Invoicing API: Indian GST, Integer Paise, Payments, Pure-Python PDF Generation."""
 
-from datetime import UTC, date, datetime, timedelta
 import uuid
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fpdf import FPDF
@@ -13,7 +13,7 @@ from app.api.schemas import ApiResponse, PaginatedData
 from app.core.audit import log_audit_event
 from app.core.database import get_db
 from app.db.models.crm import Client
-from app.db.models.finance import CreditNote, DocumentSequence, Invoice, InvoiceLineItem, Payment
+from app.db.models.finance import CreditNote, Invoice, InvoiceLineItem, Payment
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 from app.policies.scoping import apply_scope, assert_can_access
 
@@ -445,12 +445,11 @@ def create_invoice(
 
     # 2. Automated GST determination & compliance validation
     derived_gst_type = determine_gst_type(client)
-    if payload.gst_type and payload.gst_type != derived_gst_type:
-        if client.gstin or client.state:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid GST type '{payload.gst_type}'. Client tax location requires '{derived_gst_type}'.",
-            )
+    if payload.gst_type and payload.gst_type != derived_gst_type and (client.gstin or client.state):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid GST type '{payload.gst_type}'. Client tax location requires '{derived_gst_type}'.",
+        )
     gst_type = derived_gst_type
 
     # Calculate item totals and GST in integer paise

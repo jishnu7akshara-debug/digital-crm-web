@@ -7,8 +7,6 @@ import os
 import pytest
 from dotenv import load_dotenv
 
-from scripts.check_env import is_same_database
-
 load_dotenv(override=False)
 
 
@@ -34,6 +32,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # Wire SQLAlchemy engine to automatically use test_schema
     import sqlalchemy as sa
+
     from app.core.database import engine
 
     @sa.event.listens_for(engine, "connect")

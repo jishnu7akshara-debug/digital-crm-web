@@ -11,7 +11,7 @@
   },
   {
     "route": "/internal/dashboard",
-    "finalUrl": "http://localhost:3000/internal/login",
+    "finalUrl": "http://localhost:3000/internal/dashboard",
     "consoleErrors": [
       "Failed to load resource: net::ERR_CONNECTION_REFUSED",
       "Failed to load resource: net::ERR_CONNECTION_REFUSED",
@@ -20,7 +20,7 @@
   },
   {
     "route": "/internal/leads",
-    "finalUrl": "http://localhost:3000/internal/login",
+    "finalUrl": "http://localhost:3000/internal/leads",
     "consoleErrors": [
       "Failed to load resource: net::ERR_CONNECTION_REFUSED",
       "Failed to load resource: net::ERR_CONNECTION_REFUSED"
@@ -28,7 +28,7 @@
   },
   {
     "route": "/internal/clients",
-    "finalUrl": "http://localhost:3000/internal/login",
+    "finalUrl": "http://localhost:3000/internal/clients",
     "consoleErrors": [
       "Failed to load resource: net::ERR_CONNECTION_REFUSED"
     ]
