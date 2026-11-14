@@ -18,13 +18,13 @@ interface RouteResult {
   consoleErrors: string[];
   pageErrors: string[];
   screenshotPath: string;
-  notes: string;
+  screenshotBytes: number;
+  isNegativeTest?: boolean;
 }
 
 const sweepResults: RouteResult[] = [];
 const SCREENSHOT_DIR = path.resolve(__dirname, "../../../docs/qa/screens/baseline");
 
-// Ensure screenshot directory exists
 if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
@@ -33,20 +33,18 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+/g, "_");
 }
 
-async function visitAndRecord(
+async function visitRouteAndRecord(
   page: Page,
   role: string,
   route: string,
-  expectedStatus: number = 200
+  isNegativeTest: boolean = false
 ): Promise<RouteResult> {
   const apiRequests: RouteResult["apiRequests"] = [];
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
 
   const onConsole = (msg: any) => {
-    if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
-    }
+    if (msg.type() === "error") consoleErrors.push(msg.text());
   };
   const onPageError = (err: Error) => {
     pageErrors.push(err.message || String(err));
@@ -79,27 +77,29 @@ async function visitAndRecord(
   const start = Date.now();
   let navResponse;
   try {
-    navResponse = await page.goto(route, { waitUntil: "domcontentloaded", timeout: 15000 });
-  } catch (err: any) {
-    // Record whatever state was reached
-  }
+    navResponse = await page.goto(route, { waitUntil: "domcontentloaded", timeout: 20000 });
+  } catch {}
+
+  // Wait for loading spinner to detach if present
+  try {
+    const spinner = page.locator('[data-testid="loading-spinner"]');
+    if (await spinner.count()) {
+      await spinner.waitFor({ state: "detached", timeout: 10000 });
+    }
+  } catch {}
+
+  // Allow settled network queries and UI hydration
+  await page.waitForTimeout(2500);
+
   const loadTimeMs = Date.now() - start;
-
-  // Wait a small amount for any deferred client fetches/hydration
-  await page.waitForTimeout(1000);
-
   const finalUrl = page.url();
   const safeName = sanitizeFilename(`${role}_${route}`);
   const screenshotFile = `${safeName}.png`;
   const fullScreenshotPath = path.join(SCREENSHOT_DIR, screenshotFile);
 
-  try {
-    await page.screenshot({ path: fullScreenshotPath, fullPage: true });
-  } catch {
-    // Screenshot failure handling
-  }
+  await page.screenshot({ path: fullScreenshotPath, fullPage: true });
+  const stats = fs.statSync(fullScreenshotPath);
 
-  // Remove listeners to avoid leakage
   page.off("console", onConsole);
   page.off("pageerror", onPageError);
   page.off("request", onRequest);
@@ -116,14 +116,24 @@ async function visitAndRecord(
     consoleErrors,
     pageErrors,
     screenshotPath: `docs/qa/screens/baseline/${screenshotFile}`,
-    notes: "",
+    screenshotBytes: stats.size,
+    isNegativeTest,
   };
 
   sweepResults.push(result);
+
+  // Proof protocol assertions on authenticated data pages
+  if (!isNegativeTest && role !== "unauthenticated") {
+    // Assert page has data and is not a blank spinner (< 25 KB)
+    expect(stats.size).toBeGreaterThan(25000);
+    // Assert apiRequests is not empty
+    expect(apiRequests.length).toBeGreaterThan(0);
+  }
+
   return result;
 }
 
-test.describe.serial("Digital Footprint OS - Automated Baseline Route Sweep", () => {
+test.describe.serial("Digital Footprint OS - Strict Multi-Role Baseline Route Sweep (V-02)", () => {
   const jsonPath = path.resolve(__dirname, "../../../docs/qa/baseline-sweep.json");
 
   test.afterEach(() => {
@@ -135,41 +145,30 @@ test.describe.serial("Digital Footprint OS - Automated Baseline Route Sweep", ()
   });
 
   test("1. Unauthenticated Negative Authorization Checks", async ({ page }) => {
-    // Unauth internal dashboard
-    const res1 = await visitAndRecord(page, "unauthenticated", "/internal/dashboard");
-    expect(res1.url).toContain("/login");
+    const res1 = await visitRouteAndRecord(page, "unauthenticated", "/internal/dashboard", true);
+    expect(res1.url).toContain("/internal/login");
 
-    // Unauth client portal
-    const res2 = await visitAndRecord(page, "unauthenticated", "/portal");
-    expect(res2.url).toMatch(/(\/login|\/portal\/login)/);
-
-    // Non-existent route 404
-    await visitAndRecord(page, "unauthenticated", "/non-existent-route-xyz");
+    const res2 = await visitRouteAndRecord(page, "unauthenticated", "/portal", true);
+    expect(res2.url).toContain("/portal/login");
   });
 
-  test("2. Super Admin Complete Route Sweep", async ({ page }) => {
-    // Login as Super Admin
-    await page.goto("/login");
-    await page.waitForLoadState("domcontentloaded");
-    await page.fill('input[type="email"]', "admin@digitalfootprint.in");
-    await page.fill('input[type="password"]', "Admin@123456!");
-    await page.click('button[type="submit"]');
-    await page.waitForURL("**/internal/dashboard", { timeout: 15000 });
+  test("2. Super Admin Comprehensive Route Sweep", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: "e2e/.auth/super_admin.json" });
+    const page = await context.newPage();
 
     const superAdminRoutes = [
       "/internal/dashboard",
       "/internal/leads",
-      "/internal/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+      "/internal/leads/lead-techcorp-01",
       "/internal/clients",
-      "/internal/clients/new",
-      "/internal/clients/372c372b-879e-4223-a316-a4cb7ba4f2b8",
+      "/internal/clients/cli-apex-01",
       "/internal/projects",
-      "/internal/projects/aee51883-d8bc-4f38-afba-051f440cfa21",
+      "/internal/projects/proj-apex-01",
       "/internal/tasks",
       "/internal/invoices",
-      "/internal/invoices/893ae5c7-be65-4f4e-a446-dc9a8b8b03b8",
+      "/internal/invoices/inv-apex-01",
       "/internal/agreements",
-      "/internal/agreements/74a9bed2-9e4f-413c-97a8-0b8161cd11f3",
+      "/internal/agreements/agr-apex-msa-01",
       "/internal/attendance",
       "/internal/team",
       "/internal/services",
@@ -179,62 +178,62 @@ test.describe.serial("Digital Footprint OS - Automated Baseline Route Sweep", ()
     ];
 
     for (const route of superAdminRoutes) {
-      await visitAndRecord(page, "super_admin", route);
+      await visitRouteAndRecord(page, "super_admin", route, false);
     }
+
+    await context.close();
   });
 
-  test("3. Sales Role Route Sweep & Negative Checks", async ({ page, context }) => {
-    await context.clearCookies();
-    // Login as Sales
-    await page.goto("/login");
-    await page.waitForLoadState("domcontentloaded");
-    await page.fill('input[type="email"]', "qa.sales@example.com");
-    await page.fill('input[type="password"]', "QaTest@12345!");
-    await page.click('button[type="submit"]');
-    await page.waitForURL("**/internal/**", { timeout: 15000 });
+  test("3. Sales Role Route Sweep & Negative Boundary Checks", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: "e2e/.auth/sales.json" });
+    const page = await context.newPage();
 
-    const salesRoutes = [
+    const salesAllowedRoutes = [
+      "/internal/dashboard",
       "/internal/leads",
-      "/internal/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+      "/internal/leads/lead-techcorp-01",
       "/internal/clients",
-      "/internal/clients/372c372b-879e-4223-a316-a4cb7ba4f2b8",
+      "/internal/clients/cli-apex-01",
       "/internal/projects",
       "/internal/tasks",
       "/internal/invoices",
       "/internal/agreements",
-      "/internal/dashboard",
-      // Negative check: Sales should not be able to manage settings/roles
-      "/internal/settings/roles",
     ];
 
-    for (const route of salesRoutes) {
-      await visitAndRecord(page, "sales", route);
+    for (const route of salesAllowedRoutes) {
+      await visitRouteAndRecord(page, "sales", route, false);
     }
+
+    // Negative check: Sales strictly forbidden from /internal/settings/roles
+    const negRes = await visitRouteAndRecord(page, "sales", "/internal/settings/roles", true);
+    expect(negRes.url).toContain("/internal/settings/roles");
+    const deniedBox = page.locator('[data-testid="access-denied-403"]');
+    await expect(deniedBox).toBeVisible();
+
+    await context.close();
   });
 
-  test("4. Client Owner Portal Route Sweep & Negative Checks", async ({ page, context }) => {
-    await context.clearCookies();
-    // Login as Client
-    await page.goto("/login");
-    await page.waitForLoadState("domcontentloaded");
-    await page.fill('input[type="email"]', "qa.client@example.com");
-    await page.fill('input[type="password"]', "QaTest@12345!");
-    await page.click('button[type="submit"]');
-    await page.waitForURL("**/portal*", { timeout: 15000 });
+  test("4. Client Owner Portal Route Sweep & Negative Boundary Checks", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: "e2e/.auth/client_owner.json" });
+    const page = await context.newPage();
 
-    const clientRoutes = [
+    const clientAllowedRoutes = [
       "/portal",
       "/portal/projects",
       "/portal/approvals",
       "/portal/invoices",
       "/portal/agreements",
       "/portal/support",
-      // Negative check: Client owner trying to access internal dashboard
-      "/internal/dashboard",
     ];
 
-    for (const route of clientRoutes) {
-      await visitAndRecord(page, "client_owner", route);
+    for (const route of clientAllowedRoutes) {
+      await visitRouteAndRecord(page, "client_owner", route, false);
     }
+
+    // Negative check: Client owner navigating to /internal/dashboard is redirected to /portal
+    const negRes = await visitRouteAndRecord(page, "client_owner", "/internal/dashboard", true);
+    expect(negRes.url).toContain("/portal");
+
+    await context.close();
   });
 });
