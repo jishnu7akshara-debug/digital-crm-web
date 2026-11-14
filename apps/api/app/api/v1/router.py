@@ -15,6 +15,7 @@ from app.api.v1.roles import router as roles_router
 from app.api.v1.services import router as services_router
 from app.api.v1.support import router as support_router
 from app.api.v1.tasks import router as tasks_router
+from app.api.v1.team import router as team_router
 
 api_v1_router = APIRouter(prefix="/v1")
 
@@ -35,6 +36,7 @@ api_v1_router.include_router(leads_router)
 api_v1_router.include_router(invoices_router)
 api_v1_router.include_router(services_router)
 api_v1_router.include_router(tasks_router)
+api_v1_router.include_router(team_router)
 api_v1_router.include_router(support_router)
 api_v1_router.include_router(attendance_router)
 api_v1_router.include_router(agreements_router)
