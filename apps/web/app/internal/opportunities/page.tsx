@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   TrendingUp,
   Plus,
@@ -15,486 +16,423 @@ import {
   CheckCircle2,
   X,
   Clock,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
 
-interface Opportunity {
+interface ProposalItem {
   id: string;
+  proposal_number: string;
+  client_id: string | null;
+  client_name: string | null;
+  lead_id: string | null;
+  lead_title: string | null;
   title: string;
-  client: string;
-  service: string;
-  value_rupees: number;
-  stage: "leads" | "qualified" | "proposal" | "negotiation" | "won";
-  expected_close: string;
-  probability: number;
-  owner: string;
+  version: number;
+  status: string;
+  subtotal_rupees: number;
+  discount_rupees: number;
+  tax_rupees: number;
+  total_rupees: number;
+  valid_until: string | null;
+  accepted_at: string | null;
+  created_at: string;
 }
-
-const INITIAL_OPPORTUNITIES: Opportunity[] = [
-  {
-    id: "opp-1",
-    title: "E-Commerce Website Redesign",
-    client: "Sashikiran Surveyors",
-    service: "Websites",
-    value_rupees: 180000,
-    stage: "leads",
-    expected_close: "Dec 15, 2026",
-    probability: 30,
-    owner: "Sai Varshith",
-  },
-  {
-    id: "opp-2",
-    title: "Healthcare Booking Portal",
-    client: "MedPulse Clinic",
-    service: "Websites",
-    value_rupees: 240000,
-    stage: "leads",
-    expected_close: "Dec 20, 2026",
-    probability: 25,
-    owner: "Priya Sharma",
-  },
-  {
-    id: "opp-3",
-    title: "Quarterly SEO & Growth Retainer",
-    client: "Talenty Consulting",
-    service: "Digital Marketing",
-    value_rupees: 210000,
-    stage: "qualified",
-    expected_close: "Nov 30, 2026",
-    probability: 50,
-    owner: "Rahul Verma",
-  },
-  {
-    id: "opp-4",
-    title: "Paid Ads Performance Setup",
-    client: "Urban Nest Interiors",
-    service: "Digital Marketing",
-    value_rupees: 400000,
-    stage: "qualified",
-    expected_close: "Dec 05, 2026",
-    probability: 60,
-    owner: "Sai Varshith",
-  },
-  {
-    id: "opp-5",
-    title: "Custom CRM & Lead Routing",
-    client: "KalpaTouch",
-    service: "CRM / ERP",
-    value_rupees: 450000,
-    stage: "proposal",
-    expected_close: "Nov 25, 2026",
-    probability: 70,
-    owner: "Ananya Iyer",
-  },
-  {
-    id: "opp-6",
-    title: "Inventory & Billing ERP",
-    client: "Apex Logistics",
-    service: "CRM / ERP",
-    value_rupees: 300000,
-    stage: "proposal",
-    expected_close: "Dec 10, 2026",
-    probability: 65,
-    owner: "Priya Sharma",
-  },
-  {
-    id: "opp-7",
-    title: "Brand Identity & Packaging",
-    client: "Delights Gourmet",
-    service: "Branding & Media",
-    value_rupees: 250000,
-    stage: "negotiation",
-    expected_close: "Nov 22, 2026",
-    probability: 85,
-    owner: "Sai Varshith",
-  },
-  {
-    id: "opp-8",
-    title: "Corporate Video & Media Kit",
-    client: "Skyline Infra",
-    service: "Branding & Media",
-    value_rupees: 150000,
-    stage: "negotiation",
-    expected_close: "Nov 18, 2026",
-    probability: 80,
-    owner: "Rahul Verma",
-  },
-  {
-    id: "opp-9",
-    title: "Product Catalogue & Digital Launch",
-    client: "Aroma Dew",
-    service: "Branding & Media",
-    value_rupees: 180000,
-    stage: "won",
-    expected_close: "Nov 05, 2026",
-    probability: 100,
-    owner: "Sai Varshith",
-  },
-  {
-    id: "opp-10",
-    title: "Mobile CRM Companion App",
-    client: "FastTrack Logistics",
-    service: "CRM / ERP",
-    value_rupees: 120000,
-    stage: "won",
-    expected_close: "Nov 02, 2026",
-    probability: 100,
-    owner: "Ananya Iyer",
-  },
-];
-
-const STAGES = [
-  { key: "leads", label: "Leads", count: 18, total: "₹4,20,000" },
-  { key: "qualified", label: "Qualified", count: 11, total: "₹6,10,000" },
-  { key: "proposal", label: "Proposal", count: 8, total: "₹7,50,000" },
-  { key: "negotiation", label: "Negotiation", count: 5, total: "₹4,00,000" },
-  { key: "won", label: "Won", count: 4, total: "₹3,00,000" },
-] as const;
 
 export default function OpportunitiesPage() {
   const router = useRouter();
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedService, setSelectedService] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [newOpp, setNewOpp] = useState({
-    title: "",
-    client: "",
-    service: "Websites",
-    value_rupees: "",
-    stage: "leads" as Opportunity["stage"],
-    owner: "Sai Varshith",
+  // New proposal form
+  const [newTitle, setNewTitle] = useState("");
+  const [newClientId, setNewClientId] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
+  const [itemPrice, setItemPrice] = useState("");
+  const [itemQty, setItemQty] = useState("1");
+  const [discountRupees, setDiscountRupees] = useState("0");
+  const [terms, setTerms] = useState("50% advance, 50% on deliverable sign-off.");
+
+  // Fetch proposals
+  const { data: propData, isLoading, error, refetch } = useQuery<any>({
+    queryKey: ["proposals-list", statusFilter],
+    queryFn: async () => {
+      const q = statusFilter !== "all" ? `&status_filter=${statusFilter}` : "";
+      return await api.get<any>(`/proposals?page_size=100${q}`);
+    },
   });
 
-  const handleAddOpportunity = (e: React.FormEvent) => {
+  // Fetch clients for dropdown
+  const { data: clientsData } = useQuery<any>({
+    queryKey: ["clients-dropdown"],
+    queryFn: async () => {
+      return await api.get<any>("/clients?page_size=100");
+    },
+  });
+
+  const proposals: ProposalItem[] = propData?.items || [];
+  const clients = clientsData?.items || [];
+
+  const handleCreateProposal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOpp.title || !newOpp.client) return;
+    if (!newTitle.trim() || !newClientId || !itemDescription.trim() || !itemPrice) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
 
-    const opp: Opportunity = {
-      id: `opp-${Date.now()}`,
-      title: newOpp.title,
-      client: newOpp.client,
-      service: newOpp.service,
-      value_rupees: Number(newOpp.value_rupees) || 100000,
-      stage: newOpp.stage,
-      expected_close: "Dec 31, 2026",
-      probability: newOpp.stage === "won" ? 100 : newOpp.stage === "negotiation" ? 80 : 40,
-      owner: newOpp.owner,
-    };
+    try {
+      setIsSubmitting(true);
+      const unitPaise = Math.round((parseFloat(itemPrice) || 0) * 100);
+      const discPaise = Math.round((parseFloat(discountRupees) || 0) * 100);
 
-    setOpportunities([opp, ...opportunities]);
-    setIsNewModalOpen(false);
-    setNewOpp({
-      title: "",
-      client: "",
-      service: "Websites",
-      value_rupees: "",
-      stage: "leads",
-      owner: "Sai Varshith",
-    });
+      await api.post("/proposals", {
+        title: newTitle.trim(),
+        client_id: newClientId,
+        line_items: [
+          {
+            description: itemDescription.trim(),
+            quantity: parseInt(itemQty, 10) || 1,
+            unit_price_paise: unitPaise,
+          },
+        ],
+        discount_paise: discPaise,
+        tax_rate_percent: 18.0,
+        terms_and_conditions: terms.trim() || null,
+      });
+
+      toast.success("Proposal created successfully.");
+      setShowModal(false);
+      setNewTitle("");
+      setItemDescription("");
+      setItemPrice("");
+      await refetch();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create proposal.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const moveStage = (oppId: string, nextStage: Opportunity["stage"]) => {
-    setOpportunities((prev) =>
-      prev.map((o) => (o.id === oppId ? { ...o, stage: nextStage } : o))
+  const handleDeleteProposal = async (p: ProposalItem) => {
+    if (!confirm(`Are you sure you want to archive "${p.title}"?`)) return;
+
+    try {
+      await api.delete(`/proposals/${p.id}`);
+      toast.success("Proposal archived.");
+      await refetch();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to archive proposal.");
+    }
+  };
+
+  const filteredProposals = proposals.filter((p) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      p.title.toLowerCase().includes(term) ||
+      (p.client_name && p.client_name.toLowerCase().includes(term)) ||
+      p.proposal_number.toLowerCase().includes(term)
     );
-  };
-
-  const filteredOpps = opportunities.filter((o) => {
-    const matchesSearch =
-      o.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesService =
-      selectedService === "All" || o.service.toLowerCase().includes(selectedService.toLowerCase());
-    return matchesSearch && matchesService;
   });
 
-  const totalValue = opportunities.reduce((acc, curr) => acc + curr.value_rupees, 0);
+  const totalPipelineRupees = proposals.reduce((acc, p) => acc + p.total_rupees, 0);
+
+  if (isLoading) return <PageSkeleton />;
+  if (error) return <ErrorState message={(error as any)?.message || "Failed to load proposals"} onRetry={() => refetch()} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2 mb-1">
             <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-              PIPELINE & SALES
+              COMMERCIAL SALES PIPELINE
             </span>
             <span className="text-[11px] text-[#94A3B8]">·</span>
             <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] text-xs font-semibold">
-              {opportunities.length} Active Deals
+              ₹{totalPipelineRupees.toLocaleString("en-IN")} Total Pipeline
             </span>
           </div>
-          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
-            Opportunities & Deals Pipeline
-          </h2>
+          <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">Proposals & Opportunities</h1>
           <p className="text-[14px] text-[#64748B] mt-0.5">
-            Track deal velocity, pipeline values, and conversion across sales stages.
+            Create, track, and close commercial proposals with line items and GST calculations.
           </p>
         </div>
 
         <div className="flex items-center space-x-3 shrink-0">
-          <div className="bg-[#F8F9FB] border border-[#E5E7EB] px-4 py-2 rounded-xl text-right">
-            <span className="text-[11px] text-[#94A3B8] uppercase font-semibold tracking-wider block">
-              Total Pipeline Value
-            </span>
-            <span className="text-base font-bold text-[#5B4BDB]">
-              ₹{totalValue.toLocaleString("en-IN")}
-            </span>
-          </div>
-
           <button
-            onClick={() => setIsNewModalOpen(true)}
-            className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
+            onClick={() => setShowModal(true)}
+            className="h-10 px-4 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-1.5"
           >
             <Plus className="h-4 w-4" />
-            <span>New Opportunity</span>
+            <span>Create Proposal</span>
           </button>
         </div>
       </div>
 
-      {/* Filter and Search Bar Card */}
-      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#94A3B8]" />
+      {/* Filter and Search Bar */}
+      <div className="bg-white p-3 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative flex-1 w-full max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
           <input
             type="text"
-            placeholder="Search deals or clients..."
+            placeholder="Search proposals by title, client, or number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-9 bg-[#F8F9FB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-[#F8F9FB] border border-[#CBD5E1] rounded-xl text-xs text-[#0F172A] focus:outline-none focus:border-[#5B4BDB]"
           />
         </div>
 
-        {/* Service Pills */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto text-[13px]">
-          <span className="text-[#94A3B8] text-[12px] font-semibold mr-1 uppercase tracking-wider">
-            Services:
-          </span>
-          {["All", "Websites", "Digital Marketing", "CRM / ERP", "Branding & Media"].map((srv) => (
-            <button
-              key={srv}
-              onClick={() => setSelectedService(srv)}
-              className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
-                selectedService === srv
-                  ? "bg-[#5B4BDB] text-white shadow-soft"
-                  : "bg-[#F8F9FB] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]"
-              }`}
-            >
-              {srv}
-            </button>
-          ))}
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-[#F8F9FB] border border-[#CBD5E1] rounded-xl text-xs text-[#0F172A] focus:outline-none focus:border-[#5B4BDB]"
+          >
+            <option value="all">All Statuses</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
       </div>
 
-      {/* 5-Column Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-        {STAGES.map((col, idx) => {
-          const colOpps = filteredOpps.filter((o) => o.stage === col.key);
-          const colTotalRupees = colOpps.reduce((sum, o) => sum + o.value_rupees, 0);
-
-          return (
-            <div
-              key={col.key}
-              className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card p-4 flex flex-col min-h-[520px]"
-            >
-              {/* Column Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB] mb-3">
-                <div>
-                  <div className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider">
-                    {col.label}
-                  </div>
-                  <div className="text-[13px] font-bold text-[#0F172A] mt-0.5">
-                    ₹{colTotalRupees.toLocaleString("en-IN")}
-                  </div>
-                </div>
-                <span className="h-6 w-6 rounded-full bg-[#EEF2FF] text-[#5B4BDB] font-bold text-xs flex items-center justify-center">
-                  {colOpps.length}
-                </span>
-              </div>
-
-              {/* Cards List */}
-              <div className="space-y-3 flex-1 overflow-y-auto">
-                {colOpps.map((opp) => {
-                  let badgeClass = "bg-[#EEF2FF] text-[#5B4BDB]";
-                  if (opp.service === "Digital Marketing") badgeClass = "bg-[#F0F9FF] text-[#0284C7]";
-                  if (opp.service === "CRM / ERP") badgeClass = "bg-[#ECFDF5] text-[#059669]";
-                  if (opp.service.includes("Branding")) badgeClass = "bg-[#FFFBEB] text-[#D97706]";
-
-                  return (
-                    <div
-                      key={opp.id}
-                      onClick={() => router.push(`/internal/opportunities/${opp.id}`)}
-                      className="bg-[#F8F9FB] hover:bg-white border border-[#E5E7EB] hover:border-[#5B4BDB]/40 rounded-xl p-3.5 transition-all shadow-soft group cursor-pointer hover:shadow-dropdown"
-                      title={`Open ${opp.title} workspace`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}`}>
-                          {opp.service}
-                        </span>
-                        <span className="text-[13px] font-bold text-[#0F172A]">
-                          ₹{opp.value_rupees.toLocaleString("en-IN")}
-                        </span>
+      {/* Table of Proposals */}
+      {filteredProposals.length === 0 ? (
+        <EmptyState
+          title="No Proposals Found"
+          description={searchTerm ? "No proposals matched your search filter." : "Create your first commercial client quotation."}
+          actionLabel="Create Proposal"
+          onAction={() => setShowModal(true)}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13.5px]">
+              <thead className="bg-[#F8F9FB] border-b border-[#E5E7EB] text-[#94A3B8] font-bold uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th className="py-3 px-4">Proposal Number</th>
+                  <th className="py-3 px-4">Title / Scope</th>
+                  <th className="py-3 px-4">Client / Account</th>
+                  <th className="py-3 px-4">Total Amount (Incl. GST)</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Created Date</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB] text-[#0F172A]">
+                {filteredProposals.map((p) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => router.push(`/internal/opportunities/${p.id}`)}
+                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                  >
+                    <td className="py-3 px-4 font-semibold text-[#5B4BDB] text-xs">
+                      {p.proposal_number}
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-[#0F172A] group-hover:text-[#5B4BDB]">
+                      <div className="flex items-center space-x-1.5">
+                        <span>{p.title}</span>
+                        <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-[#64748B]">
+                      {p.client_name || p.lead_title || "General"}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-xs">
+                      ₹{p.total_rupees.toLocaleString("en-IN")}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
+                          p.status === "accepted"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : p.status === "sent"
+                            ? "bg-indigo-50 text-indigo-700"
+                            : p.status === "rejected"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-[#64748B]">
+                      {new Date(p.created_at).toLocaleDateString("en-IN", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleDeleteProposal(p)}
+                        className="p-1.5 hover:bg-red-50 text-[#94A3B8] hover:text-red-600 rounded-lg transition-colors"
+                        title="Archive proposal"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                      <h4 className="text-[13.5px] font-semibold text-[#0F172A] leading-snug mb-1 group-hover:text-[#5B4BDB] transition-colors">
-                        {opp.title}
-                      </h4>
-
-                      <div className="flex items-center space-x-1.5 text-[12px] text-[#64748B] mb-2.5">
-                        <Building2 className="h-3.5 w-3.5 text-[#94A3B8]" />
-                        <Link
-                          href={`/internal/clients?search=${encodeURIComponent(opp.client)}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:text-[#5B4BDB] hover:underline"
-                        >
-                          {opp.client}
-                        </Link>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]/80 text-[11px] text-[#64748B]">
-                        <span className="flex items-center space-x-1">
-                          <User className="h-3 w-3 text-[#94A3B8]" />
-                          <span>{opp.owner.split(" ")[0]}</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Clock className="h-3 w-3 text-[#94A3B8]" />
-                          <span>{opp.expected_close}</span>
-                        </span>
-                      </div>
-
-                      {/* Advance Stage button */}
-                      {col.key !== "won" ? (
-                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-between">
-                          <span className="text-[11px] font-medium text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">
-                            Open Deal →
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const nextStage = STAGES[idx + 1]?.key;
-                              if (nextStage) moveStage(opp.id, nextStage);
-                            }}
-                            className="text-[11.5px] font-semibold text-[#5B4BDB] hover:text-[#4B3DC7] flex items-center space-x-1 bg-white px-2 py-0.5 rounded-md border border-[#E5E7EB] hover:border-[#5B4BDB]"
-                          >
-                            <span>Advance Stage</span>
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-between text-[11.5px]">
-                          <span className="text-[11px] font-medium text-[#5B4BDB] opacity-0 group-hover:opacity-100 transition-opacity">
-                            Open Deal →
-                          </span>
-                          <span className="font-semibold text-[#059669] flex items-center">
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                            <span>Deal Closed</span>
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {colOpps.length === 0 && (
-                  <div className="h-32 border border-dashed border-[#E5E7EB] rounded-xl flex items-center justify-center text-[12px] text-[#94A3B8]">
-                    No deals in this stage
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* New Opportunity Modal */}
-      {isNewModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] w-full max-w-md shadow-dropdown p-6 text-[14px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-              <h3 className="font-bold text-[16px] text-[#0F172A]">Create New Opportunity</h3>
+      {/* Create Proposal Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-2xl w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB] mb-4">
+              <h2 className="text-base font-bold text-[#0F172A]">Create Commercial Proposal</h2>
               <button
-                onClick={() => setIsNewModalOpen(false)}
-                className="text-[#64748B] hover:text-[#0F172A]"
+                onClick={() => setShowModal(false)}
+                className="text-[#94A3B8] hover:text-[#0F172A] p-1 rounded-lg"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddOpportunity} className="mt-4 space-y-4">
+            <form onSubmit={handleCreateProposal} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
-                  Opportunity Title <span className="text-[#E11D48]">*</span>
+                <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                  Proposal Title *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. E-Commerce Redesign"
-                  value={newOpp.title}
-                  onChange={(e) => setNewOpp({ ...newOpp, title: e.target.value })}
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g. Next.js Web Application & SEO Package"
+                  className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-none focus:border-[#5B4BDB]"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
-                  Client / Account Name <span className="text-[#E11D48]">*</span>
+                <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                  Select Client *
                 </label>
-                <input
-                  type="text"
+                <select
                   required
-                  placeholder="e.g. Sashikiran Surveyors"
-                  value={newOpp.client}
-                  onChange={(e) => setNewOpp({ ...newOpp, client: e.target.value })}
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
-                />
+                  value={newClientId}
+                  onChange={(e) => setNewClientId(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-none focus:border-[#5B4BDB]"
+                >
+                  <option value="">-- Choose Client --</option>
+                  {clients.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-3 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] space-y-3">
+                <span className="text-xs font-bold text-[#0F172A] block">Primary Line Item</span>
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#64748B] mb-1">
+                    Deliverable Description *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={itemDescription}
+                    onChange={(e) => setItemDescription(e.target.value)}
+                    placeholder="e.g. Full-Stack Web App, Next.js 15, PostgreSQL"
+                    className="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#64748B] mb-1">
+                      Unit Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={itemPrice}
+                      onChange={(e) => setItemPrice(e.target.value)}
+                      placeholder="80000"
+                      className="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#64748B] mb-1">
+                      Quantity *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={itemQty}
+                      onChange={(e) => setItemQty(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
-                    Service Category
-                  </label>
-                  <select
-                    value={newOpp.service}
-                    onChange={(e) => setNewOpp({ ...newOpp, service: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
-                  >
-                    <option value="Websites">Websites</option>
-                    <option value="Digital Marketing">Digital Marketing</option>
-                    <option value="CRM / ERP">CRM / ERP</option>
-                    <option value="Branding & Media">Branding & Media</option>
-                    <option value="EdTech">EdTech</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
-                    Value (₹ INR)
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                    Discount (₹)
                   </label>
                   <input
                     type="number"
-                    placeholder="250000"
-                    value={newOpp.value_rupees}
-                    onChange={(e) => setNewOpp({ ...newOpp, value_rupees: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:outline-none"
+                    min="0"
+                    value={discountRupees}
+                    onChange={(e) => setDiscountRupees(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-none focus:border-[#5B4BDB]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                    GST Tax Rate
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value="18% (Standard Services)"
+                    className="w-full px-3.5 py-2 bg-[#F1F5F9] border border-[#E5E7EB] rounded-xl text-sm text-[#64748B]"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
+              <div>
+                <label className="block text-xs font-semibold text-[#0F172A] mb-1">
+                  Payment Terms
+                </label>
+                <input
+                  type="text"
+                  value={terms}
+                  onChange={(e) => setTerms(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-sm focus:outline-none focus:border-[#5B4BDB]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#E5E7EB]">
                 <button
                   type="button"
-                  onClick={() => setIsNewModalOpen(false)}
-                  className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#64748B] hover:bg-[#F8F9FB]"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-[#64748B] hover:text-[#0F172A]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-[13px] font-semibold shadow-soft"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-[#5B4BDB] hover:bg-[#4C3EBE] disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors shadow-soft"
                 >
-                  Create Opportunity
+                  {isSubmitting ? "Creating..." : "Save Proposal"}
                 </button>
               </div>
             </form>
