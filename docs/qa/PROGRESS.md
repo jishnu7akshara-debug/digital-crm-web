@@ -295,3 +295,86 @@ Here is a plain-English explanation of the key concepts and changes made during 
 
 5. **Brute-Force Rate Limiting (B-14):**
    *Plain English:* An attacker might try thousands of passwords against an account. By recording login attempts in the database and blocking any email or IP address after 5 failed attempts in 15 minutes, brute-force attacks are stopped in their tracks.
+
+---
+
+## Phase 2: Complete Modules & Wire UI to API
+
+### 1. Phase 2 Module Completion Checklist
+- [x] **M2: Services Catalogue (B-04, F-05)**
+  - Full CRUD (`POST /services`, `PATCH /services/{id}`, `DELETE /services/{id}`) with soft-delete in `app/api/v1/services.py`.
+  - Frontend `apps/web/app/internal/services/page.tsx` connected to live API; fake `INITIAL_SERVICES` constant deleted.
+  - Regression unit test in `tests/test_services.py` passing (Commit `3e955b3`).
+- [x] **M3: Leads Pipeline & Activities (B-01, F-03)**
+  - Full CRUD, stage state machine transitions (`new` -> `contacted` -> `qualified` -> `proposal_sent` -> `negotiation` -> `won`/`lost`), activity recording (`LeadActivity`), user assignment, and idempotent client conversion in `app/api/v1/leads.py`.
+  - Frontend `leads/page.tsx` and `leads/[id]/page.tsx` rewritten to use live API; fake `DEFAULT_LEADS` and `LEAD_PROFILES` deleted.
+  - Regression unit test in `tests/test_leads.py` passing (Commit `3ec7cb9`).
+- [x] **M4: Opportunities & Proposals (B-02, F-02)**
+  - Proposal router `app/api/v1/proposals.py` with multi-line item quoting, GST computation, lifecycle status transitions, and soft-delete.
+  - Registered `proposals_router` in `router.py`.
+  - Frontend `opportunities/page.tsx` and `opportunities/[id]/page.tsx` rewritten against live API; `INITIAL_OPPORTUNITIES` and `OPPORTUNITY_DATA` deleted.
+  - Regression unit test in `tests/test_proposals.py` passing (Commit `88c97ef`).
+- [x] **M5: Client 360 Full CRUD & Contacts (B-03)**
+  - Added `PATCH /clients/{id}`, `DELETE /clients/{id}`, contacts CRUD (`POST`, `PATCH`, `DELETE /clients/{id}/contacts`), and service status toggling (`POST /clients/{id}/services/{sub_id}/status`) in `app/api/v1/clients.py`.
+  - Frontend `clients/[id]/page.tsx` rewritten to read live 360 data and manage contacts/subscriptions; `CLIENT_PROFILES` deleted.
+  - Regression unit test in `tests/test_clients.py` passing (Commit `6323b1b`).
+- [x] **M6: Agreements Signing & Portal Integration (B-21, F-08)**
+  - Verified `app/api/v1/agreements.py` contract lifecycle and signed copy tracking.
+  - Frontend `portal/agreements/page.tsx` rewritten with live legal signing; `INITIAL_PORTAL_AGREEMENTS` deleted (Commit `ed8eb69`).
+- [x] **M7: Projects State Machine & Deliverables (B-06, F-07)**
+  - Added pending deliverables endpoint `GET /projects/deliverables/pending` and review endpoint `POST /projects/deliverables/{id}/review` in `app/api/v1/projects.py`.
+  - Enforced project stage state machine transitions.
+  - Frontend `portal/approvals/page.tsx` rewritten to review and approve live deliverables; `INITIAL_DELIVERABLES` and hardcoded IDs (`deliv-peak-homepage`) deleted (Commit `3770c1f`).
+- [x] **M8: Tasks Standalone API & N+1 Elimination (B-07, F-06)**
+  - Created standalone `app/api/v1/tasks.py` router (`GET`, `POST /tasks`, `PATCH`, `DELETE /tasks/{id}`) with status/priority/project/owner filters.
+  - Registered `tasks_router` in `router.py`.
+  - Frontend `internal/tasks/page.tsx` rewritten to fetch from single `GET /tasks` endpoint, eliminating N+1 looping over projects (Commit `51767bc`).
+- [x] **M9: Invoices Sequential FY Numbering & Credit Notes (B-05)**
+  - Implemented `generate_next_invoice_number()` in `app/api/v1/invoices.py` generating formatted sequences like `DF/2026-27/0001`.
+  - Implemented credit note creation `POST /invoices/{id}/credit-note` and listing `GET /invoices/{id}/credit-notes`.
+  - Fixed model attribute bug: changed `li.total_amount_paise` to `li.total_paise` in `InvoiceLineItemDetail`.
+  - Regression unit test in `tests/test_invoices_fy.py` passing (Commit `eb0c5f3`).
+- [x] **M10: Team & Staff Roster (B-08)**
+  - Created `app/api/v1/team.py` exposing `GET /team` and `POST /team`.
+  - Registered `team_router` in `router.py`.
+  - Frontend `internal/team/page.tsx` rewritten to read live employee roster and add new staff; `INITIAL_MEMBERS` deleted (Commit `63b2758`).
+- [x] **M11: Dashboard Live Metrics (F-01)**
+  - Rewrote `app/api/v1/dashboard.py` to aggregate live database rows (clients, active projects, pipeline deals, invoiced sums, service shares, upcoming tasks).
+  - Frontend `internal/dashboard/page.tsx` rewritten to fetch `/dashboard/kpis`; deleted `REVENUE_TREND_DATA`, `SERVICE_REVENUE_DATA`, `ACTIVE_PROJECTS`, `INITIAL_TASKS` (Commit `559405d`).
+- [x] **M12: Reports Live Analytics (B-10, F-04)**
+  - Created `app/api/v1/reports.py` with `GET /reports/overview` and `GET /reports/export/csv`.
+  - Registered `reports_router` in `router.py`.
+  - Frontend `internal/reports/page.tsx` rewritten to fetch live ledger data and stream CSV downloads; deleted `MONTHLY_DATA` and `SERVICE_SHARE` (Commit `1406a11`).
+- [x] **M13: Notifications & Client Portal Live Feeds (B-11, F-10)**
+  - Created `app/api/v1/notifications.py` exposing `GET /notifications`, `POST /notifications/{id}/read`, and `POST /notifications/read-all`.
+  - Registered `notifications_router` in `router.py`.
+  - Wired `saas-header.tsx` and `portal-header.tsx` notification bells to live notifications API with live unread counts.
+  - Rewrote `portal/page.tsx` to read live deliverables needing review, active projects, and tax invoices; deleted `SERVICES_PROGRESS`, `INVOICES`, and `deliv-peak-homepage` (Commit `744a637`).
+
+---
+
+### 2. Quality & Verification Gates Passed
+- **Pytest Unit Test Suite:** 35 passed, 0 failed (`python -m pytest tests/`).
+- **Python Linter (Ruff):** All checks passed with 0 errors (`python -m ruff check .`).
+- **TypeScript Typecheck:** 0 errors (`pnpm tsc --noEmit`).
+- **Next.js ESLint:** 0 errors (`pnpm lint`).
+- **Fake Data Constants:** 0 remaining across all modules.
+
+---
+
+### 3. What Changed and Why (For the Undergraduate Developer)
+
+1. **State Machine Transitions (B-01, B-06):**
+   *Plain English:* A state machine is a rule system that controls what lifecycle status an entity can move to. For example, a lead cannot jump directly from "new" to "won" without going through "contacted" or "proposal_sent", and a "won" lead cannot be re-opened without an explicit transition. This protects business logic from invalid data entry.
+
+2. **Sequential Financial Year Numbering (B-05):**
+   *Plain English:* Under Indian GST rules, tax invoices must follow an unbroken consecutive numbering sequence within each financial year (April 1 to March 31), formatted as `DF/YYYY-YY/XXXX`. Instead of letting users type invoice numbers manually (which causes duplicates or gaps), the server queries the highest issued invoice in the current fiscal year and increments it atomically.
+
+3. **Credit Notes (B-05):**
+   *Plain English:* In accounting, once a tax invoice is issued, it cannot simply be deleted or edited if an error occurs. Instead, a legal "Credit Note" must be issued against that invoice to reduce or cancel the balance due. We added the credit note workflow and ledger adjustments.
+
+4. **N+1 Query Elimination (B-07):**
+   *Plain English:* An N+1 query problem occurs when the frontend (or backend) fetches a list of N items and then makes N individual network calls to get sub-items. For example, fetching 20 projects and then calling the server 20 separate times to get tasks for each project. We created a single `GET /tasks` endpoint with filters so the entire task list loads in 1 request instead of 21.
+
+5. **Soft Delete vs. Hard Delete (Rule R9):**
+   *Plain English:* "Hard delete" permanently deletes a row from the database using SQL `DELETE`. If a user deletes an important client or contract by mistake, it is gone forever. "Soft delete" leaves the row in the database but sets `is_deleted = True` and records `deleted_at`. All regular queries filter out deleted rows, but data can be restored if needed.
