@@ -27,6 +27,7 @@ from app.db.models.finance import Invoice
 from app.db.models.projects import Project
 from app.db.models.support import SupportTicket
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
+from app.policies.scoping import apply_scope, assert_can_access
 
 logger = logging.getLogger(__name__)
 
@@ -133,12 +134,7 @@ def list_clients(
 ):
     """List clients with scoping, pagination, and calculated financial summaries."""
     query = db.query(Client).filter(Client.is_deleted.is_(False))
-
-    # Multi-tenant and RBAC scoping
-    if scope.user.user_type == "client":
-        query = query.filter(Client.id == scope.client_id)
-    elif scope.scope == "assigned":
-        query = query.filter(Client.account_manager_id == scope.user.id)
+    query = apply_scope(query, Client, scope, db)
 
     if search:
         search_fmt = f"%{search.strip()}%"
@@ -229,6 +225,7 @@ def get_client_360(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
 
     verify_client_isolation(client.id, scope)
+    assert_can_access(client, scope)
 
     am = (
         db.query(User).filter_by(id=client.account_manager_id).first()
@@ -428,7 +425,6 @@ def create_client(
         is_primary=True,
     )
     db.add(contact)
-    db.commit()
 
     log_audit_event(
         db=db,
@@ -438,6 +434,7 @@ def create_client(
         user=scope.user,
         new_values={"name": client.name, "code": client.code},
     )
+    db.commit()
 
     return ApiResponse(success=True, data=client.id, message="Client registered successfully.")
 
@@ -470,8 +467,7 @@ def subscribe_client_service(
         renewal_date=payload.renewal_date,
     )
     db.add(sub)
-    db.commit()
-    db.refresh(sub)
+    db.flush()
 
     log_audit_event(
         db=db,
@@ -485,6 +481,8 @@ def subscribe_client_service(
             "price_paise": payload.price_paise,
         },
     )
+    db.commit()
+    db.refresh(sub)
 
     return ApiResponse(success=True, data=sub.id, message=f"Subscribed to {service.name}.")
 

@@ -13,6 +13,7 @@ from app.db.models.auth import User
 from app.db.models.crm import Client
 from app.db.models.support import SupportTicket, TicketComment
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
+from app.policies.scoping import apply_scope, assert_can_access
 
 router = APIRouter(prefix="/support", tags=["Support Tickets"])
 
@@ -76,10 +77,9 @@ def list_tickets(
 ):
     """List tickets with multi-tenant client isolation."""
     query = db.query(SupportTicket).filter(SupportTicket.is_deleted.is_(False))
+    query = apply_scope(query, SupportTicket, scope, db)
 
-    if scope.user.user_type == "client":
-        query = query.filter(SupportTicket.client_id == scope.client_id)
-    elif client_id:
+    if client_id:
         query = query.filter(SupportTicket.client_id == client_id)
 
     if status_filter:
@@ -137,6 +137,7 @@ def get_ticket_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
 
     verify_client_isolation(ticket.client_id, scope)
+    assert_can_access(ticket, scope)
 
     cl = db.query(Client).filter_by(id=ticket.client_id).first()
     assigned = (
@@ -231,6 +232,7 @@ def add_ticket_comment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
 
     verify_client_isolation(ticket.client_id, scope)
+    assert_can_access(ticket, scope)
 
     # Portal client cannot create internal comments
     is_internal = payload.is_internal if scope.user.user_type == "internal" else False

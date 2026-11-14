@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.db.models.auth import User
 from app.db.models.crm import Client, ClientContact, Lead
 from app.policies.rbac import AccessScope, require_permission
+from app.policies.scoping import apply_scope, assert_can_access
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
@@ -80,9 +81,7 @@ def list_leads(
 ):
     """List leads with stage filters and scoping."""
     query = db.query(Lead).filter(Lead.is_deleted.is_(False))
-
-    if scope.scope == "own":
-        query = query.filter(Lead.assigned_to_id == scope.user.id)
+    query = apply_scope(query, Lead, scope, db)
 
     if status_filter:
         query = query.filter(Lead.status == status_filter)
@@ -154,6 +153,8 @@ def get_lead(
     if not lead:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found.")
 
+    assert_can_access(lead, scope)
+
     assigned = (
         db.query(User).filter_by(id=lead.assigned_to_id).first() if lead.assigned_to_id else None
     )
@@ -170,7 +171,7 @@ def get_lead(
             source=lead.source,
             status=lead.status,
             estimated_value_rupees=round(lead.estimated_value_paise / 100.0, 2),
-            assigned_to_name=assigned.full_name if assigned else "Meera Sharma",
+            assigned_to_name=assigned.full_name if assigned else None,
             assigned_to_id=lead.assigned_to_id,
             notes=lead.notes,
             converted_client_id=lead.converted_client_id,
@@ -202,8 +203,7 @@ def create_lead(
         notes=payload.notes,
     )
     db.add(lead)
-    db.commit()
-    db.refresh(lead)
+    db.flush()
 
     log_audit_event(
         db=db,
@@ -213,6 +213,8 @@ def create_lead(
         user=scope.user,
         new_values={"title": lead.title, "email": lead.email},
     )
+    db.commit()
+    db.refresh(lead)
 
     return ApiResponse(success=True, data=lead.id, message="Lead created successfully.")
 
@@ -228,6 +230,8 @@ def convert_lead_to_client(
     lead = db.query(Lead).filter_by(id=lead_id, is_deleted=False).first()
     if not lead:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found.")
+
+    assert_can_access(lead, scope)
 
     if lead.converted_client_id:
         raise HTTPException(
@@ -258,8 +262,7 @@ def convert_lead_to_client(
         status="active",
     )
     db.add(client)
-    db.commit()
-    db.refresh(client)
+    db.flush()
 
     # Create primary contact
     contact = ClientContact(
@@ -275,7 +278,6 @@ def convert_lead_to_client(
     # Mark lead as won and link converted client
     lead.status = "won"
     lead.converted_client_id = client.id
-    db.commit()
 
     log_audit_event(
         db=db,
@@ -285,6 +287,7 @@ def convert_lead_to_client(
         user=scope.user,
         new_values={"client_id": client.id, "client_name": client.name},
     )
+    db.commit()
 
     return ApiResponse(
         success=True,

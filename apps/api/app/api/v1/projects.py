@@ -14,6 +14,7 @@ from app.db.models.auth import User
 from app.db.models.crm import Client
 from app.db.models.projects import Deliverable, Milestone, Project, Task
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
+from app.policies.scoping import apply_scope, assert_can_access
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -131,16 +132,10 @@ def list_projects(
 ):
     """List projects with scoping, search, and progress metrics."""
     query = db.query(Project).filter(Project.is_deleted.is_(False))
+    query = apply_scope(query, Project, scope, db)
 
-    # Scoping
-    if scope.user.user_type == "client":
-        query = query.filter(Project.client_id == scope.client_id)
-    elif client_id:
+    if client_id:
         query = query.filter(Project.client_id == client_id)
-
-    if scope.scope == "assigned":
-        # Scoped to managed or member
-        query = query.filter(Project.manager_id == scope.user.id)
 
     if search:
         search_fmt = f"%{search.strip()}%"
@@ -219,6 +214,7 @@ def get_project_workspace(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 
     verify_client_isolation(project.client_id, scope)
+    assert_can_access(project, scope)
 
     cl = db.query(Client).filter_by(id=project.client_id).first()
     mgr = db.query(User).filter_by(id=project.manager_id).first() if project.manager_id else None
@@ -333,8 +329,7 @@ def create_project(
         budget_paise=payload.budget_paise,
     )
     db.add(project)
-    db.commit()
-    db.refresh(project)
+    db.flush()
 
     log_audit_event(
         db=db,
@@ -344,6 +339,8 @@ def create_project(
         user=scope.user,
         new_values={"name": project.name, "code": project.code},
     )
+    db.commit()
+    db.refresh(project)
 
     return ApiResponse(success=True, data=project.id, message="Project workspace created.")
 

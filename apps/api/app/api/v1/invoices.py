@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.db.models.crm import Client
 from app.db.models.finance import Invoice, InvoiceLineItem, Payment
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
+from app.policies.scoping import apply_scope, assert_can_access
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -117,10 +118,9 @@ def list_invoices(
 ):
     """List invoices with GST breakdowns and scoping."""
     query = db.query(Invoice).filter(Invoice.is_deleted.is_(False))
+    query = apply_scope(query, Invoice, scope, db)
 
-    if scope.user.user_type == "client":
-        query = query.filter(Invoice.client_id == scope.client_id)
-    elif client_id:
+    if client_id:
         query = query.filter(Invoice.client_id == client_id)
 
     if status_filter:
@@ -184,6 +184,7 @@ def get_invoice(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
 
     verify_client_isolation(inv.client_id, scope)
+    assert_can_access(inv, scope)
 
     client = db.query(Client).filter_by(id=inv.client_id).first()
     line_items_db = db.query(InvoiceLineItem).filter_by(invoice_id=inv.id).all()
@@ -337,8 +338,7 @@ def create_invoice(
         line_items=items_to_create,
     )
     db.add(invoice)
-    db.commit()
-    db.refresh(invoice)
+    db.flush()
 
     log_audit_event(
         db=db,
@@ -348,6 +348,8 @@ def create_invoice(
         user=scope.user,
         new_values={"invoice_number": invoice.invoice_number, "total_paise": total_paise},
     )
+    db.commit()
+    db.refresh(invoice)
 
     return ApiResponse(
         success=True, data=invoice.id, message=f"Invoice #{invoice.invoice_number} issued."
@@ -411,8 +413,6 @@ def record_invoice_payment(
     else:
         invoice.status = "partially_paid"
 
-    db.commit()
-
     log_audit_event(
         db=db,
         action="payment.recorded",
@@ -421,6 +421,7 @@ def record_invoice_payment(
         user=scope.user,
         new_values={"invoice_id": invoice.id, "amount_paise": payload.amount_paise},
     )
+    db.commit()
 
     return ApiResponse(
         success=True,
