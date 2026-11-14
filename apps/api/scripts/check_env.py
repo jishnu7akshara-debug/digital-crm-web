@@ -3,14 +3,19 @@
 Validates that required environment variables are set and database endpoints are reachable.
 CRITICAL: Never prints secret values, connection strings, or masked credentials.
 """
+from __future__ import annotations
+
+import argparse
 import os
-import sys
 import ssl
-from urllib.parse import urlparse
+import sys
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import SQLAlchemyError
 
-REQUIRED_VARS = [
+CORE_VARS = [
     "APP_ENV",
     "APP_NAME",
     "APP_DOMAIN",
@@ -18,12 +23,32 @@ REQUIRED_VARS = [
     "API_V1_PREFIX",
     "SECRET_KEY",
     "SESSION_COOKIE_NAME",
-    "DATABASE_URL",
-    "DATABASE_DIRECT_URL",
-    "TEST_DATABASE_URL",
     "SUPER_ADMIN_EMAIL",
     "SUPER_ADMIN_PASSWORD",
 ]
+
+
+def normalize_db_identity(url_str: str) -> tuple[str, int | None, str] | None:
+    """Normalizes database identity without credentials by removing -pooler from host."""
+    if not url_str:
+        return None
+    try:
+        u = make_url(url_str)
+        host = (u.host or "").lower().replace("-pooler", "")
+        port = u.port
+        database = (u.database or "").lower()
+        return (host, port, database)
+    except (SQLAlchemyError, ValueError):
+        return None
+
+
+def is_same_database(url_a: str, url_b: str) -> bool:
+    """Compares whether two connection strings target the exact same database."""
+    id_a = normalize_db_identity(url_a)
+    id_b = normalize_db_identity(url_b)
+    if not id_a or not id_b:
+        return False
+    return id_a == id_b
 
 
 def test_db_connection(var_name: str, url: str) -> tuple[bool, str, str | None]:
@@ -32,19 +57,23 @@ def test_db_connection(var_name: str, url: str) -> tuple[bool, str, str | None]:
         return False, "MISSING", None
 
     try:
-        parsed = urlparse(url)
-    except Exception as e:
+        u = make_url(url)
+    except (SQLAlchemyError, ValueError) as e:
         return False, f"Invalid URL format ({type(e).__name__})", None
 
-    host = parsed.hostname or ""
-    db_name = parsed.path.lstrip("/")
+    host = (u.host or "").lower()
+    db_name = u.database or ""
 
     # Pooler check assertions
     if var_name == "DATABASE_URL" and "-pooler" not in host:
         return False, "Host assertion failed: DATABASE_URL must contain '-pooler'", db_name
 
     if var_name in ("DATABASE_DIRECT_URL", "TEST_DATABASE_URL") and "-pooler" in host:
-        return False, f"Host assertion failed: {var_name} must NOT contain '-pooler' (direct unpooled required)", db_name
+        return (
+            False,
+            f"Host assertion failed: {var_name} must NOT contain '-pooler' (direct unpooled required)",
+            db_name,
+        )
 
     # Test actual connection
     connect_args = {}
@@ -58,28 +87,42 @@ def test_db_connection(var_name: str, url: str) -> tuple[bool, str, str | None]:
             if not row:
                 return False, "No data returned from version check", db_name
             full_version, current_db = str(row[0]), str(row[1])
-            # Shorten version to PostgreSQL X.Y
             ver_part = full_version.split(",")[0].split(" on ")[0]
             return True, f"OK ({ver_part}, db={current_db})", current_db
-    except Exception as exc:
+    except (SQLAlchemyError, OSError) as exc:
         exc_type = type(exc).__name__
         hint = "check sslmode=require / pooled vs direct host"
         return False, f"{exc_type}: {hint}", db_name
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="DCRM Environment Verification")
+    parser.add_argument(
+        "--for",
+        dest="target_mode",
+        choices=["app", "tests", "migrate"],
+        default="all",
+        help="Target subsystem verification mode",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
     load_dotenv()
+
     print("=" * 65)
-    print(" Digital Footprint OS (DCRM) — Environment Verification")
+    print(f" Digital Footprint OS (DCRM) — Environment Verification [{args.target_mode.upper()}]")
     print("=" * 65)
 
     all_ok = True
+    exit_code = 0
 
     # 1. Variable presence check
     print("\n[1/3] Checking required environment variables...")
     print(f"{'Variable':<26} | {'Status'}")
     print("-" * 40)
-    for var in REQUIRED_VARS:
+    for var in CORE_VARS:
         val = os.getenv(var)
         if val and val.strip():
             print(f"{var:<26} | SET")
@@ -87,42 +130,65 @@ def main() -> int:
             print(f"{var:<26} | MISSING")
             all_ok = False
 
+    # Subsystem specific vars
+    target = args.target_mode
+    db_url = os.getenv("DATABASE_URL", "")
+    direct_url = os.getenv("DATABASE_DIRECT_URL", "")
+    test_url = os.getenv("TEST_DATABASE_URL", "")
+
     # 2. Database connection checks
     print("\n[2/3] Checking database connectivity (credentials hidden)...")
-    dev_db_name = None
-    test_db_name = None
-
-    db_vars = ["DATABASE_URL", "DATABASE_DIRECT_URL", "TEST_DATABASE_URL"]
-    for var in db_vars:
-        url = os.getenv(var, "")
-        ok, msg, current_db = test_db_connection(var, url)
-        print(f" - {var:<20}: {msg}")
+    if target in ("app", "all"):
+        ok, msg, _ = test_db_connection("DATABASE_URL", db_url)
+        print(f" - {'DATABASE_URL':<20}: {msg}")
         if not ok:
             all_ok = False
-        if var == "DATABASE_DIRECT_URL":
-            dev_db_name = current_db
-        elif var == "TEST_DATABASE_URL":
-            test_db_name = current_db
+
+    if target in ("migrate", "all"):
+        ok, msg, _ = test_db_connection("DATABASE_DIRECT_URL", direct_url)
+        print(f" - {'DATABASE_DIRECT_URL':<20}: {msg}")
+        if not ok:
+            all_ok = False
+
+    if target in ("tests", "all"):
+        ok, msg, _ = test_db_connection("TEST_DATABASE_URL", test_url)
+        print(f" - {'TEST_DATABASE_URL':<20}: {msg}")
+        if not ok:
+            all_ok = False
 
     # 3. Database separation assertion
     print("\n[3/3] Checking database branch isolation...")
-    if dev_db_name and test_db_name:
-        if dev_db_name == test_db_name and os.getenv("DATABASE_DIRECT_URL") == os.getenv("TEST_DATABASE_URL"):
-            print(" ⚠️  WARNING: DATABASE_DIRECT_URL and TEST_DATABASE_URL point to the SAME database.")
-            print("     Running the test suite will wipe or overwrite development data!")
-            print("     Ensure your Neon project has a dedicated 'test' branch.")
-        else:
-            print(" [OK] Dev and Test databases are isolated.")
+    is_same = (
+        (direct_url and test_url and is_same_database(direct_url, test_url))
+        or (db_url and test_url and is_same_database(db_url, test_url))
+    )
+    comparison = "SAME" if is_same else "DIFFERENT"
+    print(f" - Dev vs Test branch comparison: {comparison}")
+
+    if comparison == "SAME" and target in ("tests", "all"):
+        print("\n [ERROR] TEST_DATABASE_URL points at the dev database — refusing.")
+        print("         Create a Neon 'test' branch and configure TEST_DATABASE_URL.")
+        exit_code = 2
+        all_ok = False
+    elif not test_url and target in ("tests", "all"):
+        print("\n [ERROR] TEST_DATABASE_URL is missing. Tests require an isolated database.")
+        exit_code = 2
+        all_ok = False
 
     print("\n" + "=" * 65)
     if all_ok:
         print(" Result: ALL CHECKS PASSED (exit code 0)")
         print("=" * 65)
         return 0
-    else:
-        print(" Result: ONE OR MORE CHECKS FAILED (exit code 1)")
+
+    if exit_code == 2:
+        print(" Result: FAILED ON DATABASE ISOLATION GUARD (exit code 2)")
         print("=" * 65)
-        return 1
+        return 2
+
+    print(" Result: ONE OR MORE CHECKS FAILED (exit code 1)")
+    print("=" * 65)
+    return 1
 
 
 if __name__ == "__main__":
