@@ -115,6 +115,37 @@ class CreateClientRequest(BaseModel):
     primary_contact_designation: str | None = "Owner"
 
 
+class UpdateClientRequest(BaseModel):
+    name: str | None = None
+    brand_name: str | None = None
+    gstin: str | None = None
+    website: str | None = None
+    industry: str | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+    postal_code: str | None = None
+    account_manager_id: str | None = None
+    status: str | None = None
+
+
+class CreateContactRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    phone: str | None = None
+    designation: str | None = None
+    is_primary: bool = False
+
+
+class UpdateContactRequest(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    designation: str | None = None
+    is_primary: bool | None = None
+
+
 class SubscribeServiceRequest(BaseModel):
     service_id: str
     price_paise: int
@@ -437,6 +468,234 @@ def create_client(
     db.commit()
 
     return ApiResponse(success=True, data=client.id, message="Client registered successfully.")
+
+
+@router.patch("/{client_id}", response_model=ApiResponse[str])
+def update_client(
+    client_id: str,
+    payload: UpdateClientRequest,
+    scope: AccessScope = Depends(require_permission("clients.edit")),
+    db: Session = Depends(get_db),
+):
+    """Update client profile details."""
+    client = db.query(Client).filter_by(id=client_id, is_deleted=False).first()
+    if not client:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
+
+    verify_client_isolation(client.id, scope)
+    assert_can_access(client, scope)
+
+    old_values = {}
+    new_values = {}
+
+    for field in [
+        "name",
+        "brand_name",
+        "gstin",
+        "website",
+        "industry",
+        "address",
+        "city",
+        "state",
+        "country",
+        "postal_code",
+        "account_manager_id",
+        "status",
+    ]:
+        val = getattr(payload, field, None)
+        if val is not None:
+            old_values[field] = getattr(client, field)
+            setattr(client, field, val.strip() if isinstance(val, str) else val)
+            new_values[field] = getattr(client, field)
+
+    client.updated_at = datetime.now(UTC)
+
+    log_audit_event(
+        db=db,
+        action="client.update",
+        resource_type="client",
+        resource_id=client.id,
+        user=scope.user,
+        old_values=old_values,
+        new_values=new_values,
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=client.id, message="Client updated successfully.")
+
+
+@router.delete("/{client_id}", response_model=ApiResponse[str])
+def archive_client(
+    client_id: str,
+    scope: AccessScope = Depends(require_permission("clients.delete")),
+    db: Session = Depends(get_db),
+):
+    """Soft delete / archive client."""
+    client = db.query(Client).filter_by(id=client_id, is_deleted=False).first()
+    if not client:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
+
+    verify_client_isolation(client.id, scope)
+    assert_can_access(client, scope)
+
+    client.is_deleted = True
+    client.deleted_at = datetime.now(UTC)
+
+    log_audit_event(
+        db=db,
+        action="client.archive",
+        resource_type="client",
+        resource_id=client.id,
+        user=scope.user,
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=client.id, message="Client archived successfully.")
+
+
+@router.post("/{client_id}/contacts", response_model=ApiResponse[str])
+def add_client_contact(
+    client_id: str,
+    payload: CreateContactRequest,
+    scope: AccessScope = Depends(require_permission("clients.edit")),
+    db: Session = Depends(get_db),
+):
+    """Add a new contact person to client account."""
+    client = db.query(Client).filter_by(id=client_id, is_deleted=False).first()
+    if not client:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
+
+    verify_client_isolation(client.id, scope)
+    assert_can_access(client, scope)
+
+    if payload.is_primary:
+        # Unmark existing primary
+        db.query(ClientContact).filter_by(client_id=client.id, is_primary=True).update({"is_primary": False})
+
+    contact = ClientContact(
+        client_id=client.id,
+        name=payload.name.strip(),
+        email=payload.email.lower(),
+        phone=payload.phone.strip() if payload.phone else None,
+        designation=payload.designation.strip() if payload.designation else None,
+        is_primary=payload.is_primary,
+    )
+    db.add(contact)
+    db.flush()
+
+    log_audit_event(
+        db=db,
+        action="client.contact_add",
+        resource_type="client_contact",
+        resource_id=contact.id,
+        user=scope.user,
+        new_values={"name": contact.name, "email": contact.email},
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=contact.id, message="Contact person added.")
+
+
+@router.patch("/{client_id}/contacts/{contact_id}", response_model=ApiResponse[str])
+def update_client_contact(
+    client_id: str,
+    contact_id: str,
+    payload: UpdateContactRequest,
+    scope: AccessScope = Depends(require_permission("clients.edit")),
+    db: Session = Depends(get_db),
+):
+    """Update contact person details."""
+    contact = db.query(ClientContact).filter_by(id=contact_id, client_id=client_id, is_deleted=False).first()
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found.")
+
+    if payload.is_primary is True:
+        db.query(ClientContact).filter(ClientContact.client_id == client_id, ClientContact.id != contact_id).update({"is_primary": False})
+        contact.is_primary = True
+
+    if payload.name is not None:
+        contact.name = payload.name.strip()
+    if payload.email is not None:
+        contact.email = payload.email.lower()
+    if payload.phone is not None:
+        contact.phone = payload.phone.strip() if payload.phone else None
+    if payload.designation is not None:
+        contact.designation = payload.designation.strip() if payload.designation else None
+
+    contact.updated_at = datetime.now(UTC)
+
+    log_audit_event(
+        db=db,
+        action="client.contact_update",
+        resource_type="client_contact",
+        resource_id=contact.id,
+        user=scope.user,
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=contact.id, message="Contact updated.")
+
+
+@router.delete("/{client_id}/contacts/{contact_id}", response_model=ApiResponse[str])
+def delete_client_contact(
+    client_id: str,
+    contact_id: str,
+    scope: AccessScope = Depends(require_permission("clients.edit")),
+    db: Session = Depends(get_db),
+):
+    """Soft delete contact person."""
+    contact = db.query(ClientContact).filter_by(id=contact_id, client_id=client_id, is_deleted=False).first()
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found.")
+
+    contact.is_deleted = True
+    contact.deleted_at = datetime.now(UTC)
+
+    log_audit_event(
+        db=db,
+        action="client.contact_delete",
+        resource_type="client_contact",
+        resource_id=contact.id,
+        user=scope.user,
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=contact.id, message="Contact removed.")
+
+
+@router.post("/{client_id}/services/{service_sub_id}/status", response_model=ApiResponse[str])
+def update_client_service_status(
+    client_id: str,
+    service_sub_id: str,
+    target_status: str = Query(..., description="active, paused, cancelled"),
+    scope: AccessScope = Depends(require_permission("clients.edit")),
+    db: Session = Depends(get_db),
+):
+    """Pause, resume, or cancel a client's subscribed service."""
+    sub = db.query(ClientService).filter_by(id=service_sub_id, client_id=client_id, is_deleted=False).first()
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscribed service not found.")
+
+    valid_statuses = {"active", "paused", "cancelled"}
+    if target_status.lower() not in valid_statuses:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Status must be one of {valid_statuses}")
+
+    old_status = sub.status
+    sub.status = target_status.lower()
+    sub.updated_at = datetime.now(UTC)
+
+    log_audit_event(
+        db=db,
+        action="client.service_status_change",
+        resource_type="client_service",
+        resource_id=sub.id,
+        user=scope.user,
+        old_values={"status": old_status},
+        new_values={"status": sub.status},
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=sub.status, message=f"Service status updated to {sub.status}.")
 
 
 @router.post("/{client_id}/services", response_model=ApiResponse[str])
