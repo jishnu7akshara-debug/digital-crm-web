@@ -1,6 +1,6 @@
 """Finance & Invoicing API: Indian GST, Integer Paise, Payments, Pure-Python PDF Generation."""
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fpdf import FPDF
@@ -12,7 +12,7 @@ from app.api.schemas import ApiResponse, PaginatedData
 from app.core.audit import log_audit_event
 from app.core.database import get_db
 from app.db.models.crm import Client
-from app.db.models.finance import Invoice, InvoiceLineItem, Payment
+from app.db.models.finance import CreditNote, Invoice, InvoiceLineItem, Payment
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
 from app.policies.scoping import apply_scope, assert_can_access
 
@@ -87,16 +87,66 @@ class LineItemPayload(BaseModel):
     tax_rate_percent: int = 18
 
 
+def get_current_fy() -> str:
+    """Return Indian Financial Year in format '2026-27' (April 1 to March 31)."""
+    now = datetime.now(UTC)
+    year = now.year
+    if now.month >= 4:
+        next_year = (year + 1) % 100
+        return f"{year}-{next_year:02d}"
+    else:
+        prev_year = year - 1
+        curr_year = year % 100
+        return f"{prev_year}-{curr_year:02d}"
+
+
+def generate_next_invoice_number(db: Session) -> str:
+    """Generate sequential FY invoice number e.g. DF/2026-27/0001."""
+    fy = get_current_fy()
+    prefix = f"DF/{fy}/"
+    existing = (
+        db.query(Invoice)
+        .filter(Invoice.invoice_number.like(f"{prefix}%"))
+        .order_by(desc(Invoice.invoice_number))
+        .first()
+    )
+    if existing:
+        try:
+            last_seq = int(existing.invoice_number.split("/")[-1])
+            next_seq = last_seq + 1
+        except Exception:
+            next_seq = 1
+    else:
+        next_seq = 1
+
+    return f"{prefix}{next_seq:04d}"
+
+
 class CreateInvoiceRequest(BaseModel):
     client_id: str
     project_id: str | None = None
-    invoice_number: str
-    issue_date: date
-    due_date: date
+    invoice_number: str | None = None
+    issue_date: date | None = None
+    due_date: date | None = None
     gst_type: str = "intra_state"  # "intra_state", "inter_state", "exempt"
     line_items: list[LineItemPayload]
     notes: str | None = None
     terms: str | None = "Payment due within 15 days of invoice date."
+
+
+class CreateCreditNoteRequest(BaseModel):
+    amount_paise: int
+    reason: str
+
+
+class CreditNoteItem(BaseModel):
+    id: str
+    credit_note_number: str
+    invoice_id: str
+    amount_rupees: float
+    reason: str
+    issued_date: str
+    created_at: str
 
 
 class RecordPaymentRequest(BaseModel):
@@ -201,7 +251,7 @@ def get_invoice(
             unit_price_rupees=round(li.unit_price_paise / 100.0, 2),
             tax_rate_percent=li.tax_rate_percent,
             tax_rupees=round(li.tax_amount_paise / 100.0, 2),
-            total_rupees=round(li.total_amount_paise / 100.0, 2),
+            total_rupees=round(li.total_paise / 100.0, 2),
         )
         for li in line_items_db
     ]
@@ -263,13 +313,15 @@ def create_invoice(
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found.")
 
+    inv_number = payload.invoice_number.strip() if payload.invoice_number else generate_next_invoice_number(db)
+
     existing_inv = (
-        db.query(Invoice).filter_by(invoice_number=payload.invoice_number.strip()).first()
+        db.query(Invoice).filter_by(invoice_number=inv_number).first()
     )
     if existing_inv:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invoice #{payload.invoice_number} already exists.",
+            detail=f"Invoice #{inv_number} already exists.",
         )
 
     # Calculate item totals and GST in integer paise
@@ -311,12 +363,15 @@ def create_invoice(
 
     total_paise = subtotal_paise + total_tax_paise
 
+    issue_d = payload.issue_date or datetime.now(UTC).date()
+    due_d = payload.due_date or (issue_d + timedelta(days=15))
+
     invoice = Invoice(
-        invoice_number=payload.invoice_number.strip(),
+        invoice_number=inv_number,
         client_id=client.id,
         project_id=payload.project_id,
-        issue_date=payload.issue_date,
-        due_date=payload.due_date,
+        issue_date=issue_d,
+        due_date=due_d,
         status="issued",
         subtotal_paise=subtotal_paise,
         discount_paise=0,
@@ -428,6 +483,88 @@ def record_invoice_payment(
         data=payment.id,
         message=f"Payment of ₹{payload.amount_paise / 100:.2f} recorded.",
     )
+
+
+@router.post("/{invoice_id}/credit-note", response_model=ApiResponse[str])
+def issue_credit_note(
+    invoice_id: str,
+    payload: CreateCreditNoteRequest,
+    scope: AccessScope = Depends(require_permission("invoices.issue")),
+    db: Session = Depends(get_db),
+):
+    """Issue a credit note against an invoice adjusting balances."""
+    invoice = db.query(Invoice).filter_by(id=invoice_id, is_deleted=False).first()
+    if not invoice:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
+
+    if payload.amount_paise <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than zero.")
+
+    if payload.amount_paise > invoice.total_paise:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Credit note cannot exceed total invoice amount.")
+
+    cn_count = db.query(CreditNote).count() + 1
+    fy = get_current_fy()
+    cn_number = f"CN/{fy}/{cn_count:04d}"
+
+    cn = CreditNote(
+        credit_note_number=cn_number,
+        invoice_id=invoice.id,
+        amount_paise=payload.amount_paise,
+        reason=payload.reason.strip(),
+        issued_date=datetime.now(UTC).date(),
+        issued_by_id=scope.user.id,
+    )
+    db.add(cn)
+
+    # Adjust invoice balance
+    invoice.balance_paise = max(0, invoice.balance_paise - payload.amount_paise)
+    if invoice.balance_paise == 0 and invoice.amount_paid_paise > 0:
+        invoice.status = "paid"
+    elif invoice.balance_paise == 0:
+        invoice.status = "credited"
+
+    log_audit_event(
+        db=db,
+        action="credit_note.create",
+        resource_type="credit_note",
+        resource_id=cn.id,
+        user=scope.user,
+        new_values={"credit_note_number": cn.credit_note_number, "amount_paise": payload.amount_paise},
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=cn.id, message=f"Credit Note {cn_number} issued successfully.")
+
+
+@router.get("/{invoice_id}/credit-notes", response_model=ApiResponse[list[CreditNoteItem]])
+def list_invoice_credit_notes(
+    invoice_id: str,
+    scope: AccessScope = Depends(require_permission("invoices.read")),
+    db: Session = Depends(get_db),
+):
+    """List all credit notes for an invoice."""
+    invoice = db.query(Invoice).filter_by(id=invoice_id, is_deleted=False).first()
+    if not invoice:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
+
+    verify_client_isolation(invoice.client_id, scope)
+
+    cns = db.query(CreditNote).filter_by(invoice_id=invoice.id).all()
+    items = [
+        CreditNoteItem(
+            id=c.id,
+            credit_note_number=c.credit_note_number,
+            invoice_id=c.invoice_id,
+            amount_rupees=round(c.amount_paise / 100.0, 2),
+            reason=c.reason,
+            issued_date=c.issued_date.isoformat(),
+            created_at=c.created_at.isoformat(),
+        )
+        for c in cns
+    ]
+
+    return ApiResponse(success=True, data=items)
 
 
 @router.get("/{invoice_id}/pdf")
