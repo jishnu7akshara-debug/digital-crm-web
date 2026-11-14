@@ -45,11 +45,12 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B", "SIM", "N", "S", "DTZ", "RUF"]
 ignore = ["B008", "E501"]
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
-"alembic/versions/**" = ["E501", "I001"]
+"tests/**" = ["S101", "S105", "S106", "S107"]
+"alembic/versions/**" = ["E501", "I001", "UP035", "UP007"]
 "seed.py" = ["S105", "DTZ011", "DTZ005"]
 "scripts/dev_only/**" = ["S105", "DTZ011", "DTZ005"]
 "app/core/config.py" = ["S105"]
+"app/policies/scoping.py" = ["B009", "UP047"]
 
 [tool.mypy]
 python_version = "3.12"

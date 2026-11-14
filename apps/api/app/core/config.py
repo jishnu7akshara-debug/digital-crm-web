@@ -1,5 +1,8 @@
 """Application configuration using Pydantic Settings."""
 
+from typing import Self
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,7 +25,7 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./digitalfootprint_os.db"
     DATABASE_DIRECT_URL: str | None = None
-    SQLITE_FALLBACK: bool = True
+    SQLITE_FALLBACK: bool = False
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 2
     DB_POOL_TIMEOUT: int = 30
@@ -58,6 +61,19 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.APP_ENV.lower() in ("production", "prod")
+
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> Self:
+        if self.is_production:
+            if "change-in-production" in self.SECRET_KEY or len(self.SECRET_KEY) < 64:
+                raise ValueError(
+                    "Production SECRET_KEY must be a cryptographically strong secret at least 64 characters long"
+                )
+            if not self.SECURE_COOKIES:
+                raise ValueError("Production requires SECURE_COOKIES=True")
+            if self.DATABASE_URL.startswith("sqlite"):
+                raise ValueError("Production requires a real PostgreSQL database, not SQLite")
+        return self
 
     @property
     def cors_origins(self) -> list[str]:
