@@ -115,3 +115,58 @@ export function PageSkeleton({
     </div>
   );
 }
+
+export function ServiceUnavailable({ onRetry }: { onRetry: () => void }) {
+  const [secondsLeft, setSecondsLeft] = React.useState(15);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          onRetry();
+          return 15;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [onRetry]);
+
+  return (
+    <div
+      data-testid="service-unavailable"
+      className="min-h-screen bg-[#F8F9FB] flex items-center justify-center p-6 text-center select-none"
+    >
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 max-w-md w-full shadow-xl space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#FFF1F2] border border-[#FFE4E6] text-[#E11D48] flex items-center justify-center mx-auto shadow-inner">
+          <AlertCircle className="w-7 h-7 stroke-[2.2]" />
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold text-[#0F172A] tracking-tight">
+            We can&apos;t reach the server
+          </h2>
+          <p className="text-[13px] text-[#64748B] mt-1.5 leading-relaxed">
+            The Digital Footprint OS backend is currently unreachable. Please check your network connection or verify that the API server is running.
+          </p>
+        </div>
+
+        <div className="pt-2 pb-1 text-xs text-[#94A3B8] font-medium">
+          Auto-retrying in <span className="font-bold text-[#5B4BDB]">{secondsLeft}s</span>
+        </div>
+
+        <button
+          onClick={() => {
+            setSecondsLeft(15);
+            onRetry();
+          }}
+          className="w-full h-11 bg-[#5B4BDB] hover:bg-[#4C3DC7] text-white text-xs font-semibold rounded-xl transition-all shadow-md flex items-center justify-center space-x-2"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Retry Connection Now</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+

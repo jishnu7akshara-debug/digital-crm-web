@@ -106,13 +106,24 @@ def require_super_admin(
     return current_user
 
 
-def require_permission(permission_code: str, module: str | None = None) -> Callable:
+def require_permission(
+    permission_code: str,
+    module: str | None = None,
+    allow_client: bool = False,
+) -> Callable:
     """FastAPI dependency factory enforcing granular RBAC and returning resolved AccessScope."""
 
     def _dependency(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
     ) -> AccessScope:
+        # Client portal isolation: reject client accounts on internal endpoints
+        if current_user.user_type == "client" and not allow_client:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Client portal accounts cannot access internal staff endpoints.",
+            )
+
         # Super Admin bypass (scoped to organization, fully audited)
         if current_user.is_super_admin:
             return AccessScope(

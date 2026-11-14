@@ -163,7 +163,7 @@ def list_invoices(
     page_size: int = Query(20, ge=1, le=100),
     status_filter: str | None = None,
     client_id: str | None = None,
-    scope: AccessScope = Depends(require_permission("invoices.read")),
+    scope: AccessScope = Depends(require_permission("invoices.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """List invoices with GST breakdowns and scoping."""
@@ -219,7 +219,7 @@ def list_invoices(
 @router.get("/{invoice_id}", response_model=ApiResponse[InvoiceDetailResponse])
 def get_invoice(
     invoice_id: str,
-    scope: AccessScope = Depends(require_permission("invoices.read")),
+    scope: AccessScope = Depends(require_permission("invoices.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Get single invoice details by id or invoice number."""
@@ -570,7 +570,7 @@ def list_invoice_credit_notes(
 @router.get("/{invoice_id}/pdf")
 def download_invoice_pdf(
     invoice_id: str,
-    scope: AccessScope = Depends(require_permission("invoices.read")),
+    scope: AccessScope = Depends(require_permission("invoices.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Generate and stream a pure-Python GST Tax Invoice PDF using fpdf2."""

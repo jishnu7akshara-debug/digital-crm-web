@@ -127,7 +127,7 @@ def list_projects(
     search: str | None = None,
     status_filter: str | None = None,
     client_id: str | None = None,
-    scope: AccessScope = Depends(require_permission("projects.read")),
+    scope: AccessScope = Depends(require_permission("projects.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """List projects with scoping, search, and progress metrics."""
@@ -192,7 +192,7 @@ def list_projects(
 @router.get("/{project_id}", response_model=ApiResponse[ProjectWorkspaceDetail])
 def get_project_workspace(
     project_id: str,
-    scope: AccessScope = Depends(require_permission("projects.read")),
+    scope: AccessScope = Depends(require_permission("projects.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Retrieve full project workspace including milestones, tasks, and deliverables."""
@@ -435,7 +435,7 @@ class DeliverableOutItem(BaseModel):
 
 @router.get("/deliverables/pending", response_model=ApiResponse[list[DeliverableOutItem]])
 def list_pending_deliverables(
-    scope: AccessScope = Depends(require_permission("projects.read")),
+    scope: AccessScope = Depends(require_permission("projects.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """List deliverables pending approval or review (for client portal & managers)."""
@@ -479,7 +479,7 @@ def list_pending_deliverables(
 def review_deliverable(
     deliverable_id: str,
     payload: DeliverableApprovalRequest,
-    scope: AccessScope = Depends(require_permission("projects.read")),
+    scope: AccessScope = Depends(require_permission("projects.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Screen 5: Client approval / request changes for project deliverables."""

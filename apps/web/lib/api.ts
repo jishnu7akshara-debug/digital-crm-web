@@ -14,7 +14,7 @@ export interface ApiResponse<T = any> {
   };
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   code: string;
   details?: any;
   status: number;

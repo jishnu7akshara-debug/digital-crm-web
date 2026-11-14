@@ -91,7 +91,7 @@ def generate_next_agreement_number(db: Session) -> str:
 
 @router.get("", response_model=ApiResponse[AgreementListResponse])
 def list_agreements(
-    scope: AccessScope = Depends(require_permission("contracts.read")),
+    scope: AccessScope = Depends(require_permission("contracts.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """List service agreements with TCRM metrics and mail draft support."""
@@ -162,7 +162,7 @@ def list_agreements(
 @router.get("/{agreement_id}", response_model=ApiResponse[AgreementSummaryItem])
 def get_agreement(
     agreement_id: str,
-    scope: AccessScope = Depends(require_permission("contracts.read")),
+    scope: AccessScope = Depends(require_permission("contracts.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Get single agreement details by id or agreement number."""
@@ -254,7 +254,7 @@ def generate_agreement(
 @router.post("/{agreement_id}/sign", response_model=ApiResponse[bool])
 def sign_agreement(
     agreement_id: str,
-    scope: AccessScope = Depends(require_permission("contracts.read")),
+    scope: AccessScope = Depends(require_permission("contracts.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Client portal signing endpoint."""

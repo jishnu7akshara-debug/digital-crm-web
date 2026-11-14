@@ -72,7 +72,7 @@ def list_tickets(
     page_size: int = Query(20, ge=1, le=100),
     status_filter: str | None = None,
     client_id: str | None = None,
-    scope: AccessScope = Depends(require_permission("support.read")),
+    scope: AccessScope = Depends(require_permission("support.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """List tickets with multi-tenant client isolation."""
@@ -128,7 +128,7 @@ def list_tickets(
 @router.get("/tickets/{ticket_id}", response_model=ApiResponse[TicketDetail])
 def get_ticket_detail(
     ticket_id: str,
-    scope: AccessScope = Depends(require_permission("support.read")),
+    scope: AccessScope = Depends(require_permission("support.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Get ticket detail and thread. Clients cannot see internal comments."""
@@ -187,7 +187,7 @@ def get_ticket_detail(
 @router.post("/tickets", response_model=ApiResponse[str])
 def create_ticket(
     payload: CreateTicketRequest,
-    scope: AccessScope = Depends(require_permission("support.read")),
+    scope: AccessScope = Depends(require_permission("support.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Create a new support ticket."""
@@ -223,7 +223,7 @@ def create_ticket(
 def add_ticket_comment(
     ticket_id: str,
     payload: AddCommentRequest,
-    scope: AccessScope = Depends(require_permission("support.read")),
+    scope: AccessScope = Depends(require_permission("support.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
     """Add reply or internal staff note to a ticket thread."""

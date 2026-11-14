@@ -1,8 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "unavailable";
 
 export interface UserProfile {
   id: string;
@@ -20,6 +22,7 @@ export interface UserProfile {
 
 interface AuthContextType {
   user: UserProfile | null;
+  status: AuthStatus;
   isLoading: boolean;
   login: (email: string, password: string, portalType?: "internal" | "portal") => Promise<UserProfile>;
   logout: () => Promise<void>;
@@ -31,16 +34,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [status, setStatus] = useState<AuthStatus>("loading");
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   const refreshUser = useCallback(async () => {
+    setIsLoading(true);
     try {
       const data = await api.get<UserProfile>("/auth/me");
       setUser(data);
-    } catch {
+      setStatus("authenticated");
+    } catch (err: any) {
       setUser(null);
+      if (err instanceof ApiError && err.status === 401) {
+        setStatus("unauthenticated");
+      } else {
+        setStatus("unavailable");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -59,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         portal_type: portalType,
       });
       setUser(profile);
+      setStatus("authenticated");
       router.push(profile.home_route);
       return profile;
     } finally {
@@ -71,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await api.post("/auth/logout");
     } finally {
       setUser(null);
+      setStatus("unauthenticated");
       router.push("/login");
     }
   };
@@ -85,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        status,
         isLoading,
         login,
         logout,
