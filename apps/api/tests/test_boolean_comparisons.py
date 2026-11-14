@@ -3,6 +3,7 @@
 Proves that Model.is_deleted.is_(False) correctly generates SQL boolean filters
 and accurately separates active vs soft-deleted records.
 """
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

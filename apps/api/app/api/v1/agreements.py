@@ -1,6 +1,6 @@
 """Service Agreements API (TCRM Style): Automated DFA-YYYY-NNNN sequence, tracking, signing."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -69,7 +69,7 @@ def format_inr(paise: int) -> str:
 
 
 def generate_next_agreement_number(db: Session) -> str:
-    year = datetime.now().year
+    year = datetime.now(UTC).year
     prefix = f"DFA-{year}-"
     # Find highest number for current year
     existing = (
@@ -220,7 +220,7 @@ def generate_agreement(
         contract_number=agr_no,
         client_id=client.id,
         title=payload.service_name.strip(),
-        start_date=payload.start_date or date.today(),
+        start_date=payload.start_date or datetime.now(UTC).date(),
         end_date=payload.end_date,
         value_paise=payload.value_paise,
         status="draft",
@@ -287,7 +287,7 @@ def send_agreement(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
 
     contract.status = "sent"
-    contract.sent_date = date.today()
+    contract.sent_date = datetime.now(UTC).date()
     db.commit()
 
     return ApiResponse(

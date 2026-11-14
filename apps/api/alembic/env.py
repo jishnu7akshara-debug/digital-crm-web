@@ -47,7 +47,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True if db_url.startswith("sqlite") else False,
+            render_as_batch=bool(db_url.startswith("sqlite")),
         )
 
         with context.begin_transaction():

@@ -114,7 +114,7 @@ def get_dashboard_kpis(
 
     # 3. Pipeline Value
     leads = db.query(Lead).filter(Lead.is_deleted.is_(False)).all()
-    pipeline_val_paise = sum(l.estimated_value_paise for l in leads if l.status != "lost")
+    pipeline_val_paise = sum(lead.estimated_value_paise for lead in leads if lead.status != "lost")
     pipeline_val_rupees = round(pipeline_val_paise / 100.0, 2)
     if pipeline_val_rupees == 0:
         pipeline_val_rupees = 2480000.00
@@ -172,7 +172,7 @@ def get_dashboard_kpis(
     active_projects_list = [
         ActiveProjectItem(
             id="proj-1",
-            project_name="Sashikiran Surveyors – Website",
+            project_name="Sashikiran Surveyors - Website",
             client_name="Sashikiran Surveyors",
             service_name="Website",
             progress_percent=80,
@@ -181,7 +181,7 @@ def get_dashboard_kpis(
         ),
         ActiveProjectItem(
             id="proj-2",
-            project_name="Talenty Consulting – Marketing",
+            project_name="Talenty Consulting - Marketing",
             client_name="Talenty Consulting",
             service_name="Digital Marketing",
             progress_percent=60,
@@ -190,7 +190,7 @@ def get_dashboard_kpis(
         ),
         ActiveProjectItem(
             id="proj-3",
-            project_name="KalpaTouch – CRM Setup",
+            project_name="KalpaTouch - CRM Setup",
             client_name="KalpaTouch",
             service_name="CRM / ERP",
             progress_percent=40,
@@ -199,7 +199,7 @@ def get_dashboard_kpis(
         ),
         ActiveProjectItem(
             id="proj-4",
-            project_name="Delights – Branding & Media",
+            project_name="Delights - Branding & Media",
             client_name="Delights",
             service_name="Branding & Media",
             progress_percent=90,
@@ -208,7 +208,7 @@ def get_dashboard_kpis(
         ),
         ActiveProjectItem(
             id="proj-5",
-            project_name="Aroma Dew – Catalogue",
+            project_name="Aroma Dew - Catalogue",
             client_name="Aroma Dew",
             service_name="Branding & Media",
             progress_percent=100,
@@ -222,7 +222,7 @@ def get_dashboard_kpis(
     trend_vals = [2.2, 3.4, 4.1, 5.0, 5.8, 6.4, 7.1, 7.9, 8.5, 9.2, 9.75]
     revenue_trend = [
         MonthlyTrendPoint(month=m, revenue_rupees=round(v * 100000, 2))
-        for m, v in zip(months, trend_vals)
+        for m, v in zip(months, trend_vals, strict=False)
     ]
 
     # 9. Clients by Service
@@ -237,18 +237,18 @@ def get_dashboard_kpis(
     upcoming_tasks = [
         UpcomingTaskItem(
             id="t-1",
-            title="Follow up – Sashikiran Surveyors",
+            title="Follow up - Sashikiran Surveyors",
             due_text="Today, 4:00 PM",
             is_urgent=True,
         ),
         UpcomingTaskItem(
-            id="t-2", title="Send proposal – New Lead", due_text="Tomorrow", is_urgent=False
+            id="t-2", title="Send proposal - New Lead", due_text="Tomorrow", is_urgent=False
         ),
         UpcomingTaskItem(
-            id="t-3", title="Project review – Talenty Consulting", due_text="Nov 6", is_urgent=False
+            id="t-3", title="Project review - Talenty Consulting", due_text="Nov 6", is_urgent=False
         ),
         UpcomingTaskItem(
-            id="t-4", title="Invoice reminder – Aroma Dew", due_text="Nov 6", is_urgent=False
+            id="t-4", title="Invoice reminder - Aroma Dew", due_text="Nov 6", is_urgent=False
         ),
     ]
 

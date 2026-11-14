@@ -197,7 +197,7 @@ def create_ticket(
         )
 
     t_count = db.query(SupportTicket).count() + 1
-    ticket_number = f"TICK-{datetime.now().year}-{t_count:04d}"
+    ticket_number = f"TICK-{datetime.now(UTC).year}-{t_count:04d}"
 
     ticket = SupportTicket(
         ticket_number=ticket_number,

@@ -1,7 +1,8 @@
 """Clients API: Client 360, Service Subscriptions, Multi-Tenant Client Isolation."""
 
+import logging
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -26,6 +27,8 @@ from app.db.models.finance import Invoice
 from app.db.models.projects import Project
 from app.db.models.support import SupportTicket
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -217,7 +220,9 @@ def get_client_360(
     """Retrieve complete Client 360 profile with all services, projects, invoices, and metrics."""
     client = (
         db.query(Client)
-        .filter(((Client.id == client_id) | (Client.code == client_id)), Client.is_deleted.is_(False))
+        .filter(
+            ((Client.id == client_id) | (Client.code == client_id)), Client.is_deleted.is_(False)
+        )
         .first()
     )
     if not client:
@@ -519,7 +524,7 @@ def quick_create_account(
 
     existing = db.query(Client).filter_by(code=code).first()
     if existing:
-        code = f"CLI-{clean_code}-{datetime.now().strftime('%M%S')}"
+        code = f"CLI-{clean_code}-{datetime.now(UTC).strftime('%M%S')}"
 
     # 2. Find or assign Account Manager user
     am_user = None
@@ -620,7 +625,7 @@ def quick_create_account(
             status="active",
             price_paise=cat.default_price_paise,
             billing_cycle="one_time",
-            start_date=date.today(),
+            start_date=datetime.now(UTC).date(),
         )
         db.add(cs)
     db.commit()
@@ -637,11 +642,11 @@ def quick_create_account(
         contract_number=agr_no,
         client_id=client.id,
         title=service_title,
-        start_date=date.today(),
+        start_date=datetime.now(UTC).date(),
         value_paise=val_paise,
         status="sent",
         signed_copy_received=False,
-        sent_date=date.today(),
+        sent_date=datetime.now(UTC).date(),
         terms_summary=f"Payment terms: {payload.payment_terms or '30 days'}.",
     )
     db.add(contract)
@@ -686,8 +691,8 @@ async def bulk_upload_clients(
                 total_rows = len(lines) - 1
                 imported_count = max(1, total_rows - 2)
                 need_review_count = total_rows - imported_count
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Bulk import parsing error: %s", exc)
 
     return ApiResponse(
         success=True,

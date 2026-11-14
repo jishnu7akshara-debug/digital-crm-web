@@ -74,12 +74,13 @@ def main() -> int:
 
         # 3. Test Client Contacts linked to test clients
         if test_clients:
-            client_ids = [f"'{r[0]}'" for r in test_clients]
+            client_ids_list = [str(r[0]) for r in test_clients]
             test_contacts = conn.execute(
                 text(
-                    f"SELECT id, name, email, created_at FROM client_contacts "
-                    f"WHERE client_id IN ({','.join(client_ids)})"
-                )
+                    "SELECT id, name, email, created_at FROM client_contacts "
+                    "WHERE client_id = ANY(:cids)"
+                ),
+                {"cids": client_ids_list},
             ).fetchall()
             for r in test_contacts:
                 pollution_found.append(

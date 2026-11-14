@@ -129,7 +129,7 @@ def seed_pdf() -> None:
             ),
         ]
         clients_dict = {}
-        for name, code, ind, phone, web, city, mgr_name in accounts_data:
+        for name, code, ind, _phone, web, city, mgr_name in accounts_data:
             c = db.query(Client).filter_by(code=code).first()
             if not c:
                 c = Client(

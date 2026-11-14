@@ -278,7 +278,7 @@ def create_invoice(
 
     for item in payload.line_items:
         line_subtotal = item.quantity * item.unit_price_paise
-        tax_amt = int(round((line_subtotal * item.tax_rate_percent) / 100.0))
+        tax_amt = round((line_subtotal * item.tax_rate_percent) / 100.0)
         line_total = line_subtotal + tax_amt
 
         subtotal_paise += line_subtotal
@@ -386,7 +386,7 @@ def record_invoice_payment(
 
     # Generate payment number
     p_count = db.query(Payment).count() + 1
-    payment_number = f"PAY-{date.today().year}-{p_count:04d}"
+    payment_number = f"PAY-{datetime.now(UTC).year}-{p_count:04d}"
 
     payment = Payment(
         payment_number=payment_number,

@@ -70,7 +70,9 @@ def get_current_user(
             detail="Session expired or invalid. Please log in again.",
         )
 
-    user = db.query(User).filter(User.id == user_session.user_id, User.is_deleted.is_(False)).first()
+    user = (
+        db.query(User).filter(User.id == user_session.user_id, User.is_deleted.is_(False)).first()
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -177,9 +179,8 @@ def verify_client_isolation(
     if access_scope.is_super_admin:
         return
 
-    if access_scope.user.user_type == "client":
-        if access_scope.client_id != requested_client_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied: Cross-client access is strictly forbidden.",
-            )
+    if access_scope.user.user_type == "client" and access_scope.client_id != requested_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Cross-client access is strictly forbidden.",
+        )

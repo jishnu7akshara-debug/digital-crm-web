@@ -1,10 +1,8 @@
 """Standard API request/response schemas."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
-
-T = TypeVar("T")
 
 
 class ErrorDetail(BaseModel):
@@ -13,14 +11,14 @@ class ErrorDetail(BaseModel):
     details: Any | None = None
 
 
-class ApiResponse(BaseModel, Generic[T]):
+class ApiResponse[T](BaseModel):
     success: bool = True
     data: T | None = None
     message: str | None = None
     error: ErrorDetail | None = None
 
 
-class PaginatedData(BaseModel, Generic[T]):
+class PaginatedData[T](BaseModel):
     items: list[T]
     total: int
     page: int

@@ -102,24 +102,26 @@ def list_leads(
     )
 
     items = []
-    for l in leads:
+    for lead in leads:
         assigned = (
-            db.query(User).filter_by(id=l.assigned_to_id).first() if l.assigned_to_id else None
+            db.query(User).filter_by(id=lead.assigned_to_id).first()
+            if lead.assigned_to_id
+            else None
         )
         items.append(
             LeadItem(
-                id=l.id,
-                title=l.title,
-                company_name=l.company_name,
-                contact_name=l.contact_name,
-                email=l.email,
-                phone=l.phone,
-                source=l.source,
-                status=l.status,
-                estimated_value_rupees=round(l.estimated_value_paise / 100.0, 2),
+                id=lead.id,
+                title=lead.title,
+                company_name=lead.company_name,
+                contact_name=lead.contact_name,
+                email=lead.email,
+                phone=lead.phone,
+                source=lead.source,
+                status=lead.status,
+                estimated_value_rupees=round(lead.estimated_value_paise / 100.0, 2),
                 assigned_to_name=assigned.full_name if assigned else None,
-                converted_client_id=l.converted_client_id,
-                created_at=l.created_at.isoformat(),
+                converted_client_id=lead.converted_client_id,
+                created_at=lead.created_at.isoformat(),
             )
         )
 

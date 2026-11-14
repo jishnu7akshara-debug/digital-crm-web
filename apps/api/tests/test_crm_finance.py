@@ -5,8 +5,6 @@ from starlette.testclient import TestClient
 
 from app.main import app
 
-client = TestClient(app)
-
 
 @pytest.fixture(scope="module")
 def auth_client():
@@ -97,6 +95,7 @@ def test_lead_conversion_idempotence(auth_client):
     convert_res = auth_client.post(f"/api/v1/leads/{lead_id}/convert", json=convert_payload)
     assert convert_res.status_code == 200
     client_id = convert_res.json()["data"]
+    assert client_id is not None
 
     # Trying to convert again must fail
     dup_convert = auth_client.post(f"/api/v1/leads/{lead_id}/convert", json=convert_payload)

@@ -253,7 +253,7 @@ def get_date_range_bounds(
             return (
                 start_date,
                 end_date,
-                f"{start_date.strftime('%d %b')} – {end_date.strftime('%d %b')}",
+                f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b')}",
             )
         elif start_date:
             return start_date, today, f"Since {start_date.strftime('%d %b')}"
@@ -270,7 +270,7 @@ def get_or_create_employee(db: Session, user: User) -> Employee:
             employee_code=f"EMP-{initials}-01",
             designation="Super Admin" if getattr(user, "is_super_admin", False) else "Team Member",
             employment_type="full_time",
-            joining_date=date.today(),
+            joining_date=datetime.now(UTC).date(),
             monthly_salary_paise=0,
         )
         db.add(emp)
@@ -405,7 +405,7 @@ def punch_attendance(
     # Perform Punch
     if not att:
         # Check-In
-        status_val, mins, missing = evaluate_attendance_status(now_utc, None)
+        status_val, mins, _missing = evaluate_attendance_status(now_utc, None)
         att = Attendance(
             employee_id=emp.id,
             date=today_local,
@@ -431,7 +431,7 @@ def punch_attendance(
 
         # Check-Out
         att.check_out_utc = now_utc
-        status_val, mins, missing = evaluate_attendance_status(att.check_in_utc, now_utc)
+        status_val, mins, _missing = evaluate_attendance_status(att.check_in_utc, now_utc)
         att.status = status_val
         att.working_minutes = mins
         att.is_missing_punch = False
