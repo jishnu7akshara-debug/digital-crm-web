@@ -24,12 +24,37 @@ def test_sqlalchemy_boolean_comparison_sql():
 
 def test_soft_delete_filter_behavior():
     """Verify that is_(False) query filters soft-deleted objects in an active session."""
-    from app.core.database import SessionLocal
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
-    db: Session = SessionLocal()
+    from app.db.base import Base
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine, tables=[Client.__table__])
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    db: Session = session_factory()
+
     try:
+        active = Client(
+            id="c-active",
+            organization_id="org-1",
+            name="Active Client",
+            code="ACT-01",
+            is_deleted=False,
+        )
+        deleted = Client(
+            id="c-deleted",
+            organization_id="org-1",
+            name="Deleted Client",
+            code="DEL-01",
+            is_deleted=True,
+        )
+        db.add_all([active, deleted])
+        db.commit()
+
         active_clients = db.query(Client).filter(Client.is_deleted.is_(False)).all()
-        for c in active_clients:
-            assert c.is_deleted is False
+        assert len(active_clients) == 1
+        assert active_clients[0].id == "c-active"
+        assert active_clients[0].is_deleted is False
     finally:
         db.close()
