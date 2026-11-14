@@ -40,5 +40,5 @@ def log_audit_event(
         user_agent=user_agent,
     )
     db.add(log_entry)
-    db.commit()
+    db.flush()
     return log_entry

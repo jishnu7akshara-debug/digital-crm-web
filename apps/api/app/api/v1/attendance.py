@@ -416,8 +416,7 @@ def punch_attendance(
             is_missing_punch=True,  # missing checkout until punched out
         )
         db.add(att)
-        db.commit()
-        db.refresh(att)
+        db.flush()
         punch_type = "check_in"
     else:
         # If no explicit requested_action, verify not already checked out
@@ -435,14 +434,13 @@ def punch_attendance(
         att.status = status_val
         att.working_minutes = mins
         att.is_missing_punch = False
-        db.commit()
-        db.refresh(att)
+        db.flush()
         punch_type = "check_out"
 
     local_time_str = now_local.strftime("%I:%M %p")
     local_date_str = now_local.strftime("%d %b %Y")
 
-    # Audit Trail
+    # Audit Trail (committed atomically with punch)
     log_audit_event(
         db=db,
         action=f"attendance.{punch_type}",
@@ -458,6 +456,8 @@ def punch_attendance(
             "working_minutes": att.working_minutes,
         },
     )
+    db.commit()
+    db.refresh(att)
 
     action_label = "Punch In" if punch_type == "check_in" else "Punch Out"
     return ApiResponse(
@@ -693,8 +693,6 @@ def admin_correct_attendance(
     if payload.status:
         r.status = payload.status
 
-    db.commit()
-
     log_audit_event(
         db=db,
         action="attendance.admin_correction",
@@ -704,6 +702,7 @@ def admin_correct_attendance(
         old_values=old_values,
         new_values={"status": r.status, "reason": payload.reason},
     )
+    db.commit()
 
     return ApiResponse(
         success=True, data=True, message="Attendance record corrected successfully by Admin."
@@ -727,7 +726,6 @@ def submit_attendance_correction(
     r.is_correction = True
     r.correction_reason = payload.reason
     r.correction_status = "pending"
-    db.commit()
 
     log_audit_event(
         db=db,
@@ -737,6 +735,7 @@ def submit_attendance_correction(
         user=scope.user,
         new_values={"reason": payload.reason, "status": "pending"},
     )
+    db.commit()
 
     return ApiResponse(
         success=True, data=True, message="Correction request submitted to HR for approval."
@@ -836,8 +835,6 @@ def review_leave_request(
         )
         db.add(ledger_entry)
 
-    db.commit()
-
     log_audit_event(
         db=db,
         action="leave.reviewed",
@@ -846,6 +843,7 @@ def review_leave_request(
         user=scope.user,
         new_values={"status": payload.status, "days": leave_req.days_count},
     )
+    db.commit()
 
     return ApiResponse(
         success=True, data=True, message=f"Leave request marked as {payload.status}."

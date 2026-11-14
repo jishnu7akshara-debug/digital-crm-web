@@ -156,8 +156,6 @@ def create_custom_role(
             if perm:
                 rp = RolePermission(role_id=role.id, permission_id=perm.id, scope=scope)
                 db.add(rp)
-    db.commit()
-
     log_audit_event(
         db=db,
         action="role.create",
@@ -166,6 +164,7 @@ def create_custom_role(
         user=current_admin,
         new_values={"name": role.name, "code": role.code},
     )
+    db.commit()
 
     return ApiResponse(
         success=True,
@@ -215,8 +214,6 @@ def update_role(
                 if perm:
                     db.add(RolePermission(role_id=role.id, permission_id=perm.id, scope=scope))
 
-    db.commit()
-
     log_audit_event(
         db=db,
         action="role.update",
@@ -226,6 +223,7 @@ def update_role(
         old_values=old_values,
         new_values={"name": role.name, "permissions": payload.permissions},
     )
+    db.commit()
 
     return ApiResponse(success=True, data=True, message="Role updated successfully.")
 
@@ -250,8 +248,6 @@ def delete_role(
     db.query(UserRole).filter_by(role_id=role.id).delete()
     db.query(RolePermission).filter_by(role_id=role.id).delete()
     db.delete(role)
-    db.commit()
-
     log_audit_event(
         db=db,
         action="role.delete",
@@ -260,6 +256,7 @@ def delete_role(
         user=current_admin,
         old_values={"name": role.name, "code": role.code},
     )
+    db.commit()
 
     return ApiResponse(success=True, data=True, message="Role deleted.")
 
@@ -300,8 +297,6 @@ def assign_user_roles(
         if role:
             db.add(UserRole(user_id=target_user.id, role_id=role.id))
 
-    db.commit()
-
     log_audit_event(
         db=db,
         action="user.role_assignment",
@@ -310,6 +305,7 @@ def assign_user_roles(
         user=current_admin,
         new_values={"assigned_role_ids": payload.role_ids},
     )
+    db.commit()
 
     return ApiResponse(success=True, data=True, message="User roles updated successfully.")
 
@@ -337,8 +333,6 @@ def update_user_status(
     if payload.is_suspended is not None:
         target_user.is_suspended = payload.is_suspended
 
-    db.commit()
-
     log_audit_event(
         db=db,
         action="user.status_update",
@@ -347,5 +341,6 @@ def update_user_status(
         user=current_admin,
         new_values={"is_active": target_user.is_active, "is_suspended": target_user.is_suspended},
     )
+    db.commit()
 
     return ApiResponse(success=True, data=True, message="User status updated.")
