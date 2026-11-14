@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, User, Bell } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface NavTab {
@@ -25,8 +25,8 @@ export function PortalHeader() {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const clientName = "Peak Fitness";
-  const contactName = user?.full_name && user.full_name !== "Digital SuperAdmin" ? user.full_name : "Arjun S";
+  const contactName = user?.full_name || "Client User";
+  const clientName = user?.user_type === "client" ? "Partner Portal" : "Client Portal";
   const userInitials = contactName
     .split(" ")
     .map((n) => n[0])

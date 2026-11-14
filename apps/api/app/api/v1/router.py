@@ -9,6 +9,7 @@ from app.api.v1.clients import router as clients_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.invoices import router as invoices_router
 from app.api.v1.leads import router as leads_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.proposals import router as proposals_router
 from app.api.v1.reports import router as reports_router
@@ -42,3 +43,4 @@ api_v1_router.include_router(team_router)
 api_v1_router.include_router(support_router)
 api_v1_router.include_router(attendance_router)
 api_v1_router.include_router(agreements_router)
+api_v1_router.include_router(notifications_router)
