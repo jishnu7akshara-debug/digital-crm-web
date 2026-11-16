@@ -8,6 +8,7 @@ from app.api.v1.audit_logs import router as audit_logs_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.clients import router as clients_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.files import router as files_router
 from app.api.v1.invoices import router as invoices_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.notifications import router as notifications_router
@@ -33,6 +34,7 @@ def health_check():
 
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(dashboard_router)
+api_v1_router.include_router(files_router)
 api_v1_router.include_router(roles_router)
 api_v1_router.include_router(clients_router)
 api_v1_router.include_router(projects_router)
