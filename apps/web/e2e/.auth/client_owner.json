@@ -2,10 +2,10 @@
   "cookies": [
     {
       "name": "df_session",
-      "value": "NupOn7slMJCyIHAe3Xg5qPO9hYYvOk7lE1XbjwB5a5k",
+      "value": "N5NK20SnSmYWc8VaNx8sWY5hnAvuqcbu1IY5bwPZqO0",
       "domain": "localhost",
       "path": "/",
-      "expires": 1795413080.828784,
+      "expires": 1795422325.107086,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"

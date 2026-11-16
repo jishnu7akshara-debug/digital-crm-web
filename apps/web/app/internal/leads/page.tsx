@@ -84,10 +84,10 @@ export default function SaasLeadsPage() {
       owner: l.assigned_to_name || "Unassigned",
       created: l.created_at
         ? new Date(l.created_at).toLocaleDateString("en-IN", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
         : "Recent",
       value_rupees: l.estimated_value_rupees || 0,
     };
@@ -184,18 +184,16 @@ export default function SaasLeadsPage() {
           <div className="flex items-center bg-[#F1F5F9] p-1 rounded-xl">
             <button
               onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all ${
-                viewMode === "list" ? "bg-white text-[#0F172A] shadow-soft" : "text-[#64748B] hover:text-[#0F172A]"
-              }`}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all ${viewMode === "list" ? "bg-white text-[#0F172A] shadow-soft" : "text-[#64748B] hover:text-[#0F172A]"
+                }`}
             >
               <List className="h-4 w-4" />
               <span>Table</span>
             </button>
             <button
               onClick={() => setViewMode("kanban")}
-              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all ${
-                viewMode === "kanban" ? "bg-white text-[#0F172A] shadow-soft" : "text-[#64748B] hover:text-[#0F172A]"
-              }`}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all ${viewMode === "kanban" ? "bg-white text-[#0F172A] shadow-soft" : "text-[#64748B] hover:text-[#0F172A]"
+                }`}
             >
               <LayoutGrid className="h-4 w-4" />
               <span>Pipeline</span>
