@@ -65,12 +65,11 @@ def get_or_create_portal_user(db, email: str, client_instance: Client) -> User:
         db.add(contact)
 
         # Role
-        role = db.scalar(select(Role).where(Role.name == "client_portal_user"))
+        role = db.scalar(select(Role).where((Role.code == "client_owner") | (Role.name == "Client Owner")))
         if role:
             db.add(UserRole(user_id=user.id, role_id=role.id))
 
         db.commit()
-        db.refresh(user)
     return user
 
 
@@ -140,46 +139,55 @@ def test_dangerous_and_disallowed_file_types_rejected(client):
     assert res_bad.status_code == 400
 
 
-def test_scoped_file_access_isolation(client, db_session):
-    org = get_default_org(db_session)
+def test_scoped_file_access_isolation(client):
+    db = SessionLocal()
+    try:
+        org = get_default_org(db)
 
-    # Find or create two separate clients
-    client_a = db_session.scalar(select(Client).where(Client.name == "Client Alpha Test"))
-    if not client_a:
-        client_a = Client(
-            organization_id=org.id,
-            name="Client Alpha Test",
-            code=f"ALPH-{uuid.uuid4().hex[:4].upper()}",
-            status="active",
-        )
-        db_session.add(client_a)
-        db_session.flush()
+        # Find or create two separate clients
+        client_a = db.scalar(select(Client).where(Client.name == "Client Alpha Test"))
+        if not client_a:
+            client_a = Client(
+                organization_id=org.id,
+                name="Client Alpha Test",
+                code=f"ALPH-{uuid.uuid4().hex[:4].upper()}",
+                status="active",
+            )
+            db.add(client_a)
+            db.flush()
 
-    client_b = db_session.scalar(select(Client).where(Client.name == "Client Beta Test"))
-    if not client_b:
-        client_b = Client(
-            organization_id=org.id,
-            name="Client Beta Test",
-            code=f"BETA-{uuid.uuid4().hex[:4].upper()}",
-            status="active",
-        )
-        db_session.add(client_b)
-        db_session.flush()
+        client_b = db.scalar(select(Client).where(Client.name == "Client Beta Test"))
+        if not client_b:
+            client_b = Client(
+                organization_id=org.id,
+                name="Client Beta Test",
+                code=f"BETA-{uuid.uuid4().hex[:4].upper()}",
+                status="active",
+            )
+            db.add(client_b)
+            db.flush()
 
-    db_session.commit()
+        db.commit()
 
-    user_a = get_or_create_portal_user(db_session, "alpha_user@portal-test.in", client_a)
-    user_b = get_or_create_portal_user(db_session, "beta_user@portal-test.in", client_b)
+        user_a = get_or_create_portal_user(db, "alpha_user@portal-test.in", client_a)
+        user_b = get_or_create_portal_user(db, "beta_user@portal-test.in", client_b)
+        db.commit()
+
+        user_a_email = user_a.email
+        user_b_email = user_b.email
+        client_a_id = client_a.id
+    finally:
+        db.close()
 
     # User A uploads a file scoped to Client A
-    login_user(client, user_a.email)
+    login_user(client, user_a_email)
     doc_content = b"Confidential business data of Client Alpha"
     files = {
         "file": ("client_alpha_data.txt", io.BytesIO(doc_content), "text/plain"),
     }
     data = {
         "entity_type": "client",
-        "entity_id": client_a.id,
+        "entity_id": client_a_id,
     }
     upload_res = client.post("/api/v1/files/upload", data=data, files=files)
     assert upload_res.status_code == 201, upload_res.text
@@ -191,7 +199,7 @@ def test_scoped_file_access_isolation(client, db_session):
     assert client.get(f"/api/v1/files/download/{storage_key}").status_code == 200
 
     # User B logs in and attempts to access User A's file
-    login_user(client, user_b.email)
+    login_user(client, user_b_email)
     url_res_b = client.get(f"/api/v1/files/{file_id}/url")
     assert url_res_b.status_code == 403, f"Expected 403 Forbidden but got {url_res_b.status_code}"
 
@@ -199,7 +207,7 @@ def test_scoped_file_access_isolation(client, db_session):
     assert dl_res_b.status_code == 403, f"Expected 403 Forbidden but got {dl_res_b.status_code}"
 
     # Clean up file
-    login_user(client, user_a.email)
+    login_user(client, user_a_email)
     del_res = client.delete(f"/api/v1/files/{file_id}")
     assert del_res.status_code == 200
     assert client.get(f"/api/v1/files/{file_id}").status_code == 404
