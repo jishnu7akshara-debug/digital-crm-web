@@ -1,5 +1,6 @@
 """Attendance & Leave API: Asia/Kolkata Timezone Rules, Ledger-Based Leave, Concurrency-Safe Punch, and Detailed Auditing."""
 
+import json
 from datetime import UTC, date, datetime, time, timedelta
 
 import pytz
@@ -13,7 +14,16 @@ from app.core.audit import log_audit_event
 from app.core.config import settings
 from app.core.database import get_db
 from app.db.models.auth import User
-from app.db.models.hr import Attendance, Employee, LeaveBalance, LeaveLedger, LeaveRequest
+from app.db.models.common import SystemSetting
+from app.db.models.hr import (
+    Attendance,
+    Employee,
+    LeaveBalance,
+    LeaveLedger,
+    LeaveRequest,
+    Timesheet,
+)
+from app.db.models.projects import Project, Task
 from app.policies.rbac import AccessScope, require_permission
 
 router = APIRouter(prefix="/attendance", tags=["Attendance & Leave"])
@@ -181,10 +191,46 @@ def get_rule_explanation(
     return f"On-time check-in at {in_time_str} (<= 10:30 AM) — Marked Present (Awaiting Punch Out)."
 
 
+def get_late_threshold_from_settings(db: Session | None = None) -> tuple[time, time]:
+    """Retrieve working hours and late threshold from agency settings, defaulting to 10:30 and 11:00."""
+    late_threshold = time(10, 30)
+    half_day_threshold = time(11, 0)
+    if db:
+        # Check individual keys first
+        start_val = db.query(SystemSetting).filter_by(key="working_hours_start").first()
+        late_val = db.query(SystemSetting).filter_by(key="late_threshold_minutes").first()
+
+        start_str = "09:30"
+        if start_val and start_val.value:
+            try:
+                start_str = json.loads(start_val.value)
+            except Exception:
+                start_str = start_val.value.strip('"')
+
+        late_mins = 15
+        if late_val and late_val.value:
+            try:
+                late_mins = int(json.loads(late_val.value))
+            except Exception:
+                late_mins = int(late_val.value.strip('"'))
+
+        try:
+            h, m = map(int, str(start_str).split(":"))
+            total_mins = h * 60 + m + late_mins
+            late_threshold = time((total_mins // 60) % 24, total_mins % 60)
+            half_day_mins = total_mins + 30
+            half_day_threshold = time((half_day_mins // 60) % 24, half_day_mins % 60)
+        except (ValueError, TypeError):
+            pass
+    return late_threshold, half_day_threshold
+
+
 def evaluate_attendance_status(
-    check_in_dt: datetime | None, check_out_dt: datetime | None
+    check_in_dt: datetime | None,
+    check_out_dt: datetime | None,
+    db: Session | None = None,
 ) -> tuple[str, int, bool]:
-    """Apply Asia/Kolkata rules: Late > 10:30, Half-day > 11:00 or < 7h, Absent < 4h, Saturday adjustments."""
+    """Apply Asia/Kolkata rules: Late > late_threshold, Half-day > half_day_threshold or < 7h, Absent < 4h, Saturday adjustments."""
     check_in_utc = ensure_utc(check_in_dt)
     check_out_utc = ensure_utc(check_out_dt)
 
@@ -201,8 +247,7 @@ def evaluate_attendance_status(
         is_missing = True
 
     in_time = in_local.time()
-    late_threshold = time(10, 30)
-    half_day_threshold = time(11, 0)
+    late_threshold, half_day_threshold = get_late_threshold_from_settings(db)
     is_saturday = in_local.weekday() == 5
 
     # Saturday Rules
@@ -848,3 +893,285 @@ def review_leave_request(
     return ApiResponse(
         success=True, data=True, message=f"Leave request marked as {payload.status}."
     )
+
+
+# --- Leave Balances & Ledger Endpoints ---
+class LeaveBalanceItem(BaseModel):
+    id: str
+    leave_type: str
+    year: int
+    allocated_days: float
+    used_days: float
+    balance_days: float
+
+
+class LeaveLedgerItem(BaseModel):
+    id: str
+    transaction_type: str
+    leave_type: str
+    days: float
+    balance_after: float
+    reason: str
+    reference_id: str | None = None
+    created_at: str
+
+
+class LeaveRequestItem(BaseModel):
+    id: str
+    employee_id: str
+    employee_name: str
+    leave_type: str
+    start_date: str
+    end_date: str
+    days_count: float
+    reason: str
+    status: str
+    reviewed_at: str | None = None
+    rejection_reason: str | None = None
+
+
+@router.get("/leave/balances", response_model=ApiResponse[list[LeaveBalanceItem]])
+def get_leave_balances(
+    year: int = Query(default=datetime.now(UTC).year),
+    scope: AccessScope = Depends(require_permission("attendance.read")),
+    db: Session = Depends(get_db),
+):
+    """Retrieve current leave balances for the authenticated employee."""
+    emp = get_or_create_employee(db, scope.user)
+    balances = (
+        db.query(LeaveBalance)
+        .filter_by(employee_id=emp.id, year=year)
+        .all()
+    )
+
+    # Seed default types if missing
+    if not balances:
+        defaults = [
+            ("casual", 12.0),
+            ("sick", 12.0),
+            ("earned", 15.0),
+        ]
+        for l_type, alloc in defaults:
+            b = LeaveBalance(
+                employee_id=emp.id,
+                leave_type=l_type,
+                year=year,
+                allocated_days=alloc,
+                used_days=0.0,
+                balance_days=alloc,
+            )
+            db.add(b)
+        db.commit()
+        balances = db.query(LeaveBalance).filter_by(employee_id=emp.id, year=year).all()
+
+    items = [
+        LeaveBalanceItem(
+            id=b.id,
+            leave_type=b.leave_type,
+            year=b.year,
+            allocated_days=b.allocated_days,
+            used_days=b.used_days,
+            balance_days=b.balance_days,
+        )
+        for b in balances
+    ]
+    return ApiResponse(success=True, data=items)
+
+
+@router.get("/leave/ledger", response_model=ApiResponse[list[LeaveLedgerItem]])
+def get_leave_ledger(
+    scope: AccessScope = Depends(require_permission("attendance.read")),
+    db: Session = Depends(get_db),
+):
+    """Retrieve the transactional leave ledger history for the authenticated employee."""
+    emp = get_or_create_employee(db, scope.user)
+    entries = (
+        db.query(LeaveLedger)
+        .filter_by(employee_id=emp.id)
+        .order_by(desc(LeaveLedger.created_at))
+        .limit(50)
+        .all()
+    )
+
+    items = [
+        LeaveLedgerItem(
+            id=e.id,
+            transaction_type=e.transaction_type,
+            leave_type=e.leave_type,
+            days=e.days,
+            balance_after=e.balance_after,
+            reason=e.reason,
+            reference_id=e.reference_id,
+            created_at=e.created_at.isoformat(),
+        )
+        for e in entries
+    ]
+    return ApiResponse(success=True, data=items)
+
+
+@router.get("/leave/requests", response_model=ApiResponse[list[LeaveRequestItem]])
+def list_leave_requests(
+    scope: AccessScope = Depends(require_permission("attendance.read")),
+    db: Session = Depends(get_db),
+):
+    """List leave requests for staff member (or all requests for HR admin)."""
+    emp = get_or_create_employee(db, scope.user)
+    query = db.query(LeaveRequest, Employee, User).join(
+        Employee, LeaveRequest.employee_id == Employee.id
+    ).join(User, Employee.user_id == User.id)
+
+    if scope.scope == "own":
+        query = query.filter(LeaveRequest.employee_id == emp.id)
+
+    requests = query.order_by(desc(LeaveRequest.created_at)).all()
+    items = [
+        LeaveRequestItem(
+            id=lr.id,
+            employee_id=lr.employee_id,
+            employee_name=u.full_name,
+            leave_type=lr.leave_type,
+            start_date=lr.start_date.isoformat(),
+            end_date=lr.end_date.isoformat(),
+            days_count=lr.days_count,
+            reason=lr.reason,
+            status=lr.status,
+            reviewed_at=lr.reviewed_at.isoformat() if lr.reviewed_at else None,
+            rejection_reason=lr.rejection_reason,
+        )
+        for lr, e, u in requests
+    ]
+    return ApiResponse(success=True, data=items)
+
+
+# --- Timesheets Endpoints ---
+class CreateTimesheetRequest(BaseModel):
+    project_id: str
+    task_id: str | None = None
+    date: date
+    hours: float
+    description: str
+    is_billable: bool = True
+
+
+class TimesheetItem(BaseModel):
+    id: str
+    employee_id: str
+    employee_name: str
+    project_id: str
+    project_name: str
+    task_id: str | None = None
+    task_title: str | None = None
+    date: str
+    hours: float
+    description: str
+    is_billable: bool
+    created_at: str
+
+
+@router.get("/timesheets", response_model=ApiResponse[list[TimesheetItem]])
+def list_timesheets(
+    project_id: str | None = None,
+    scope: AccessScope = Depends(require_permission("attendance.read")),
+    db: Session = Depends(get_db),
+):
+    """Retrieve logged work timesheets with employee and project info."""
+    emp = get_or_create_employee(db, scope.user)
+    query = (
+        db.query(Timesheet, Employee, User, Project)
+        .join(Employee, Timesheet.employee_id == Employee.id)
+        .join(User, Employee.user_id == User.id)
+        .join(Project, Timesheet.project_id == Project.id)
+    )
+
+    if scope.scope == "own":
+        query = query.filter(Timesheet.employee_id == emp.id)
+
+    if project_id:
+        query = query.filter(Timesheet.project_id == project_id)
+
+    records = query.order_by(desc(Timesheet.date)).limit(100).all()
+
+    items = []
+    for ts, _e, u, p in records:
+        t = db.query(Task).filter_by(id=ts.task_id).first() if ts.task_id else None
+        items.append(
+            TimesheetItem(
+                id=ts.id,
+                employee_id=ts.employee_id,
+                employee_name=u.full_name,
+                project_id=ts.project_id,
+                project_name=p.name,
+                task_id=ts.task_id,
+                task_title=t.title if t else None,
+                date=ts.date.isoformat(),
+                hours=ts.hours,
+                description=ts.description,
+                is_billable=ts.is_billable,
+                created_at=ts.created_at.isoformat(),
+            )
+        )
+
+    return ApiResponse(success=True, data=items)
+
+
+@router.post("/timesheets", response_model=ApiResponse[str])
+def create_timesheet(
+    payload: CreateTimesheetRequest,
+    scope: AccessScope = Depends(require_permission("attendance.punch")),
+    db: Session = Depends(get_db),
+):
+    """Log work hours against a project and task."""
+    emp = get_or_create_employee(db, scope.user)
+    project = db.query(Project).filter_by(id=payload.project_id, is_deleted=False).first()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+
+    ts = Timesheet(
+        employee_id=emp.id,
+        project_id=project.id,
+        task_id=payload.task_id,
+        date=payload.date,
+        hours=payload.hours,
+        description=payload.description.strip(),
+        is_billable=payload.is_billable,
+    )
+    db.add(ts)
+
+    # If linked to a task, increment logged_hours
+    if payload.task_id:
+        task = db.query(Task).filter_by(id=payload.task_id, is_deleted=False).first()
+        if task:
+            task.logged_hours += payload.hours
+
+    db.commit()
+    db.refresh(ts)
+
+    return ApiResponse(success=True, data=ts.id, message="Timesheet hours logged successfully.")
+
+
+@router.delete("/timesheets/{timesheet_id}", response_model=ApiResponse[bool])
+def delete_timesheet(
+    timesheet_id: str,
+    scope: AccessScope = Depends(require_permission("attendance.punch")),
+    db: Session = Depends(get_db),
+):
+    """Delete a logged timesheet entry."""
+    emp = get_or_create_employee(db, scope.user)
+    ts = db.query(Timesheet).filter_by(id=timesheet_id).first()
+    if not ts:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Timesheet not found.")
+
+    if scope.scope == "own" and ts.employee_id != emp.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+    # Decrement task logged_hours if linked
+    if ts.task_id:
+        task = db.query(Task).filter_by(id=ts.task_id, is_deleted=False).first()
+        if task:
+            task.logged_hours = max(0.0, task.logged_hours - ts.hours)
+
+    db.delete(ts)
+    db.commit()
+
+    return ApiResponse(success=True, data=True, message="Timesheet entry deleted.")
+

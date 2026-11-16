@@ -31,6 +31,7 @@ class AgencySettingsResponse(BaseModel):
     fy_start_month: int = 4
     currency: str = "INR"
     working_hours_per_day: float = 8.0
+    working_hours_start: str = "09:30"
     late_threshold_minutes: int = 15
     weekly_offs: list[str] = ["saturday", "sunday"]
     holidays: list[dict[str, str]] = []
@@ -45,6 +46,7 @@ class UpdateAgencySettingsRequest(BaseModel):
     invoice_prefix: str | None = None
     fy_start_month: int | None = None
     working_hours_per_day: float | None = None
+    working_hours_start: str | None = None
     late_threshold_minutes: int | None = None
     weekly_offs: list[str] | None = None
     holidays: list[dict[str, str]] | None = None
@@ -97,6 +99,7 @@ def get_agency_settings(
             fy_start_month=_get_setting_val(db, "fy_start_month", 4),
             currency=_get_setting_val(db, "currency", "INR"),
             working_hours_per_day=_get_setting_val(db, "working_hours_per_day", 8.0),
+            working_hours_start=_get_setting_val(db, "working_hours_start", "09:30"),
             late_threshold_minutes=_get_setting_val(db, "late_threshold_minutes", 15),
             weekly_offs=_get_setting_val(db, "weekly_offs", ["saturday", "sunday"]),
             holidays=_get_setting_val(db, "holidays", []),
@@ -135,6 +138,8 @@ def update_agency_settings(
         _set_setting_val(db, "fy_start_month", payload.fy_start_month, "Fiscal year start month (1-12)")
     if payload.working_hours_per_day is not None:
         _set_setting_val(db, "working_hours_per_day", payload.working_hours_per_day, "Standard daily work hours")
+    if payload.working_hours_start is not None:
+        _set_setting_val(db, "working_hours_start", payload.working_hours_start, "Work shift start time")
     if payload.late_threshold_minutes is not None:
         _set_setting_val(db, "late_threshold_minutes", payload.late_threshold_minutes, "Late threshold in minutes")
     if payload.weekly_offs is not None:
