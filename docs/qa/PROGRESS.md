@@ -410,9 +410,38 @@ Here is a plain-English explanation of the key concepts and changes made during 
 ## Phase 5: Production Schema & Drift Verification
 
 ### 1. Verification Checklist
-- [x] **Alembic Revision Status:** Migration head `ae55bf25660c` active.
+- [x] **Alembic Revision Status:** Migration head `35f9fb7af7b2` active.
 - [x] **Schema Drift Audit (`alembic check`):** `No new upgrade operations detected.` Zero drift between SQLAlchemy models and the Neon PostgreSQL schema.
 - [x] **Secrets Audit:** No secrets, credentials, or `.env` files tracked in git.
+
+---
+
+## Phase 6: Final Verification & Production Handover (Round 3 / Stages A–E)
+
+### 1. Multi-Role Automated Route Sweep (Rule R11 Proof Protocol)
+Executed `e2e/route-sweep.spec.ts` across **41 distinct route assertions** on production Next.js (`http://localhost:3000`) and live FastAPI (`http://127.0.0.1:8000`):
+- **Unauthenticated (2 routes):**
+  - `/internal/dashboard` -> 307 redirect to `/internal/login` (31.9 KB screenshot, full login card visible).
+  - `/portal` -> 307 redirect to `/portal/login` (27.0 KB screenshot, full portal login card visible).
+- **Super Admin (22 internal routes):**
+  - All 22 routes hydrated with live PostgreSQL records, zero spinners/skeletons, `data-testid="page-ready"` confirmed, screenshots up to 369 KB.
+  - Routes: `/internal/dashboard`, `/internal/leads`, `/internal/leads/[id]`, `/internal/opportunities`, `/internal/opportunities/[id]`, `/internal/clients`, `/internal/clients/new`, `/internal/clients/[id]`, `/internal/services`, `/internal/agreements`, `/internal/agreements/[id]`, `/internal/contracts`, `/internal/projects`, `/internal/projects/[id]`, `/internal/tasks`, `/internal/invoices`, `/internal/invoices/new`, `/internal/invoices/[id]`, `/internal/attendance`, `/internal/team`, `/internal/reports`, `/internal/support`, `/internal/settings/roles`.
+- **Sales Role (10 scoped routes + 1 negative boundary check):**
+  - All 10 internal sales routes rendered live records.
+  - Negative security check: Visiting `/internal/settings/roles` displays the HTTP 403 Access Denied page with `data-testid="access-denied-403"`.
+- **Client Owner Portal (6 portal routes + 1 negative boundary check):**
+  - All 6 portal routes hydrated with client-scoped deliverables, invoices, agreements, and support tickets.
+  - Negative security check: Visiting `/internal/dashboard` immediately redirects to `/portal` without leaking agency metrics.
+
+### 2. Backend Regression & Integration Suite (PostgreSQL `dcrm_test`)
+- **Full Suite Run:** **70/70 PASSED (100% Success)** against PostgreSQL `dcrm_test` over SSL.
+- **Key Verified Capabilities:**
+  - Atomic document sequences (`document_sequences` table with row-level locks): 20 concurrent invoice creates tested with monotonic non-colliding serial numbers.
+  - Indian Financial Year transition (`DF/2026-27/0001` -> `DF/2027-28/0001`) tested with clock freeze (`freezegun`).
+  - Strict portal RBAC least privilege matrix: `client_owner`, `client_manager`, `client_finance`, and `client_employee` verified.
+  - E-signature audit logging with SHA-256 agreement checksums and signer IP tracing.
+  - File assets management with restricted MIME types and scoped download security.
+  - Reporting engine with 8 core business reports and streaming CSV exports.
 
 ---
 
