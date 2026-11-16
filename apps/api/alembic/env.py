@@ -1,3 +1,4 @@
+import os
 import sys
 from logging.config import fileConfig
 from pathlib import Path
@@ -19,8 +20,13 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Use DATABASE_DIRECT_URL for migrations if set, else DATABASE_URL
-db_url = settings.DATABASE_DIRECT_URL or settings.DATABASE_URL
+# Use ALEMBIC_DATABASE_URL, or config's existing url, or DATABASE_DIRECT_URL, or DATABASE_URL
+db_url = (
+    os.getenv("ALEMBIC_DATABASE_URL")
+    or config.get_main_option("sqlalchemy.url")
+    or settings.DATABASE_DIRECT_URL
+    or settings.DATABASE_URL
+)
 config.set_main_option("sqlalchemy.url", db_url)
 
 

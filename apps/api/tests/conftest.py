@@ -27,24 +27,30 @@ def pytest_configure(config: pytest.Config) -> None:
             returncode=2,
         )
 
-    # Force app settings to use TEST_DATABASE_URL
+    dev_url = os.getenv("DATABASE_URL", "").strip()
+    dev_direct = os.getenv("DATABASE_DIRECT_URL", "").strip()
+    from scripts.check_env import is_same_database
+
+    if is_same_database(test_db_url, dev_url) or (dev_direct and is_same_database(test_db_url, dev_direct)):
+        pytest.exit(
+            "Refusing to run tests: TEST_DATABASE_URL targets the dev database! "
+            "Tests must run in an isolated test database to protect dev data.",
+            returncode=2,
+        )
+
+    # Force app settings to use TEST_DATABASE_URL and unpooled NullPool for concurrency safety
     os.environ["DATABASE_URL"] = test_db_url
-
-    # Wire SQLAlchemy engine to automatically use test_schema
-    import sqlalchemy as sa
-
-    from app.core.database import engine
-
-    @sa.event.listens_for(engine, "connect")
-    def set_test_search_path(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("SET search_path TO test_schema, public")
-        cursor.close()
+    os.environ["DATABASE_DIRECT_URL"] = test_db_url
+    os.environ["ALEMBIC_DATABASE_URL"] = test_db_url
+    os.environ["SERVERLESS"] = "1"
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
-    """Ensure required seed records are present in the test database schema."""
+    """Ensure migrations are applied and required seed records are present in the test database."""
+    import alembic.command
+    import alembic.config
+
     import app.db.models  # noqa: F401
     from app.core.database import SessionLocal, engine
     from app.core.security import hash_password
@@ -57,7 +63,14 @@ def setup_test_db():
         UserRole,
     )
 
-    Base.metadata.create_all(bind=engine)
+    # 1. Run migrations to ensure latest schema
+    alembic_cfg = alembic.config.Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", os.environ["TEST_DATABASE_URL"])
+    try:
+        alembic.command.upgrade(alembic_cfg, "head")
+    except Exception:
+        # Fallback to create_all if alembic table exists or in-memory
+        Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
@@ -167,3 +180,45 @@ def setup_test_db():
             db.commit()
     finally:
         db.close()
+
+
+@pytest.fixture
+def db_session():
+    """Provides an isolated database session wrapped in a transaction rolled back at teardown.
+    Uses join_transaction_mode='create_savepoint' so commits inside endpoints only release savepoints.
+    """
+    from sqlalchemy.orm import Session
+
+    from app.core.database import engine
+
+    connection = engine.connect()
+    trans = connection.begin()
+    session = Session(
+        bind=connection,
+        join_transaction_mode="create_savepoint",
+        expire_on_commit=False,
+    )
+
+    yield session
+
+    session.close()
+    trans.rollback()
+    connection.close()
+
+
+@pytest.fixture
+def test_client(db_session):
+    """FastAPI TestClient with get_db overridden to use the per-test rollback session."""
+    from starlette.testclient import TestClient
+
+    from app.core.database import get_db
+    from app.main import app
+
+    def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as client:
+        yield client
+    app.dependency_overrides.clear()
+

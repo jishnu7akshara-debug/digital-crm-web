@@ -88,9 +88,9 @@ class LineItemPayload(BaseModel):
     tax_rate_percent: int = 18
 
 
-def get_current_fy() -> str:
+def get_current_fy(as_of: datetime | None = None) -> str:
     """Return Indian Financial Year in format '2026-27' (April 1 to March 31)."""
-    now = datetime.now(UTC)
+    now = as_of or datetime.now(UTC)
     year = now.year
     if now.month >= 4:
         next_year = (year + 1) % 100
@@ -160,7 +160,11 @@ def get_next_sequence_value(
             prefix = f"DF/{financial_year}/"
             invs = (
                 db.query(Invoice.invoice_number)
-                .filter(Invoice.invoice_number.like(f"{prefix}%"))
+                .join(Client, Invoice.client_id == Client.id)
+                .filter(
+                    Client.organization_id == organization_id,
+                    Invoice.invoice_number.like(f"{prefix}%"),
+                )
                 .all()
             )
             for (num,) in invs:
@@ -174,7 +178,11 @@ def get_next_sequence_value(
             prefix = f"CN/{financial_year}/"
             cns = (
                 db.query(CreditNote.credit_note_number)
-                .filter(CreditNote.credit_note_number.like(f"{prefix}%"))
+                .join(Client, CreditNote.client_id == Client.id)
+                .filter(
+                    Client.organization_id == organization_id,
+                    CreditNote.credit_note_number.like(f"{prefix}%"),
+                )
                 .all()
             )
             for (num,) in cns:
@@ -238,9 +246,13 @@ def get_next_sequence_value(
     return int(result.scalar_one())
 
 
-def generate_next_invoice_number(db: Session, organization_id: str = "default") -> str:
+def generate_next_invoice_number(
+    db: Session,
+    organization_id: str = "default",
+    as_of: datetime | None = None,
+) -> str:
     """Generate sequential FY invoice number e.g. DF/2026-27/0001 atomically."""
-    fy = get_current_fy()
+    fy = get_current_fy(as_of)
     seq = get_next_sequence_value(
         db, document_type="invoice", financial_year=fy, organization_id=organization_id
     )
