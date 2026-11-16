@@ -316,9 +316,8 @@ def sign_agreement(
         )
 
     signer_name = (
-        (payload.signer_name if payload and payload.signer_name else scope.user.full_name)
-        or "Authorized Representative"
-    )
+        payload.signer_name if payload and payload.signer_name else scope.user.full_name
+    ) or "Authorized Representative"
     signer_title = payload.signer_title if payload and payload.signer_title else "Signatory"
     ip_addr = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent") or "unknown"

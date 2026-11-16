@@ -180,7 +180,9 @@ async def upload_file(
         )
 
     # If entity scoping is provided for client user, verify ownership
-    if (current_user.user_type == "client" or getattr(current_user, "client_id", None)) and entity_type:
+    if (
+        current_user.user_type == "client" or getattr(current_user, "client_id", None)
+    ) and entity_type:
         dummy_asset = FileAsset(
             storage_key="temp",
             original_filename=filename,
@@ -395,7 +397,10 @@ def delete_file(
         resource_type="file_asset",
         resource_id=file_asset.id,
         user=current_user,
-        old_values={"filename": file_asset.original_filename, "storage_key": file_asset.storage_key},
+        old_values={
+            "filename": file_asset.original_filename,
+            "storage_key": file_asset.storage_key,
+        },
         request=request,
     )
 

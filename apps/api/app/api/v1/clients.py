@@ -188,7 +188,12 @@ def list_clients(
     items = []
     am_ids = {c.account_manager_id for c in clients if c.account_manager_id}
     am_map = (
-        {u.id: f"{u.first_name} {u.last_name}".strip() for u in db.query(User.id, User.first_name, User.last_name).filter(User.id.in_(am_ids)).all()}
+        {
+            u.id: f"{u.first_name} {u.last_name}".strip()
+            for u in db.query(User.id, User.first_name, User.last_name)
+            .filter(User.id.in_(am_ids))
+            .all()
+        }
         if am_ids
         else {}
     )
@@ -609,7 +614,9 @@ def add_client_contact(
 
     if payload.is_primary:
         # Unmark existing primary
-        db.query(ClientContact).filter_by(client_id=client.id, is_primary=True).update({"is_primary": False})
+        db.query(ClientContact).filter_by(client_id=client.id, is_primary=True).update(
+            {"is_primary": False}
+        )
 
     contact = ClientContact(
         client_id=client.id,
@@ -644,12 +651,18 @@ def update_client_contact(
     db: Session = Depends(get_db),
 ):
     """Update contact person details."""
-    contact = db.query(ClientContact).filter_by(id=contact_id, client_id=client_id, is_deleted=False).first()
+    contact = (
+        db.query(ClientContact)
+        .filter_by(id=contact_id, client_id=client_id, is_deleted=False)
+        .first()
+    )
     if not contact:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found.")
 
     if payload.is_primary is True:
-        db.query(ClientContact).filter(ClientContact.client_id == client_id, ClientContact.id != contact_id).update({"is_primary": False})
+        db.query(ClientContact).filter(
+            ClientContact.client_id == client_id, ClientContact.id != contact_id
+        ).update({"is_primary": False})
         contact.is_primary = True
 
     if payload.name is not None:
@@ -683,7 +696,11 @@ def delete_client_contact(
     db: Session = Depends(get_db),
 ):
     """Soft delete contact person."""
-    contact = db.query(ClientContact).filter_by(id=contact_id, client_id=client_id, is_deleted=False).first()
+    contact = (
+        db.query(ClientContact)
+        .filter_by(id=contact_id, client_id=client_id, is_deleted=False)
+        .first()
+    )
     if not contact:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found.")
 
@@ -711,13 +728,22 @@ def update_client_service_status(
     db: Session = Depends(get_db),
 ):
     """Pause, resume, or cancel a client's subscribed service."""
-    sub = db.query(ClientService).filter_by(id=service_sub_id, client_id=client_id, is_deleted=False).first()
+    sub = (
+        db.query(ClientService)
+        .filter_by(id=service_sub_id, client_id=client_id, is_deleted=False)
+        .first()
+    )
     if not sub:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscribed service not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Subscribed service not found."
+        )
 
     valid_statuses = {"active", "paused", "cancelled"}
     if target_status.lower() not in valid_statuses:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Status must be one of {valid_statuses}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Status must be one of {valid_statuses}",
+        )
 
     old_status = sub.status
     sub.status = target_status.lower()
@@ -734,7 +760,9 @@ def update_client_service_status(
     )
     db.commit()
 
-    return ApiResponse(success=True, data=sub.status, message=f"Service status updated to {sub.status}.")
+    return ApiResponse(
+        success=True, data=sub.status, message=f"Service status updated to {sub.status}."
+    )
 
 
 @router.post("/{client_id}/services", response_model=ApiResponse[str])

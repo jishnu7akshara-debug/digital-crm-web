@@ -99,7 +99,10 @@ def list_proposals(
 
     total = query.count()
     proposals = (
-        query.order_by(desc(Proposal.created_at)).offset((page - 1) * page_size).limit(page_size).all()
+        query.order_by(desc(Proposal.created_at))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
     )
 
     items = []
@@ -124,7 +127,9 @@ def list_proposals(
                 total_rupees=round(p.total_paise / 100.0, 2),
                 valid_until=p.valid_until.isoformat() if p.valid_until else None,
                 accepted_at=p.accepted_at.isoformat() if p.accepted_at else None,
-                created_at=p.created_at.isoformat() if p.created_at else datetime.now(UTC).isoformat(),
+                created_at=p.created_at.isoformat()
+                if p.created_at
+                else datetime.now(UTC).isoformat(),
             )
         )
 
@@ -165,11 +170,7 @@ def get_proposal(
     client = db.query(Client).filter_by(id=p.client_id).first() if p.client_id else None
     lead = db.query(Lead).filter_by(id=p.lead_id).first() if p.lead_id else None
 
-    line_items = (
-        db.query(ProposalLineItem)
-        .filter(ProposalLineItem.proposal_id == p.id)
-        .all()
-    )
+    line_items = db.query(ProposalLineItem).filter(ProposalLineItem.proposal_id == p.id).all()
 
     items_out = [
         ProposalLineItemOut(

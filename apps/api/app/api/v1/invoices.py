@@ -655,10 +655,15 @@ def issue_credit_note(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")
 
     if payload.amount_paise <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than zero.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than zero."
+        )
 
     if payload.amount_paise > invoice.total_paise:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Credit note cannot exceed total invoice amount.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Credit note cannot exceed total invoice amount.",
+        )
 
     fy = get_current_fy()
     client = db.query(Client).filter_by(id=invoice.client_id).first()
@@ -691,11 +696,16 @@ def issue_credit_note(
         resource_type="credit_note",
         resource_id=cn.id,
         user=scope.user,
-        new_values={"credit_note_number": cn.credit_note_number, "amount_paise": payload.amount_paise},
+        new_values={
+            "credit_note_number": cn.credit_note_number,
+            "amount_paise": payload.amount_paise,
+        },
     )
     db.commit()
 
-    return ApiResponse(success=True, data=cn.id, message=f"Credit Note {cn_number} issued successfully.")
+    return ApiResponse(
+        success=True, data=cn.id, message=f"Credit Note {cn_number} issued successfully."
+    )
 
 
 @router.get("/{invoice_id}/credit-notes", response_model=ApiResponse[list[CreditNoteItem]])

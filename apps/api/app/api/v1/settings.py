@@ -81,7 +81,9 @@ def get_agency_settings(
     """Retrieve full organizational configuration, tax parameters, and business rules."""
     org = db.query(Organization).first()
     if not org:
-        org = Organization(id="default", name="Digital Footprint Solutions", slug="digital-footprint")
+        org = Organization(
+            id="default", name="Digital Footprint Solutions", slug="digital-footprint"
+        )
         db.add(org)
         db.commit()
 
@@ -133,15 +135,28 @@ def update_agency_settings(
         org.email = payload.email.strip()
 
     if payload.invoice_prefix is not None:
-        _set_setting_val(db, "invoice_prefix", payload.invoice_prefix.strip().upper(), "Invoice prefix code")
+        _set_setting_val(
+            db, "invoice_prefix", payload.invoice_prefix.strip().upper(), "Invoice prefix code"
+        )
     if payload.fy_start_month is not None:
-        _set_setting_val(db, "fy_start_month", payload.fy_start_month, "Fiscal year start month (1-12)")
+        _set_setting_val(
+            db, "fy_start_month", payload.fy_start_month, "Fiscal year start month (1-12)"
+        )
     if payload.working_hours_per_day is not None:
-        _set_setting_val(db, "working_hours_per_day", payload.working_hours_per_day, "Standard daily work hours")
+        _set_setting_val(
+            db, "working_hours_per_day", payload.working_hours_per_day, "Standard daily work hours"
+        )
     if payload.working_hours_start is not None:
-        _set_setting_val(db, "working_hours_start", payload.working_hours_start, "Work shift start time")
+        _set_setting_val(
+            db, "working_hours_start", payload.working_hours_start, "Work shift start time"
+        )
     if payload.late_threshold_minutes is not None:
-        _set_setting_val(db, "late_threshold_minutes", payload.late_threshold_minutes, "Late threshold in minutes")
+        _set_setting_val(
+            db,
+            "late_threshold_minutes",
+            payload.late_threshold_minutes,
+            "Late threshold in minutes",
+        )
     if payload.weekly_offs is not None:
         _set_setting_val(db, "weekly_offs", payload.weekly_offs, "Weekly off days")
     if payload.holidays is not None:

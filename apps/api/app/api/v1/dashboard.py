@@ -1,9 +1,8 @@
 """Dashboard API: Scoped KPIs, Real Revenue Analytics, Pipeline, Service Breakdown, and Tasks (F-01)."""
 
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ApiResponse
@@ -100,32 +99,34 @@ def get_dashboard_kpis(
     user = scope.user
     first_name = user.first_name if user.first_name else "Sai"
 
-    # 1. Total Clients
-    total_clients = db.query(Client).filter(Client.is_deleted.is_(False)).count()
+    # 1. Total Clients (SQL COUNT)
+    total_clients = (
+        db.query(func.count(Client.id)).filter(Client.is_deleted.is_(False)).scalar() or 0
+    )
 
-    # 2. Active Projects
+    # 2. Active Projects (SQL COUNT)
     active_projects_count = (
-        db.query(Project)
+        db.query(func.count(Project.id))
         .filter(
             Project.is_deleted.is_(False),
             Project.status.in_(["planning", "in_progress", "internal_review", "client_review"]),
         )
-        .count()
+        .scalar()
+        or 0
     )
 
-    # 3. Pipeline Value from active leads
-    leads = db.query(Lead).filter(Lead.is_deleted.is_(False)).all()
-    pipeline_val_paise = sum(lead.estimated_value_paise for lead in leads if lead.status != "lost")
-    pipeline_val_rupees = round(pipeline_val_paise / 100.0, 2)
-
-    # 4. Total Billed / Revenue from Invoices
-    invoices = (
-        db.query(Invoice).filter(Invoice.is_deleted.is_(False), Invoice.status != "cancelled").all()
+    # 3. Pipeline Value and Stage Counts from active leads (Single GROUP BY query)
+    lead_rows = (
+        db.query(
+            Lead.status,
+            func.count(Lead.id).label("deal_count"),
+            func.coalesce(func.sum(Lead.estimated_value_paise), 0).label("total_paise"),
+        )
+        .filter(Lead.is_deleted.is_(False))
+        .group_by(Lead.status)
+        .all()
     )
-    monthly_rev_paise = sum(i.total_paise for i in invoices)
-    monthly_rev_rupees = round(monthly_rev_paise / 100.0, 2)
 
-    # 5. Pipeline Stages calculated from Lead status
     stage_counts: dict[str, dict] = {
         "new": {"label": "New Inquiries", "count": 0, "paise": 0},
         "contacted": {"label": "Contacted", "count": 0, "paise": 0},
@@ -135,11 +136,16 @@ def get_dashboard_kpis(
         "won": {"label": "Won Deals", "count": 0, "paise": 0},
     }
 
-    for lead_item in leads:
-        st = (lead_item.status or "new").lower()
+    pipeline_val_paise = 0
+    for row_status, row_count, row_paise in lead_rows:
+        st = (row_status or "new").lower()
         if st in stage_counts:
-            stage_counts[st]["count"] += 1
-            stage_counts[st]["paise"] += lead_item.estimated_value_paise
+            stage_counts[st]["count"] = int(row_count)
+            stage_counts[st]["paise"] = int(row_paise)
+        if st != "lost":
+            pipeline_val_paise += int(row_paise)
+
+    pipeline_val_rupees = round(pipeline_val_paise / 100.0, 2)
 
     pipeline_stages = [
         PipelineStageItem(
@@ -153,19 +159,32 @@ def get_dashboard_kpis(
     ]
     pipeline_total_deals = sum(item.count for item in pipeline_stages)
 
-    # 6. Service-Wise Breakdown from Catalogue / Subscriptions
-    subs = db.query(ClientService).filter(ClientService.is_deleted.is_(False)).all()
-    cat_rev: dict[str, int] = {}
-    total_sub_paise = 0
-    for s in subs:
-        cat = db.query(ServiceCatalogue).filter_by(id=s.service_id).first()
-        cat_name = cat.category if cat else "Websites"
-        cat_rev[cat_name] = cat_rev.get(cat_name, 0) + s.price_paise
-        total_sub_paise += s.price_paise
+    # 4. Total Billed / Revenue from Invoices (Single SQL aggregate)
+    monthly_rev_paise = (
+        db.query(func.coalesce(func.sum(Invoice.total_paise), 0))
+        .filter(Invoice.is_deleted.is_(False), Invoice.status != "cancelled")
+        .scalar()
+    ) or 0
+    monthly_rev_rupees = round(monthly_rev_paise / 100.0, 2)
 
+    # 5. Service-Wise Breakdown from Catalogue / Subscriptions (Single JOIN + GROUP BY query)
+    cat_rows = (
+        db.query(
+            func.coalesce(ServiceCatalogue.category, "Websites").label("category"),
+            func.sum(ClientService.price_paise).label("amt_paise"),
+        )
+        .join(ServiceCatalogue, ClientService.service_id == ServiceCatalogue.id, isouter=True)
+        .filter(ClientService.is_deleted.is_(False))
+        .group_by(ServiceCatalogue.category)
+        .all()
+    )
+
+    total_sub_paise = sum(row[1] for row in cat_rows if row[1])
     colors = ["#6C3BDB", "#38BDF8", "#10B981", "#F59E0B", "#EC4899"]
     service_revenue = []
-    for c_idx, (cat_name, amt_paise) in enumerate(cat_rev.items()):
+    for c_idx, (cat_name, amt_paise) in enumerate(cat_rows):
+        if not amt_paise:
+            continue
         pct = round(amt_paise / total_sub_paise * 100) if total_sub_paise > 0 else 0
         service_revenue.append(
             ServiceRevenueItem(
@@ -178,25 +197,30 @@ def get_dashboard_kpis(
 
     if not service_revenue:
         service_revenue = [
-            ServiceRevenueItem(service_name="Websites", percentage=100, amount_rupees=monthly_rev_rupees, color="#6C3BDB")
+            ServiceRevenueItem(
+                service_name="Websites",
+                percentage=100,
+                amount_rupees=monthly_rev_rupees,
+                color="#6C3BDB",
+            )
         ]
 
-    # 7. Real Active Projects from Database
+    # 6. Real Active Projects with single SQL outer join (0 N+1 queries)
     projects = (
-        db.query(Project)
+        db.query(Project, Client.name.label("client_name"))
+        .outerjoin(Client, Project.client_id == Client.id)
         .filter(Project.is_deleted.is_(False))
         .order_by(desc(Project.created_at))
         .limit(5)
         .all()
     )
     active_projects_list = []
-    for p in projects:
-        cl = db.query(Client).filter_by(id=p.client_id).first()
+    for p, c_name in projects:
         active_projects_list.append(
             ActiveProjectItem(
                 id=p.id,
                 project_name=p.name,
-                client_name=cl.name if cl else "Client",
+                client_name=c_name or "Client",
                 service_name="Digital Delivery",
                 progress_percent=p.progress_percent,
                 due_date=p.due_date.strftime("%b %d, %Y") if p.due_date else "Scheduled",
@@ -204,21 +228,27 @@ def get_dashboard_kpis(
             )
         )
 
-    # 8. Revenue Trend (Calculated from monthly invoices)
+    # 7. Revenue Trend
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]
     revenue_trend = [
         MonthlyTrendPoint(month=m, revenue_rupees=round(monthly_rev_rupees / len(months), 2))
         for m in months
     ]
 
-    # 9. Clients by Service
+    # 8. Clients by Service
     clients_by_service = [
-        ClientsByServiceItem(service_name="Websites", count=max(1, total_clients // 2), icon="monitor"),
-        ClientsByServiceItem(service_name="Digital Marketing", count=max(1, total_clients // 3), icon="megaphone"),
-        ClientsByServiceItem(service_name="Enterprise ERP", count=max(1, total_clients // 4), icon="layers"),
+        ClientsByServiceItem(
+            service_name="Websites", count=max(0, total_clients // 2), icon="monitor"
+        ),
+        ClientsByServiceItem(
+            service_name="Digital Marketing", count=max(0, total_clients // 3), icon="megaphone"
+        ),
+        ClientsByServiceItem(
+            service_name="Enterprise ERP", count=max(0, total_clients // 4), icon="layers"
+        ),
     ]
 
-    # 10. Real Upcoming Tasks from database
+    # 9. Real Upcoming Tasks (Single query)
     real_tasks = (
         db.query(Task)
         .filter(Task.is_deleted.is_(False), Task.status != "completed")
@@ -226,17 +256,16 @@ def get_dashboard_kpis(
         .limit(5)
         .all()
     )
-    upcoming_tasks = []
-    for t in real_tasks:
-        upcoming_tasks.append(
-            UpcomingTaskItem(
-                id=t.id,
-                title=t.title,
-                due_text=t.due_date.strftime("%b %d") if t.due_date else "Soon",
-                is_urgent=(t.priority in ["urgent", "high"]),
-                is_completed=False,
-            )
+    upcoming_tasks = [
+        UpcomingTaskItem(
+            id=t.id,
+            title=t.title,
+            due_text=t.due_date.strftime("%b %d") if t.due_date else "Soon",
+            is_urgent=(t.priority in ["urgent", "high"]),
+            is_completed=False,
         )
+        for t in real_tasks
+    ]
 
     return ApiResponse(
         success=True,

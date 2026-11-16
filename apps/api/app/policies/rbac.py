@@ -53,30 +53,23 @@ def get_current_user(
     token_hash = hash_token(token)
     now = datetime.now(UTC)
 
-    # Query active session
-    user_session = (
-        db.query(UserSession)
+    # Query active user and valid session in a single joined query (eliminates roundtrip latency)
+    user = (
+        db.query(User)
+        .join(UserSession, UserSession.user_id == User.id)
         .filter(
             UserSession.token_hash == token_hash,
             UserSession.is_revoked.is_(False),
             UserSession.expires_at > now,
+            User.is_deleted.is_(False),
         )
         .first()
     )
 
-    if not user_session:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session expired or invalid. Please log in again.",
-        )
-
-    user = (
-        db.query(User).filter(User.id == user_session.user_id, User.is_deleted.is_(False)).first()
-    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account not found.",
+            detail="Session expired or invalid. Please log in again.",
         )
 
     if not user.is_active:

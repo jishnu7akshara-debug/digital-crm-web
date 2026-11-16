@@ -88,7 +88,10 @@ class UpdateLeadRequest(BaseModel):
 
 
 class StageTransitionRequest(BaseModel):
-    stage: str = Field(..., description="Target stage: new, contacted, qualified, proposal_sent, negotiation, won, lost")
+    stage: str = Field(
+        ...,
+        description="Target stage: new, contacted, qualified, proposal_sent, negotiation, won, lost",
+    )
     lost_reason: str | None = None
 
 
@@ -358,7 +361,9 @@ def update_lead(
     db.commit()
     db.refresh(lead)
 
-    assigned = db.query(User).filter_by(id=lead.assigned_to_id).first() if lead.assigned_to_id else None
+    assigned = (
+        db.query(User).filter_by(id=lead.assigned_to_id).first() if lead.assigned_to_id else None
+    )
 
     return ApiResponse(
         success=True,
@@ -463,7 +468,9 @@ def assign_lead(
 
     target_user = db.query(User).filter_by(id=payload.assigned_to_id, is_active=True).first()
     if not target_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found or inactive.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found or inactive."
+        )
 
     old_assignee = lead.assigned_to_id
     lead.assigned_to_id = target_user.id
@@ -528,7 +535,9 @@ def list_lead_activities(
                 notes=act.notes,
                 due_date=act.due_date.isoformat() if act.due_date else None,
                 completed_at=act.completed_at.isoformat() if act.completed_at else None,
-                created_at=act.created_at.isoformat() if act.created_at else datetime.now(UTC).isoformat(),
+                created_at=act.created_at.isoformat()
+                if act.created_at
+                else datetime.now(UTC).isoformat(),
             )
         )
 

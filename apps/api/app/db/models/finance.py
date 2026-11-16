@@ -157,12 +157,18 @@ class DocumentSequence(Base, TimestampMixin):
     __tablename__ = "document_sequences"
 
     id: Mapped[str] = uuid_pk()
-    organization_id: Mapped[str] = mapped_column(String(50), default="default", nullable=False, index=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(50), default="default", nullable=False, index=True
+    )
     document_type: Mapped[str] = mapped_column(String(50), nullable=False)
     financial_year: Mapped[str] = mapped_column(String(20), nullable=False)
     last_value: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("organization_id", "document_type", "financial_year", name="uq_document_sequences_org_type_fy"),
+        UniqueConstraint(
+            "organization_id",
+            "document_type",
+            "financial_year",
+            name="uq_document_sequences_org_type_fy",
+        ),
     )
-

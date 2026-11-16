@@ -1,13 +1,32 @@
 """FastAPI Application Factory for Digital Footprint OS."""
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.router import api_v1_router
 from app.core.config import settings
+from app.core.database import engine
+
+logger = logging.getLogger("uvicorn")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle events: pre-warm database connection pool on boot."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info("Database connection pre-warmed successfully.")
+    except Exception as exc:
+        logger.warning("Database pre-warming notice: %s", exc)
+    yield
 
 
 def create_app() -> FastAPI:
@@ -16,6 +35,7 @@ def create_app() -> FastAPI:
         title="Digital Footprint OS API",
         description="Production CRM, ERP, Project Management, HRMS & Finance API",
         version="1.0.0",
+        lifespan=lifespan,
         docs_url="/docs" if not settings.is_production else None,
         redoc_url="/redoc" if not settings.is_production else None,
         openapi_url="/openapi.json" if not settings.is_production else None,

@@ -57,7 +57,9 @@ def list_audit_logs(
         q = q.filter(AuditLog.resource_id == resource_id)
 
     total = q.count()
-    logs = q.order_by(desc(AuditLog.timestamp)).offset((page - 1) * page_size).limit(page_size).all()
+    logs = (
+        q.order_by(desc(AuditLog.timestamp)).offset((page - 1) * page_size).limit(page_size).all()
+    )
 
     items = []
     for log_item in logs:
@@ -75,7 +77,9 @@ def list_audit_logs(
                 new_values=new_val,
                 ip_address=log_item.ip_address,
                 user_agent=log_item.user_agent,
-                timestamp=log_item.timestamp.isoformat() if log_item.timestamp else datetime.now(UTC).isoformat(),
+                timestamp=log_item.timestamp.isoformat()
+                if log_item.timestamp
+                else datetime.now(UTC).isoformat(),
             )
         )
 
@@ -84,5 +88,7 @@ def list_audit_logs(
     total_pages = math.ceil(total / page_size) if total > 0 else 1
     return ApiResponse(
         success=True,
-        data=PaginatedData(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages),
+        data=PaginatedData(
+            items=items, total=total, page=page, page_size=page_size, total_pages=total_pages
+        ),
     )

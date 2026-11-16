@@ -133,7 +133,9 @@ def list_users(
     items = [_format_user(u, db) for u in users]
     return ApiResponse(
         success=True,
-        data=PaginatedData(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages),
+        data=PaginatedData(
+            items=items, total=total, page=page, page_size=page_size, total_pages=total_pages
+        ),
     )
 
 
@@ -152,9 +154,13 @@ def create_user(
             detail=f"User with email '{payload.email}' already exists.",
         )
 
-    role = db.query(Role).filter(or_(Role.id == payload.role_id, Role.code == payload.role_id)).first()
+    role = (
+        db.query(Role).filter(or_(Role.id == payload.role_id, Role.code == payload.role_id)).first()
+    )
     if not role:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specified role not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Specified role not found."
+        )
 
     org = db.query(Organization).first()
     org_id = org.id if org else "default"
@@ -265,7 +271,9 @@ def deactivate_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     if user.id == scope.user.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate yourself.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate yourself."
+        )
 
     user.is_active = False
 
@@ -327,9 +335,13 @@ def invite_user(
             detail=f"User with email '{payload.email}' already exists.",
         )
 
-    role = db.query(Role).filter(or_(Role.id == payload.role_id, Role.code == payload.role_id)).first()
+    role = (
+        db.query(Role).filter(or_(Role.id == payload.role_id, Role.code == payload.role_id)).first()
+    )
     if not role:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specified role not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Specified role not found."
+        )
 
     org = db.query(Organization).first()
     org_id = org.id if org else "default"

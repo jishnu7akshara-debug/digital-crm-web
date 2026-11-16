@@ -43,6 +43,7 @@ def get_engine_options(database_url: str) -> dict[str, Any]:
         options["pool_size"] = settings.DB_POOL_SIZE
         options["max_overflow"] = settings.DB_MAX_OVERFLOW
         options["pool_timeout"] = settings.DB_POOL_TIMEOUT
+        options["pool_recycle"] = 300
 
     return options
 

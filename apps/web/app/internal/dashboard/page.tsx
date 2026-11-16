@@ -262,35 +262,43 @@ export default function SaasDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F1F5F9]">
-                  {kpiData.active_projects_list.map((proj: any) => (
-                    <tr
-                      key={proj.id}
-                      onClick={() => router.push(`/internal/projects/${proj.id}`)}
-                      className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
-                    >
-                      <td className="py-3.5 pr-3 font-semibold text-[#0F172A] group-hover:text-[#5B4BDB]">
-                        {proj.project_name}
-                      </td>
-                      <td className="py-3.5 px-3 text-[#64748B]">{proj.client_name}</td>
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center space-x-2 w-28">
-                          <div className="w-full bg-[#E5E7EB] h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-[#5B4BDB] h-full rounded-full"
-                              style={{ width: `${proj.progress_percent}%` }}
-                            />
-                          </div>
-                          <span className="font-semibold text-xs text-[#64748B]">{proj.progress_percent}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3 text-[#64748B] text-xs">{proj.due_date}</td>
-                      <td className="py-3.5 px-3">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#059669]">
-                          {proj.status}
-                        </span>
+                  {kpiData.active_projects_list.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-xs text-[#94A3B8]">
+                        No active projects yet. Use the top + Create button to create your first project.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    kpiData.active_projects_list.map((proj: any) => (
+                      <tr
+                        key={proj.id}
+                        onClick={() => router.push(`/internal/projects/${proj.id}`)}
+                        className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                      >
+                        <td className="py-3.5 pr-3 font-semibold text-[#0F172A] group-hover:text-[#5B4BDB]">
+                          {proj.project_name}
+                        </td>
+                        <td className="py-3.5 px-3 text-[#64748B]">{proj.client_name}</td>
+                        <td className="py-3.5 px-3">
+                          <div className="flex items-center space-x-2 w-28">
+                            <div className="w-full bg-[#E5E7EB] h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-[#5B4BDB] h-full rounded-full"
+                                style={{ width: `${proj.progress_percent}%` }}
+                              />
+                            </div>
+                            <span className="font-semibold text-xs text-[#64748B]">{proj.progress_percent}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3 text-[#64748B] text-xs">{proj.due_date}</td>
+                        <td className="py-3.5 px-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#059669]">
+                            {proj.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -358,22 +366,28 @@ export default function SaasDashboardPage() {
             </div>
 
             <div className="space-y-3 mt-4">
-              {kpiData.upcoming_tasks.map((task: any) => (
-                <div
-                  key={task.id}
-                  className="p-3 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] flex items-center justify-between"
-                >
-                  <div>
-                    <span className="text-xs font-semibold text-[#0F172A] block">{task.title}</span>
-                    <span className="text-[10px] text-[#94A3B8]">Due: {task.due_text}</span>
-                  </div>
-                  {task.is_urgent && (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-red-50 text-red-700">
-                      Urgent
-                    </span>
-                  )}
+              {kpiData.upcoming_tasks.length === 0 ? (
+                <div className="py-6 text-center text-xs text-[#94A3B8]">
+                  All tasks are up to date! No pending tasks.
                 </div>
-              ))}
+              ) : (
+                kpiData.upcoming_tasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className="p-3 bg-[#F8F9FA] rounded-xl border border-[#E5E7EB] flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="text-xs font-semibold text-[#0F172A] block">{task.title}</span>
+                      <span className="text-[10px] text-[#94A3B8]">Due: {task.due_text}</span>
+                    </div>
+                    {task.is_urgent && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-red-50 text-red-700">
+                        Urgent
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

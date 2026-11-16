@@ -2,10 +2,13 @@
 
 import hashlib
 import json
+import time
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ApiResponse
@@ -81,8 +84,20 @@ def determine_home_route(user: User, roles: list[str]) -> str:
     return "/internal/dashboard"
 
 
+_PERMS_CACHE: tuple[float, list[str]] = (0.0, [])
+
+
 def get_user_permissions(user: User, db: Session) -> tuple[list[str], list[str]]:
     """Retrieve list of role codes and distinct permission codes for a user."""
+    global _PERMS_CACHE
+
+    if user.is_super_admin:
+        now = time.time()
+        if not _PERMS_CACHE[1] or (now - _PERMS_CACHE[0] > 300):
+            all_perms = [p[0] for p in db.query(Permission.code).all()]
+            _PERMS_CACHE = (now, all_perms)
+        return ["super_admin"], _PERMS_CACHE[1]
+
     user_roles = (
         db.query(Role)
         .join(UserRole, UserRole.role_id == Role.id)
@@ -90,12 +105,6 @@ def get_user_permissions(user: User, db: Session) -> tuple[list[str], list[str]]
         .all()
     )
     role_codes = [r.code for r in user_roles]
-
-    if user.is_super_admin:
-        all_perms = db.query(Permission.code).all()
-        return ["super_admin"] + [r for r in role_codes if r != "super_admin"], [
-            p[0] for p in all_perms
-        ]
 
     perms = (
         db.query(Permission.code)
@@ -173,34 +182,47 @@ def login(
             detail="Staff accounts must log in via the staff portal.",
         )
 
-    # Record successful attempt
-    db.add(LoginAttempt(email_hash=email_hash, ip_address=client_ip, is_success=True))
-
     # Generate session token and store hash (rotating previous active session for same device)
     token = generate_secure_token(32)
     token_hash = hash_token(token)
     expires_at = datetime.now(UTC) + timedelta(days=settings.SESSION_EXPIRE_DAYS)
 
-    session_entry = UserSession(
-        user_id=user.id,
-        token_hash=token_hash,
-        ip_address=client_ip,
-        user_agent=request.headers.get("user-agent"),
-        expires_at=expires_at,
-    )
-    db.add(session_entry)
+    session_id = str(uuid.uuid4())
+    attempt_id = str(uuid.uuid4())
+    audit_id = str(uuid.uuid4())
+    now = datetime.now(UTC)
 
-    # Update last login
-    user.last_login_at = datetime.now(UTC)
-
-    # Log audit event in the same transaction
-    log_audit_event(
-        db=db,
-        action="user.login",
-        resource_type="user",
-        resource_id=user.id,
-        user=user,
-        request=request,
+    # Batch insert into login_attempts, user_sessions, update users.last_login_at, and insert audit_log in 1 CTE roundtrip
+    cte_sql = text("""
+        WITH ins_la AS (
+            INSERT INTO login_attempts (id, email_hash, ip_address, is_success, created_at, updated_at)
+            VALUES (:la_id, :email_hash, :ip, true, :now, :now)
+        ),
+        ins_us AS (
+            INSERT INTO user_sessions (id, user_id, token_hash, ip_address, user_agent, expires_at, created_at, updated_at, is_revoked)
+            VALUES (:us_id, :user_id, :token_hash, :ip, :ua, :expires, :now, :now, false)
+        ),
+        upd_u AS (
+            UPDATE users SET last_login_at = :now WHERE id = :user_id
+        )
+        INSERT INTO audit_logs (id, user_id, user_email, action, resource_type, resource_id, ip_address, timestamp)
+        VALUES (:al_id, :user_id, :email, 'user.login', 'user', :user_id, :ip, :now)
+    """)
+    db.execute(
+        cte_sql,
+        {
+            "la_id": attempt_id,
+            "email_hash": email_hash,
+            "ip": client_ip,
+            "now": now,
+            "us_id": session_id,
+            "user_id": user.id,
+            "token_hash": token_hash,
+            "ua": request.headers.get("user-agent"),
+            "expires": expires_at,
+            "al_id": audit_id,
+            "email": user.email,
+        },
     )
     db.commit()
 
@@ -337,7 +359,9 @@ def change_password(
 ):
     """Change current user password and revoke all other sessions."""
     if not verify_password(payload.old_password, current_user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password incorrect.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Current password incorrect."
+        )
 
     if len(payload.new_password) < 8:
         raise HTTPException(
@@ -440,11 +464,14 @@ def forgot_password(
         reset_token = generate_secure_token(32)
         # Store in SystemSetting with expiry key
         from app.db.models.common import SystemSetting
+
         key = f"reset_token_{hash_token(reset_token)}"
-        val = json.dumps({
-            "user_id": user.id,
-            "expires_at": (datetime.now(UTC) + timedelta(minutes=30)).isoformat(),
-        })
+        val = json.dumps(
+            {
+                "user_id": user.id,
+                "expires_at": (datetime.now(UTC) + timedelta(minutes=30)).isoformat(),
+            }
+        )
         db.add(SystemSetting(category="auth_reset", key=key, value=val, is_public=False))
         log_audit_event(
             db=db,
@@ -471,10 +498,13 @@ def reset_password(
 ):
     """Reset password using one-time token."""
     from app.db.models.common import SystemSetting
+
     key = f"reset_token_{hash_token(payload.token)}"
     setting = db.query(SystemSetting).filter_by(key=key).first()
     if not setting:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token."
+        )
 
     data = json.loads(setting.value)
     expires = datetime.fromisoformat(data["expires_at"])
@@ -508,4 +538,6 @@ def reset_password(
     )
     db.commit()
 
-    return ApiResponse(success=True, data=True, message="Password successfully reset. Please log in.")
+    return ApiResponse(
+        success=True, data=True, message="Password successfully reset. Please log in."
+    )

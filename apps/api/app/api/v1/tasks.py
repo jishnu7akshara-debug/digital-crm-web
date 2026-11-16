@@ -79,7 +79,9 @@ def list_tasks(
     )
 
     if scope.user.user_type == "client" and scope.user.client_id:
-        query = query.filter(Project.client_id == scope.user.client_id, Task.is_client_visible.is_(True))
+        query = query.filter(
+            Project.client_id == scope.user.client_id, Task.is_client_visible.is_(True)
+        )
 
     if status_filter:
         if status_filter == "completed":
@@ -123,7 +125,9 @@ def list_tasks(
                 due_date=t.due_date.isoformat() if t.due_date else None,
                 completed_at=t.completed_at.isoformat() if t.completed_at else None,
                 is_client_visible=t.is_client_visible,
-                created_at=t.created_at.isoformat() if t.created_at else datetime.now(UTC).isoformat(),
+                created_at=t.created_at.isoformat()
+                if t.created_at
+                else datetime.now(UTC).isoformat(),
             )
         )
 

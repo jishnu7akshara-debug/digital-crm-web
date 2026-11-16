@@ -938,11 +938,7 @@ def get_leave_balances(
 ):
     """Retrieve current leave balances for the authenticated employee."""
     emp = get_or_create_employee(db, scope.user)
-    balances = (
-        db.query(LeaveBalance)
-        .filter_by(employee_id=emp.id, year=year)
-        .all()
-    )
+    balances = db.query(LeaveBalance).filter_by(employee_id=emp.id, year=year).all()
 
     # Seed default types if missing
     if not balances:
@@ -1016,9 +1012,11 @@ def list_leave_requests(
 ):
     """List leave requests for staff member (or all requests for HR admin)."""
     emp = get_or_create_employee(db, scope.user)
-    query = db.query(LeaveRequest, Employee, User).join(
-        Employee, LeaveRequest.employee_id == Employee.id
-    ).join(User, Employee.user_id == User.id)
+    query = (
+        db.query(LeaveRequest, Employee, User)
+        .join(Employee, LeaveRequest.employee_id == Employee.id)
+        .join(User, Employee.user_id == User.id)
+    )
 
     if scope.scope == "own":
         query = query.filter(LeaveRequest.employee_id == emp.id)
@@ -1174,4 +1172,3 @@ def delete_timesheet(
     db.commit()
 
     return ApiResponse(success=True, data=True, message="Timesheet entry deleted.")
-

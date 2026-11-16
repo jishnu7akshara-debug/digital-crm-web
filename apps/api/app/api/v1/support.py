@@ -3,7 +3,6 @@
 import json
 from datetime import UTC, datetime, time, timedelta
 
-from app.db.models.common import SystemSetting
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import desc
@@ -13,6 +12,7 @@ from app.api.schemas import ApiResponse, PaginatedData
 from app.core.audit import log_audit_event
 from app.core.database import get_db
 from app.db.models.auth import User
+from app.db.models.common import SystemSetting
 from app.db.models.crm import Client
 from app.db.models.support import SupportTicket, TicketComment
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
@@ -301,7 +301,9 @@ def get_ticket_detail(
             status=ticket.status,
             assigned_to_name=assigned.full_name if assigned else None,
             created_at=ticket.created_at.isoformat(),
-            first_response_at=ticket.first_response_at.isoformat() if ticket.first_response_at else None,
+            first_response_at=ticket.first_response_at.isoformat()
+            if ticket.first_response_at
+            else None,
             resolved_at=ticket.resolved_at.isoformat() if ticket.resolved_at else None,
             comments=comment_items,
         ),
@@ -347,7 +349,9 @@ def get_ticket_sla_status(
             resolution_due_at=resolution_due.isoformat(),
             response_breached=response_breached,
             resolution_breached=resolution_breached,
-            first_response_at=ticket.first_response_at.isoformat() if ticket.first_response_at else None,
+            first_response_at=ticket.first_response_at.isoformat()
+            if ticket.first_response_at
+            else None,
             resolved_at=ticket.resolved_at.isoformat() if ticket.resolved_at else None,
         ),
     )

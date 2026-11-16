@@ -830,7 +830,9 @@ def list_pending_deliverables(
                 status=d.status,
                 client_feedback=d.client_feedback,
                 approved_at=d.approved_at.isoformat() if d.approved_at else None,
-                created_at=d.created_at.isoformat() if d.created_at else datetime.now(UTC).isoformat(),
+                created_at=d.created_at.isoformat()
+                if d.created_at
+                else datetime.now(UTC).isoformat(),
             )
         )
 

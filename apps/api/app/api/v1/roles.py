@@ -1,6 +1,7 @@
 """Roles and Permissions Management API (Super Admin Enforced)."""
 
 from collections import defaultdict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func
@@ -72,9 +73,7 @@ def list_roles(
 
     # Batch query user counts per role
     user_counts = dict(
-        db.query(UserRole.role_id, func.count(UserRole.id))
-        .group_by(UserRole.role_id)
-        .all()
+        db.query(UserRole.role_id, func.count(UserRole.id)).group_by(UserRole.role_id).all()
     )
 
     # Batch query all role permissions
