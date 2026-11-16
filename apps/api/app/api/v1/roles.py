@@ -1,7 +1,9 @@
 """Roles and Permissions Management API (Super Admin Enforced)."""
 
+from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ApiResponse
@@ -68,25 +70,35 @@ def list_roles(
     roles = db.query(Role).all()
     all_perms = db.query(Permission).all()
 
+    # Batch query user counts per role
+    user_counts = dict(
+        db.query(UserRole.role_id, func.count(UserRole.id))
+        .group_by(UserRole.role_id)
+        .all()
+    )
+
+    # Batch query all role permissions
+    all_rps = db.query(RolePermission).all()
+    role_perm_map: dict[str, dict[str, str]] = defaultdict(dict)
+    for rp in all_rps:
+        role_perm_map[rp.role_id][rp.permission_id] = rp.scope
+
     result = []
     for r in roles:
-        user_count = db.query(UserRole).filter(UserRole.role_id == r.id).count()
-        rps = db.query(RolePermission).filter(RolePermission.role_id == r.id).all()
-        rp_map = {rp.permission_id: rp.scope for rp in rps}
+        user_count = user_counts.get(r.id, 0)
+        rp_map = role_perm_map.get(r.id, {})
 
-        perm_items = []
-        for p in all_perms:
-            scope = rp_map.get(p.id, "none")
-            perm_items.append(
-                PermissionItem(
-                    id=p.id,
-                    code=p.code,
-                    module=p.module,
-                    name=p.name,
-                    description=p.description,
-                    scope=scope,
-                )
+        perm_items = [
+            PermissionItem(
+                id=p.id,
+                code=p.code,
+                module=p.module,
+                name=p.name,
+                description=p.description,
+                scope=rp_map.get(p.id, "none"),
             )
+            for p in all_perms
+        ]
 
         result.append(
             RoleDetail(

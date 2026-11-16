@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 const STAGES = [
   { id: "new", label: "New" },
@@ -163,6 +164,7 @@ export default function LeadDetailPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={!isLeadLoading && !!lead} />
       {/* Back button */}
       <Link
         href="/internal/leads"

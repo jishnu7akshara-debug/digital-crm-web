@@ -6,81 +6,43 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban, Plus, Search, ChevronRight, ArrowRight, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
-
-const DEFAULT_PROJECTS = [
-  {
-    id: "proj-peak-web",
-    name: "Website redesign",
-    account_name: "Peak Fitness",
-    client_id: "CLI-PEAK-001",
-    service: "Website development",
-    manager: "Meera",
-    stage: "Internal Review",
-    due_date: "Nov 30, 2026",
-    progress: 65,
-    tasks_count: 6,
-    completed_tasks: 2,
-  },
-  {
-    id: "proj-apex-web",
-    name: "Apex Global Corporate Portal",
-    account_name: "Apex Global Technologies",
-    client_id: "CLI-APEX-001",
-    service: "Web application",
-    manager: "Karan",
-    stage: "In Progress",
-    due_date: "Dec 15, 2026",
-    progress: 40,
-    tasks_count: 8,
-    completed_tasks: 3,
-  },
-  {
-    id: "proj-nova-lms",
-    name: "EdTech Learning Platform",
-    account_name: "Nova Learning",
-    client_id: "CLI-NOVA-001",
-    service: "EdTech platform",
-    manager: "Meera",
-    stage: "Planning",
-    due_date: "Jan 20, 2027",
-    progress: 15,
-    tasks_count: 5,
-    completed_tasks: 0,
-  },
-];
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function ProjectsListPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: apiProjects } = useQuery<any>({
+  const {
+    data: apiProjects,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<any>({
     queryKey: ["projects-list-view"],
     queryFn: async () => {
-      try {
-        const res = await api.get<any>("/projects?page_size=50");
-        return res?.items || [];
-      } catch (e) {
-        return [];
-      }
+      const res = await api.get<any>("/projects?page_size=100");
+      return res?.items || [];
     },
   });
 
-  const displayProjects =
-    apiProjects && apiProjects.length > 0
-      ? apiProjects.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          account_name: p.client_name || "Peak Fitness",
-          client_id: p.client_id || "CLI-PEAK-001",
-          service: p.name?.toLowerCase().includes("seo") ? "SEO & Growth" : p.name?.toLowerCase().includes("lms") ? "EdTech Platform" : "Website Development",
-          manager: p.manager_name || "Meera",
-          stage: p.status?.replace("_", " ") || "In Progress",
-          due_date: p.due_date || "Nov 30, 2026",
-          progress: p.progress_percent || 65,
-          tasks_count: p.tasks_count || 6,
-          completed_tasks: p.completed_tasks_count || 2,
-        }))
-      : DEFAULT_PROJECTS;
+  const displayProjects = (apiProjects || []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    account_name: p.client_name || "Client Account",
+    client_id: p.client_id,
+    service: p.name?.toLowerCase().includes("seo")
+      ? "SEO & Growth"
+      : p.name?.toLowerCase().includes("lms")
+      ? "EdTech Platform"
+      : "Website Development",
+    manager: p.manager_name || "Project Lead",
+    stage: p.status ? p.status.replace(/_/g, " ") : "In Progress",
+    due_date: p.due_date || "—",
+    progress: p.progress_percent || 0,
+    tasks_count: p.tasks_count || 0,
+    completed_tasks: p.completed_tasks_count || 0,
+  }));
 
   const filtered = displayProjects.filter(
     (p: any) =>
@@ -88,8 +50,27 @@ export default function ProjectsListPage() {
       p.account_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={(error as any)?.message || "Failed to load projects."}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
+      <PageReady
+        when={!isLoading}
+        state={error ? "error" : displayProjects.length === 0 ? "empty" : "success"}
+        dataLength={displayProjects.length}
+      />
+
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -110,15 +91,17 @@ export default function ProjectsListPage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3 shrink-0">
-          <Link
-            href={filtered[0] ? `/internal/projects/${filtered[0].id}` : "/internal/projects/proj-peak-web"}
-            className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
-          >
-            <span>Active Sprint Workspace</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        {filtered[0] && (
+          <div className="flex items-center space-x-3 shrink-0">
+            <Link
+              href={`/internal/projects/${filtered[0].id}`}
+              className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold rounded-xl transition-colors shadow-soft flex items-center space-x-2"
+            >
+              <span>Active Sprint Workspace</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Filter and Search Bar Card */}
@@ -135,88 +118,95 @@ export default function ProjectsListPage() {
         </div>
 
         <div className="text-[13px] text-[#64748B]">
-          {filtered.length} projects · Sorted by Priority
+          {filtered.length} projects · Sorted by priority
         </div>
       </div>
 
       {/* Projects Table */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13.5px]">
-            <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
-                <th className="py-3 px-4 font-semibold text-[#64748B]">Project Name</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Account</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Service</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Stage</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Manager</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Progress</th>
-                <th className="py-3 px-4 font-semibold text-[#64748B]">Due Date</th>
-                <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {filtered.map((proj: any) => (
-                <tr
-                  key={proj.id}
-                  onClick={() => router.push(`/internal/projects/${proj.id}`)}
-                  className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
-                  title={`Open ${proj.name} workspace`}
-                >
-                  <td className="py-3.5 px-4">
-                    <Link
-                      href={`/internal/projects/${proj.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[#5B4BDB] hover:underline font-semibold flex items-center space-x-1.5"
-                    >
-                      <span>{proj.name}</span>
-                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-[#5B4BDB] transition-opacity shrink-0" />
-                    </Link>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">
-                    <Link
-                      href={`/internal/clients/${proj.client_id || "CLI-PEAK-001"}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="hover:underline hover:text-[#5B4BDB]"
-                    >
-                      {proj.account_name}
-                    </Link>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#64748B]">{proj.service}</td>
-                  <td className="py-3.5 px-3">
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] font-semibold text-xs capitalize">
-                      {proj.stage}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">{proj.manager}</td>
-                  <td className="py-3.5 px-3">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-24 bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
-                        <div
-                          className="bg-[#5B4BDB] h-full rounded-full transition-all duration-500"
-                          style={{ width: `${proj.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-[12px] font-semibold text-[#64748B]">{proj.progress}%</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[#64748B]">{proj.due_date}</td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Link
-                      href={`/internal/projects/${proj.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs shrink-0"
-                    >
-                      <span>Workspace</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </td>
+      {filtered.length === 0 ? (
+        <EmptyState
+          title="No projects found"
+          description="Projects will appear here as client agreements are activated and projects initialized."
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-[13.5px]">
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Project Name</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Account</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Service</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Stage</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Manager</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Progress</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Due Date</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB]">
+                {filtered.map((proj: any) => (
+                  <tr
+                    key={proj.id}
+                    onClick={() => router.push(`/internal/projects/${proj.id}`)}
+                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                    title={`Open ${proj.name} workspace`}
+                  >
+                    <td className="py-3.5 px-4">
+                      <Link
+                        href={`/internal/projects/${proj.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[#5B4BDB] hover:underline font-semibold flex items-center space-x-1.5"
+                      >
+                        <span>{proj.name}</span>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-[#5B4BDB] transition-opacity shrink-0" />
+                      </Link>
+                    </td>
+                    <td className="py-3.5 px-3 text-[#0F172A] font-medium">
+                      <Link
+                        href={`/internal/clients/${proj.client_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:underline hover:text-[#5B4BDB]"
+                      >
+                        {proj.account_name}
+                      </Link>
+                    </td>
+                    <td className="py-3.5 px-3 text-[#64748B]">{proj.service}</td>
+                    <td className="py-3.5 px-3">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#5B4BDB] font-semibold text-xs capitalize">
+                        {proj.stage}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3 text-[#0F172A] font-medium">{proj.manager}</td>
+                    <td className="py-3.5 px-3">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-24 bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-[#5B4BDB] h-full rounded-full transition-all duration-500"
+                            style={{ width: `${proj.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[12px] font-semibold text-[#64748B]">{proj.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-[#64748B]">{proj.due_date}</td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Link
+                        href={`/internal/projects/${proj.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs shrink-0"
+                      >
+                        <span>Workspace</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

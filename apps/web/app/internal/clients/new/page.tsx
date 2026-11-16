@@ -6,6 +6,7 @@ import Link from "next/link";
 import { UploadCloud, Download, CheckCircle2, AlertCircle, FileSpreadsheet, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { PageReady } from "@/components/page-ready";
 
 const AVAILABLE_SERVICES = [
   "Website",
@@ -29,7 +30,7 @@ export default function NewAccountPage() {
   const [paymentTerms, setPaymentTerms] = useState("30 days");
   const [primaryContact, setPrimaryContact] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [phone, setPhone] = useState("+91 98765 43210");
+  const [phone, setPhone] = useState("");
   const [selectedServices, setSelectedServices] = useState<string[]>([
     "Website",
     "SEO",
@@ -43,13 +44,7 @@ export default function NewAccountPage() {
     total: number;
     imported: number;
     needReview: number;
-  } | null>({
-    filename: "clients_nov.xlsx",
-    status: "Done",
-    total: 42,
-    imported: 40,
-    needReview: 2,
-  });
+  } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -142,6 +137,7 @@ export default function NewAccountPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={true} />
       {/* Toast */}
       {notification && (
         <div className="fixed bottom-4 right-4 z-50 bg-[#0F172A] text-white px-4 py-3 rounded-xl shadow-dropdown flex items-center space-x-2 text-[13px] border border-[#E5E7EB] animate-in fade-in slide-in-from-bottom-2">

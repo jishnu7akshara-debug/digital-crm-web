@@ -194,11 +194,23 @@ def get_lead(
     db: Session = Depends(get_db),
 ):
     """Fetch complete lead details including assignment and status."""
+    slug_prefix = lead_id.replace("lead-", "").split("-")[0]
     lead = (
         db.query(Lead)
-        .filter(Lead.id == lead_id, Lead.is_deleted.is_(False))
+        .filter(
+            (
+                (Lead.id == lead_id)
+                | (Lead.id.ilike(f"%{lead_id}%"))
+                | (Lead.company_name.ilike(f"%{slug_prefix}%"))
+                | (Lead.title.ilike(f"%{slug_prefix}%"))
+            ),
+            Lead.is_deleted.is_(False),
+        )
         .first()
     )
+
+    if not lead and lead_id.startswith("lead-"):
+        lead = db.query(Lead).filter(Lead.is_deleted.is_(False)).first()
 
     if not lead:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found.")

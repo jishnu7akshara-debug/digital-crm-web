@@ -6,101 +6,38 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, FileText, Download, Receipt, Building2, ExternalLink, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
-
-const DEFAULT_INVOICES = [
-  {
-    id: "inv-2",
-    invoice_number: "DF-2026-0002",
-    client_id: "CLI-PEAK-001",
-    client_name: "Peak Fitness",
-    issue_date: "Nov 1, 2026",
-    due_date: "Nov 20, 2026",
-    status: "Due Nov 20",
-    total_rupees: 70000,
-    balance_rupees: 70000,
-    isPaid: false,
-  },
-  {
-    id: "inv-1",
-    invoice_number: "DF-2026-0001",
-    client_id: "CLI-PEAK-001",
-    client_name: "Peak Fitness",
-    issue_date: "Oct 5, 2026",
-    due_date: "Oct 25, 2026",
-    status: "Paid",
-    total_rupees: 90000,
-    balance_rupees: 0,
-    isPaid: true,
-  },
-  {
-    id: "inv-3",
-    invoice_number: "DF-2026-0003",
-    client_id: "CLI-AKSH-001",
-    client_name: "Akshara Enterprises",
-    issue_date: "Oct 22, 2026",
-    due_date: "Nov 15, 2026",
-    status: "Due Nov 15",
-    total_rupees: 120000,
-    balance_rupees: 120000,
-    isPaid: false,
-  },
-  {
-    id: "inv-4",
-    invoice_number: "DF-2026-0004",
-    client_id: "CLI-NOVA-001",
-    client_name: "Nova Learning",
-    issue_date: "Oct 18, 2026",
-    due_date: "Nov 10, 2026",
-    status: "Paid",
-    total_rupees: 240000,
-    balance_rupees: 0,
-    isPaid: true,
-  },
-  {
-    id: "inv-5",
-    invoice_number: "DF-2026-0005",
-    client_id: "CLI-MEHTA-001",
-    client_name: "Mehta Interiors",
-    issue_date: "Oct 10, 2026",
-    due_date: "Oct 30, 2026",
-    status: "Paid",
-    total_rupees: 120000,
-    balance_rupees: 0,
-    isPaid: true,
-  },
-];
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function InvoicesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: apiInvoices } = useQuery<any>({
+  const {
+    data: apiInvoices,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<any>({
     queryKey: ["invoices-list"],
     queryFn: async () => {
-      try {
-        const res = await api.get<any>("/invoices?page_size=50");
-        return res?.items || [];
-      } catch (e) {
-        return [];
-      }
+      const res = await api.get<any>("/invoices?page_size=100");
+      return res?.items || [];
     },
   });
 
-  const invoices =
-    apiInvoices && apiInvoices.length > 0
-      ? apiInvoices.map((inv: any) => ({
-          id: inv.id,
-          invoice_number: inv.invoice_number,
-          client_id: inv.client_id || "CLI-PEAK-001",
-          client_name: inv.client_name || "Peak Fitness",
-          issue_date: inv.issue_date,
-          due_date: inv.due_date,
-          status: inv.status === "paid" ? "Paid" : `Due ${inv.due_date}`,
-          total_rupees: inv.total_rupees || 70000,
-          balance_rupees: inv.balance_rupees || 0,
-          isPaid: inv.status === "paid" || inv.balance_rupees === 0,
-        }))
-      : DEFAULT_INVOICES;
+  const invoices = (apiInvoices || []).map((inv: any) => ({
+    id: inv.id,
+    invoice_number: inv.invoice_number,
+    client_id: inv.client_id,
+    client_name: inv.client_name || "Client Account",
+    issue_date: inv.issue_date,
+    due_date: inv.due_date,
+    status: inv.status === "paid" ? "Paid" : `Due ${inv.due_date}`,
+    total_rupees: inv.total_rupees || 0,
+    balance_rupees: inv.balance_rupees || 0,
+    isPaid: inv.status === "paid" || inv.balance_rupees === 0,
+  }));
 
   const filtered = invoices.filter(
     (inv: any) =>
@@ -108,8 +45,27 @@ export default function InvoicesPage() {
       inv.client_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={(error as any)?.message || "Failed to load invoices."}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
+      <PageReady
+        when={!isLoading}
+        state={error ? "error" : invoices.length === 0 ? "empty" : "success"}
+        dataLength={invoices.length}
+      />
+
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -141,7 +97,7 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      {/* Search and Sort Card */}
+      {/* Filter and Search Bar Card */}
       <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#94A3B8]" />
@@ -155,87 +111,87 @@ export default function InvoicesPage() {
         </div>
 
         <div className="text-[13px] text-[#64748B]">
-          {filtered.length} invoices · Sorted by Issue Date
+          {filtered.length} invoices · Sorted by issue date
         </div>
       </div>
 
       {/* Invoices Table */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13.5px]">
-            <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
-                <th className="py-3 px-4 font-semibold text-[#64748B]">Invoice Number</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Client Account</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Gross Amount</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Balance Due</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Issue Date</th>
-                <th className="py-3 px-4 font-semibold text-[#64748B]">Status</th>
-                <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {filtered.map((inv: any) => (
-                <tr
-                  key={inv.id}
-                  onClick={() => router.push(`/internal/invoices/${inv.id}`)}
-                  className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
-                  title={`Open Invoice ${inv.invoice_number}`}
-                >
-                  <td className="py-3.5 px-4 font-semibold text-[#5B4BDB]">
-                    <Link
-                      href={`/internal/invoices/${inv.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="hover:underline flex items-center space-x-1.5"
-                    >
-                      <span>{inv.invoice_number}</span>
-                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#5B4BDB]" />
-                    </Link>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">
-                    <Link
-                      href={`/internal/clients/${inv.client_id || "CLI-PEAK-001"}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="hover:underline hover:text-[#5B4BDB]"
-                    >
-                      {inv.client_name}
-                    </Link>
-                  </td>
-                  <td className="py-3.5 px-3 font-bold text-[#0F172A]">
-                    ₹{Number(inv.total_rupees).toLocaleString("en-IN")}
-                  </td>
-                  <td className="py-3.5 px-3 text-[#64748B]">
-                    ₹{Number(inv.balance_rupees).toLocaleString("en-IN")}
-                  </td>
-                  <td className="py-3.5 px-3 text-[#64748B]">{inv.issue_date}</td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        inv.isPaid
-                          ? "bg-[#ECFDF5] text-[#059669]"
-                          : "bg-[#FFFBEB] text-[#D97706]"
-                      }`}
-                    >
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/internal/invoices/${inv.id}`);
-                      }}
-                      className="px-3 py-1 bg-white hover:bg-[#EEF2FF] border border-[#CBD5E1] hover:border-[#5B4BDB] text-[#5B4BDB] text-xs font-semibold rounded-lg transition-all shadow-xs"
-                    >
-                      View Invoice →
-                    </button>
-                  </td>
+      {invoices.length === 0 ? (
+        <EmptyState
+          title="No invoices found"
+          description="Create your first GST invoice to bill clients and track payments."
+          actionLabel="Generate Invoice"
+          onAction={() => router.push("/internal/invoices/new")}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-[13.5px]">
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Invoice Number</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Client Account</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Issue Date</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Due Date</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Total (₹)</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Balance Due (₹)</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Status</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB]">
+                {filtered.map((inv: any) => (
+                  <tr
+                    key={inv.id}
+                    onClick={() => router.push(`/internal/invoices/${inv.invoice_number}`)}
+                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                  >
+                    <td className="py-3.5 px-4 font-mono font-medium text-[#5B4BDB]">
+                      {inv.invoice_number}
+                    </td>
+                    <td className="py-3.5 px-4 font-semibold text-[#0F172A]">{inv.client_name}</td>
+                    <td className="py-3.5 px-4 text-[#64748B]">{inv.issue_date}</td>
+                    <td className="py-3.5 px-4 text-[#64748B]">{inv.due_date}</td>
+                    <td className="py-3.5 px-4 font-semibold text-[#0F172A]">
+                      ₹{Number(inv.total_rupees).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3.5 px-4 text-[#0F172A]">
+                      {inv.balance_rupees > 0 ? (
+                        <span className="font-semibold text-[#E11D48]">
+                          ₹{Number(inv.balance_rupees).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </span>
+                      ) : (
+                        <span className="text-[#059669] font-semibold text-xs">Settled</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          inv.isPaid
+                            ? "bg-[#ECFDF5] text-[#059669]"
+                            : "bg-[#FFF1F2] text-[#E11D48]"
+                        }`}
+                      >
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Link
+                        href={`/internal/invoices/${inv.invoice_number}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs"
+                      >
+                        <span>View Invoice</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

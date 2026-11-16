@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { PageReady } from "@/components/page-ready";
 
 export default function PortalSupportPage() {
   const queryClient = useQueryClient();
@@ -43,6 +44,7 @@ export default function PortalSupportPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <PageReady when={!isLoading && !!tickets} />
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

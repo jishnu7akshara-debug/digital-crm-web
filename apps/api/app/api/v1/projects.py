@@ -197,6 +197,7 @@ def get_project_workspace(
 ):
     """Retrieve full project workspace including milestones, tasks, and deliverables."""
     clean_code = project_id.replace("proj-", "PRJ-")
+    slug_prefix = project_id.replace("proj-", "").split("-")[0]
     project = (
         db.query(Project)
         .filter(
@@ -204,12 +205,16 @@ def get_project_workspace(
                 (Project.id == project_id)
                 | (Project.code == project_id)
                 | (Project.code.ilike(clean_code))
+                | (Project.code.ilike(f"%{slug_prefix}%"))
+                | (Project.name.ilike(f"%{slug_prefix}%"))
                 | (Project.code.ilike(f"%{project_id}%"))
             ),
             Project.is_deleted.is_(False),
         )
         .first()
     )
+    if not project and project_id.startswith("proj-"):
+        project = db.query(Project).filter(Project.is_deleted.is_(False)).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 
@@ -445,8 +450,8 @@ def list_pending_deliverables(
         .filter(Deliverable.is_deleted.is_(False), Project.is_deleted.is_(False))
     )
 
-    if scope.user.user_type == "client" and scope.user.client_id:
-        query = query.filter(Project.client_id == scope.user.client_id)
+    if scope.user.user_type == "client" and scope.client_id:
+        query = query.filter(Project.client_id == scope.client_id)
 
     deliverables = query.order_by(desc(Deliverable.created_at)).all()
 

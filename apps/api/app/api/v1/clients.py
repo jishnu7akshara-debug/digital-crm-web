@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ApiResponse, PaginatedData
@@ -186,27 +186,52 @@ def list_clients(
     )
 
     items = []
-    for c in clients:
-        am = (
-            db.query(User).filter_by(id=c.account_manager_id).first()
-            if c.account_manager_id
-            else None
+    am_ids = {c.account_manager_id for c in clients if c.account_manager_id}
+    am_map = (
+        {u.id: f"{u.first_name} {u.last_name}".strip() for u in db.query(User.id, User.first_name, User.last_name).filter(User.id.in_(am_ids)).all()}
+        if am_ids
+        else {}
+    )
+
+    client_ids = [c.id for c in clients]
+    if client_ids:
+        services_counts = dict(
+            db.query(ClientService.client_id, func.count(ClientService.id))
+            .filter(ClientService.client_id.in_(client_ids), ClientService.is_deleted.is_(False))
+            .group_by(ClientService.client_id)
+            .all()
         )
-        active_services = (
-            db.query(ClientService).filter_by(client_id=c.id, is_deleted=False).count()
+        projects_counts = dict(
+            db.query(Project.client_id, func.count(Project.id))
+            .filter(Project.client_id.in_(client_ids), Project.is_deleted.is_(False))
+            .group_by(Project.client_id)
+            .all()
         )
-        active_projects = db.query(Project).filter_by(client_id=c.id, is_deleted=False).count()
-        invoices = (
-            db.query(Invoice)
+        financials = (
+            db.query(
+                Invoice.client_id,
+                func.coalesce(func.sum(Invoice.total_paise), 0),
+                func.coalesce(func.sum(Invoice.balance_paise), 0),
+            )
             .filter(
-                Invoice.client_id == c.id,
+                Invoice.client_id.in_(client_ids),
                 Invoice.is_deleted.is_(False),
                 Invoice.status != "cancelled",
             )
+            .group_by(Invoice.client_id)
             .all()
         )
-        invoiced_paise = sum(i.total_paise for i in invoices)
-        outstanding_paise = sum(i.balance_paise for i in invoices)
+        fin_map = {row[0]: (int(row[1]), int(row[2])) for row in financials}
+    else:
+        services_counts = {}
+        projects_counts = {}
+        fin_map = {}
+
+    for c in clients:
+        am_name = am_map.get(c.account_manager_id)
+        active_services = services_counts.get(c.id, 0)
+        active_projects = projects_counts.get(c.id, 0)
+        invoiced_paise, outstanding_paise = fin_map.get(c.id, (0, 0))
 
         items.append(
             ClientSummary(
@@ -218,7 +243,7 @@ def list_clients(
                 gstin=c.gstin,
                 city=c.city,
                 state=c.state,
-                account_manager_name=am.full_name if am else None,
+                account_manager_name=am_name,
                 active_services_count=active_services,
                 active_projects_count=active_projects,
                 total_invoiced_rupees=round(invoiced_paise / 100.0, 2),
@@ -245,10 +270,24 @@ def get_client_360(
     db: Session = Depends(get_db),
 ):
     """Retrieve complete Client 360 profile with all services, projects, invoices, and metrics."""
+    code_variants = [
+        client_id,
+        client_id.upper(),
+        client_id.replace("cli-", "CLI-"),
+        client_id.replace("cli-", "CLI-").replace("-01", "-001"),
+        client_id.replace("cli-", "CLI-").replace("-001", "-01"),
+    ]
+    slug_prefix = client_id.replace("cli-", "").split("-")[0]
     client = (
         db.query(Client)
         .filter(
-            ((Client.id == client_id) | (Client.code == client_id)), Client.is_deleted.is_(False)
+            (
+                (Client.id == client_id)
+                | (Client.code.in_(code_variants))
+                | (Client.code.ilike(f"%{client_id.replace('cli-', '')}%"))
+                | (Client.name.ilike(f"%{slug_prefix}%"))
+            ),
+            Client.is_deleted.is_(False),
         )
         .first()
     )

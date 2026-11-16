@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Plus, Send, X, CheckCircle2, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 interface TaskItem {
   id: string;
@@ -26,32 +28,12 @@ const STAGES = [
   { id: "completed", label: "Completed" },
 ];
 
-const DEFAULT_PROJECT = {
-  id: "proj-peak-web",
-  name: "Website redesign",
-  account_name: "Peak Fitness",
-  account_id: "CLI-PEAK-001",
-  service: "Website development",
-  manager: "Meera",
-  due_date: "Nov 30, 2026",
-  current_stage: "internal_review",
-};
-
-const DEFAULT_TASKS: TaskItem[] = [
-  { id: "t1", title: "Contact page copy", status: "todo", priority: "medium", owner_name: "Divya" },
-  { id: "t2", title: "Pricing page", status: "in_progress", priority: "high", owner_name: "Karan" },
-  { id: "t3", title: "Mobile menu fix", status: "in_progress", priority: "low", owner_name: "Karan" },
-  { id: "t4", title: "Home page design", status: "in_review", priority: "high", owner_name: "Meera" },
-  { id: "t5", title: "Wireframes", status: "completed", priority: "medium", owner_name: "Divya" },
-  { id: "t6", title: "Brand colors", status: "completed", priority: "low", owner_name: "Meera" },
-];
-
 export default function ProjectWorkspacePage() {
   const params = useParams();
-  const projectId = params.id as string;
+  const projectId = (params?.id as string) || "";
 
-  const [currentStage, setCurrentStage] = useState("internal_review");
-  const [tasks, setTasks] = useState<TaskItem[]>(DEFAULT_TASKS);
+  const [currentStage, setCurrentStage] = useState("in_progress");
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskOwner, setNewTaskOwner] = useState("Meera");
@@ -60,20 +42,21 @@ export default function ProjectWorkspacePage() {
   const [notification, setNotification] = useState<string | null>(null);
 
   // Fetch real project data
-  const { data: projectData } = useQuery<any>({
+  const {
+    data: projectData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<any>({
     queryKey: ["project-workspace", projectId],
     queryFn: async () => {
-      try {
-        const res = await api.get<any>(`/projects/${projectId}`);
-        return res;
-      } catch (e) {
-        return null;
-      }
+      return await api.get<any>(`/projects/${projectId}`);
     },
+    enabled: !!projectId,
   });
 
   useEffect(() => {
-    if (projectData?.tasks && projectData.tasks.length > 0) {
+    if (projectData?.tasks) {
       setTasks(
         projectData.tasks.map((t: any) => ({
           id: t.id,
@@ -86,7 +69,7 @@ export default function ProjectWorkspacePage() {
             ? "completed"
             : "todo") as any,
           priority: (t.priority?.toLowerCase() || "medium") as any,
-          owner_name: t.owner_name || "Meera",
+          owner_name: t.owner_name || "Team Member",
         }))
       );
     }
@@ -102,6 +85,7 @@ export default function ProjectWorkspacePage() {
       await api.put(`/projects/${projectId}/stage`, { stage: stageId });
       setNotification(`Project stage updated to ${STAGES.find((s) => s.id === stageId)?.label}`);
       setTimeout(() => setNotification(null), 3000);
+      refetch();
     } catch (e) {}
   };
 
@@ -137,13 +121,27 @@ export default function ProjectWorkspacePage() {
       });
       setNotification("Task created successfully");
       setTimeout(() => setNotification(null), 3000);
+      refetch();
     } catch (e) {}
   };
 
   const handleSendToClient = () => {
-    setNotification("Home page design deliverable sent to Peak Fitness portal for review");
+    setNotification("Deliverable sent to client portal for review.");
     setTimeout(() => setNotification(null), 4000);
   };
+
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
+
+  if (error || !projectData) {
+    return (
+      <ErrorState
+        message={(error as any)?.message || "Project workspace not found."}
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   const stageIndex = STAGES.findIndex((s) => s.id === currentStage);
 
@@ -156,6 +154,8 @@ export default function ProjectWorkspacePage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={!isLoading && !!projectData} />
+
       {/* Toast */}
       {notification && (
         <div className="fixed bottom-4 right-4 z-50 bg-[#0F172A] text-white px-4 py-3 rounded-xl shadow-dropdown flex items-center space-x-2 text-[13px] border border-[#E5E7EB] animate-in fade-in slide-in-from-bottom-2">
@@ -171,7 +171,7 @@ export default function ProjectWorkspacePage() {
           <span>Projects Directory</span>
         </Link>
         <span>/</span>
-        <span className="font-semibold text-[#0F172A]">{projectData?.name || DEFAULT_PROJECT.name}</span>
+        <span className="font-semibold text-[#0F172A]">{projectData.name}</span>
       </div>
 
       {/* Record Header Card */}
@@ -179,7 +179,7 @@ export default function ProjectWorkspacePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5">
             <div className="h-11 w-11 rounded-xl bg-[#0F172A] text-white font-bold text-base flex items-center justify-center shrink-0 shadow-soft">
-              {(projectData?.name || DEFAULT_PROJECT.name).split(" ").map((w: string) => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()}
+              {projectData.name.split(" ").map((w: string) => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center space-x-2 mb-0.5">
@@ -190,7 +190,7 @@ export default function ProjectWorkspacePage() {
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EEF2FF] text-[#5B4BDB]">
                   {STAGES.find((s) => s.id === currentStage)?.label || "Active"}
                 </span>
-                {projectData?.code && (
+                {projectData.code && (
                   <>
                     <span className="text-[11px] text-[#94A3B8]">·</span>
                     <span className="text-xs font-mono text-[#64748B]">{projectData.code}</span>
@@ -198,7 +198,7 @@ export default function ProjectWorkspacePage() {
                 )}
               </div>
               <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight leading-tight">
-                {projectData?.name || DEFAULT_PROJECT.name}
+                {projectData.name}
               </h1>
             </div>
           </div>
@@ -221,255 +221,112 @@ export default function ProjectWorkspacePage() {
           </div>
         </div>
 
-        {/* Key Fields Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-[#E5E7EB]">
-          <div>
-            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Account</div>
-            <Link
-              href={`/internal/clients/${projectData?.client_code || projectData?.client_id || "CLI-PEAK-001"}`}
-              className="text-[#5B4BDB] hover:underline font-semibold text-[14px] mt-1 block"
-            >
-              {projectData?.client_name || DEFAULT_PROJECT.account_name}
-            </Link>
-          </div>
-          <div>
-            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Service</div>
-            <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
-              {projectData?.service_name || ((projectData?.name || DEFAULT_PROJECT.name).toLowerCase().includes("seo") ? "SEO & Growth" : (projectData?.name || DEFAULT_PROJECT.name).toLowerCase().includes("lms") ? "EdTech Platform" : "Website Development")}
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Project Manager</div>
-            <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
-              {projectData?.manager?.name || DEFAULT_PROJECT.manager}
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">Due date</div>
-            <div className="text-[#0F172A] font-semibold text-[14px] mt-1">
-              {projectData?.due_date || DEFAULT_PROJECT.due_date}
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Milestone Steps Bar */}
+        <div className="mt-8 pt-6 border-t border-[#E5E7EB]">
+          <div className="flex items-center justify-between max-w-4xl mx-auto overflow-x-auto py-2">
+            {STAGES.map((s, idx) => {
+              const isPast = idx < stageIndex;
+              const isCurrent = idx === stageIndex;
 
-      {/* Stage Path Chevrons / Step Bar */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 shadow-card overflow-x-auto">
-        <div className="flex items-center space-x-2 min-w-[720px]">
-          {STAGES.map((stage, idx) => {
-            const isCompleted = idx < stageIndex;
-            const isCurrent = idx === stageIndex;
-
-            let badgeStyle = "bg-[#F8F9FB] text-[#64748B] border border-[#E5E7EB]";
-            if (isCompleted) {
-              badgeStyle = "bg-[#ECFDF5] text-[#059669] border border-[#D1FAE5]";
-            } else if (isCurrent) {
-              badgeStyle = "bg-[#5B4BDB] text-white border border-[#5B4BDB] shadow-soft font-semibold";
-            }
-
-            return (
-              <button
-                key={stage.id}
-                onClick={() => handleStageClick(stage.id)}
-                className={`flex-1 h-10 px-3 rounded-xl flex items-center justify-center text-[12.5px] transition-all ${badgeStyle}`}
-              >
-                {isCompleted && <Check className="h-3.5 w-3.5 mr-1.5 stroke-[2.5]" />}
-                <span className="truncate">{stage.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Kanban Task Board */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card p-6">
-        <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#E5E7EB]">
-          <div>
-            <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-              DELIVERY BOARD
-            </div>
-            <h2 className="text-[17px] font-bold text-[#0F172A] tracking-tight mt-0.5">
-              Tasks ({tasks.length})
-            </h2>
-          </div>
-          <button
-            onClick={() => setIsNewTaskOpen(true)}
-            className="text-[13px] font-semibold text-[#5B4BDB] hover:underline flex items-center space-x-1"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Task</span>
-          </button>
-        </div>
-
-        {/* 4 Lanes */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {lanes.map((lane) => {
-            const laneTasks = tasks.filter((t) => t.status === lane.id);
-
-            return (
-              <div
-                key={lane.id}
-                className="bg-[#F8F9FB] rounded-xl border border-[#E5E7EB] p-3 flex flex-col min-h-[420px]"
-              >
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#E5E7EB] px-1">
-                  <span className="text-[11.5px] font-bold text-[#94A3B8] uppercase tracking-wider">
-                    {lane.label}
-                  </span>
-                  <span className="h-5 w-5 rounded-full bg-white text-[#5B4BDB] font-bold text-[11px] flex items-center justify-center border border-[#E5E7EB]">
-                    {laneTasks.length}
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => handleStageClick(s.id)}
+                  className="flex flex-col items-center cursor-pointer group px-2 shrink-0"
+                >
+                  <div
+                    className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all mb-1.5 ${
+                      isPast
+                        ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
+                        : isCurrent
+                        ? "bg-[#5B4BDB] text-white shadow-md ring-4 ring-[#EEF2FF]"
+                        : "bg-[#F1F5F9] text-[#94A3B8] border border-[#E2E8F0]"
+                    }`}
+                  >
+                    {isPast ? <Check className="h-4 w-4" /> : idx + 1}
+                  </div>
+                  <span
+                    className={`text-[11px] font-semibold tracking-tight transition-colors ${
+                      isCurrent ? "text-[#5B4BDB]" : isPast ? "text-[#0F172A]" : "text-[#94A3B8]"
+                    }`}
+                  >
+                    {s.label}
                   </span>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
-                <div className="space-y-2.5 flex-1 overflow-y-auto">
-                  {laneTasks.map((task) => {
-                    let prioColor = "bg-[#F1F5F9] text-[#64748B]";
-                    if (task.priority === "high") prioColor = "bg-[#FFF1F2] text-[#E11D48]";
-                    if (task.priority === "medium") prioColor = "bg-[#FFFBEB] text-[#D97706]";
+      {/* Kanban Board Container */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {lanes.map((lane) => {
+          const laneTasks = tasks.filter((t) => t.status === lane.id);
 
-                    return (
-                      <div
-                        key={task.id}
-                        className="bg-white border border-[#E5E7EB] hover:border-[#CBD5E1] rounded-xl p-3.5 shadow-soft transition-all group"
+          return (
+            <div key={lane.id} className="bg-[#F8F9FD] border border-[#E5E7EB] rounded-2xl p-4 flex flex-col space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                  {lane.label}
+                </span>
+                <span className="h-5 w-5 rounded-full bg-white text-xs font-bold text-[#0F172A] flex items-center justify-center shadow-xs border border-[#E5E7EB]">
+                  {laneTasks.length}
+                </span>
+              </div>
+
+              <div className="space-y-2.5 flex-1 min-h-[300px]">
+                {laneTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-2 hover:shadow-card transition-shadow"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[13px] font-semibold text-[#0F172A] leading-tight">
+                        {task.title}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                          task.priority === "high"
+                            ? "bg-red-50 text-red-600 border border-red-200"
+                            : task.priority === "medium"
+                            ? "bg-amber-50 text-amber-600 border border-amber-200"
+                            : "bg-slate-50 text-slate-600 border border-slate-200"
+                        }`}
                       >
-                        <div className="text-[13.5px] font-semibold text-[#0F172A] mb-2 leading-snug">
-                          {task.title}
-                        </div>
-
-                        <div className="flex items-center justify-between text-[11px] pt-1">
-                          <span className="text-[#64748B] font-medium">{task.owner_name}</span>
-                          <span className={`px-2 py-0.5 rounded-full font-semibold capitalize ${prioColor}`}>
-                            {task.priority}
-                          </span>
-                        </div>
-
-                        {/* Quick Lane Mover */}
-                        <div className="mt-2.5 pt-2 border-t border-[#E5E7EB] hidden group-hover:flex items-center justify-end space-x-1 text-[11px]">
-                          {lane.id !== "todo" && (
-                            <button
-                              onClick={() => {
-                                const idx = lanes.findIndex((l) => l.id === lane.id);
-                                moveTask(task.id, lanes[idx - 1].id);
-                              }}
-                              className="px-2 py-0.5 bg-[#F8F9FB] hover:bg-[#E5E7EB] rounded-lg text-[#0F172A]"
-                            >
-                              ← Back
-                            </button>
-                          )}
-                          {lane.id !== "completed" && (
-                            <button
-                              onClick={() => {
-                                const idx = lanes.findIndex((l) => l.id === lane.id);
-                                moveTask(task.id, lanes[idx + 1].id);
-                              }}
-                              className="px-2 py-0.5 bg-[#5B4BDB] hover:bg-[#4B3DC7] text-white rounded-lg font-semibold"
-                            >
-                              Next →
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {laneTasks.length === 0 && (
-                    <div className="h-28 border border-dashed border-[#E5E7EB] rounded-xl flex items-center justify-center text-[11px] text-[#94A3B8]">
-                      No tasks
+                        {task.priority}
+                      </span>
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* New Task Modal */}
-      {isNewTaskOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] w-full max-w-md shadow-dropdown p-6 text-[14px]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-              <h3 className="font-bold text-[16px] text-[#0F172A]">Create New Task</h3>
-              <button onClick={() => setIsNewTaskOpen(false)} className="text-[#64748B] hover:text-[#0F172A]">
-                <X className="h-4 w-4" />
-              </button>
+                    <div className="flex items-center justify-between text-xs text-[#94A3B8] pt-1 border-t border-[#F1F5F9]">
+                      <span className="text-[11px] font-medium text-[#64748B]">{task.owner_name}</span>
+                      <div className="flex items-center space-x-1">
+                        {lane.id !== "completed" && (
+                          <button
+                            onClick={() =>
+                              moveTask(
+                                task.id,
+                                lane.id === "todo"
+                                  ? "in_progress"
+                                  : lane.id === "in_progress"
+                                  ? "in_review"
+                                  : "completed"
+                              )
+                            }
+                            className="text-[11px] font-semibold text-[#5B4BDB] hover:underline"
+                          >
+                            Advance →
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <form onSubmit={handleCreateTask} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">
-                  Task Title <span className="text-[#E11D48]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Navigation responsive fix"
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] focus:border-[#5B4BDB] focus:ring-2 focus:ring-[#5B4BDB]/15 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">Assignee</label>
-                  <select
-                    value={newTaskOwner}
-                    onChange={(e) => setNewTaskOwner(e.target.value)}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
-                  >
-                    <option value="Meera">Meera (PM)</option>
-                    <option value="Karan">Karan (Developer)</option>
-                    <option value="Divya">Divya (Designer)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">Priority</label>
-                  <select
-                    value={newTaskPriority}
-                    onChange={(e) => setNewTaskPriority(e.target.value as any)}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
-                  >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1">Lane</label>
-                <select
-                  value={newTaskLane}
-                  onChange={(e) => setNewTaskLane(e.target.value as any)}
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-[13px] text-[#0F172A] bg-white focus:border-[#5B4BDB] focus:outline-none"
-                >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="in_review">In Review</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-[#E5E7EB]">
-                <button
-                  type="button"
-                  onClick={() => setIsNewTaskOpen(false)}
-                  className="h-10 px-4 border border-[#E5E7EB] rounded-xl text-[13px] text-[#64748B] hover:bg-[#F8F9FB]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="h-10 px-5 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-[13px] font-semibold shadow-soft"
-                >
-                  Create Task
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

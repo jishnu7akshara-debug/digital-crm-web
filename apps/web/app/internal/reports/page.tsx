@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import { api } from "@/lib/api";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("year");
@@ -59,6 +60,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6 select-none pb-12">
+      <PageReady when={!isLoading && !!reportData} />
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

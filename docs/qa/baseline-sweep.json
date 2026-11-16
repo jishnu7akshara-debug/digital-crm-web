@@ -5,13 +5,13 @@
     "url": "http://localhost:3000/internal/login",
     "status": 200,
     "redirectedTo": "http://localhost:3000/internal/login",
-    "loadTimeMs": 5827,
+    "loadTimeMs": 694,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 401,
-        "durationMs": 16
+        "durationMs": 8
       }
     ],
     "consoleErrors": [
@@ -19,8 +19,9 @@
     ],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/unauthenticated_internal_dashboard.png",
-    "screenshotBytes": 34905,
-    "isNegativeTest": true
+    "screenshotBytes": 32702,
+    "isNegativeTest": true,
+    "verdict": "PASS"
   },
   {
     "role": "unauthenticated",
@@ -28,13 +29,13 @@
     "url": "http://localhost:3000/portal/login",
     "status": 200,
     "redirectedTo": "http://localhost:3000/portal/login",
-    "loadTimeMs": 2998,
+    "loadTimeMs": 499,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 401,
-        "durationMs": 7
+        "durationMs": 4
       }
     ],
     "consoleErrors": [
@@ -42,225 +43,274 @@
     ],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/unauthenticated_portal.png",
-    "screenshotBytes": 29821,
-    "isNegativeTest": true
+    "screenshotBytes": 27609,
+    "isNegativeTest": true,
+    "verdict": "PASS"
   },
   {
     "role": "super_admin",
     "route": "/internal/dashboard",
     "url": "http://localhost:3000/internal/dashboard",
     "status": 200,
-    "loadTimeMs": 9474,
+    "loadTimeMs": 16200,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 6284
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_dashboard.png",
-    "screenshotBytes": 81492,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/leads",
-    "url": "http://localhost:3000/internal/leads",
-    "status": 200,
-    "loadTimeMs": 6820,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2829
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2554
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_leads.png",
-    "screenshotBytes": 81478,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/leads/lead-techcorp-01",
-    "url": "http://localhost:3000/internal/leads/lead-techcorp-01",
-    "status": 200,
-    "loadTimeMs": 6568,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2825
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2535
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_leads_lead-techcorp-01.png",
-    "screenshotBytes": 80551,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/clients",
-    "url": "http://localhost:3000/internal/clients",
-    "status": 200,
-    "loadTimeMs": 7627,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3818
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2542
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_clients.png",
-    "screenshotBytes": 193584,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/clients/cli-apex-01",
-    "url": "http://localhost:3000/internal/clients/cli-apex-01",
-    "status": 200,
-    "loadTimeMs": 6330,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2756
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2815
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_clients_cli-apex-01.png",
-    "screenshotBytes": 81115,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/projects",
-    "url": "http://localhost:3000/internal/projects",
-    "status": 200,
-    "loadTimeMs": 6298,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/clients/cli-apex-01",
-        "method": "GET",
-        "status": 404,
-        "durationMs": 0
-      },
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2822
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2546
-      }
-    ],
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 404 (Not Found)"
-    ],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_projects.png",
-    "screenshotBytes": 149476,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/projects/proj-apex-01",
-    "url": "http://localhost:3000/internal/projects/proj-apex-01",
-    "status": 200,
-    "loadTimeMs": 6752,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2764
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2585
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_projects_proj-apex-01.png",
-    "screenshotBytes": 145281,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/tasks",
-    "url": "http://localhost:3000/internal/tasks",
-    "status": 200,
-    "loadTimeMs": 6665,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2749
+        "durationMs": 2803
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
         "durationMs": 2544
+      },
+      {
+        "url": "http://localhost:3000/api/v1/dashboard/kpis",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 12394
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_tasks.png",
-    "screenshotBytes": 80432,
-    "isNegativeTest": false
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_dashboard.png",
+    "screenshotBytes": 195315,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "super_admin",
-    "route": "/internal/invoices",
-    "url": "http://localhost:3000/internal/invoices",
+    "route": "/internal/leads",
+    "url": "http://localhost:3000/internal/leads",
     "status": 200,
-    "loadTimeMs": 6332,
+    "loadTimeMs": 15564,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2860
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2544
+      },
+      {
+        "url": "http://localhost:3000/api/v1/leads?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 12078
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_leads.png",
+    "screenshotBytes": 242882,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+    "url": "http://localhost:3000/internal/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+    "status": 200,
+    "loadTimeMs": 6903,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2786
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2560
+      },
+      {
+        "url": "http://localhost:3000/api/v1/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8/activities",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3228
+      },
+      {
+        "url": "http://localhost:3000/api/v1/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3254
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_leads_c4afbc1f-b2c9-450b-a8d4-9312ec1794e8.png",
+    "screenshotBytes": 131673,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/opportunities",
+    "url": "http://localhost:3000/internal/opportunities",
+    "status": 200,
+    "loadTimeMs": 7400,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2802
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2577
+      },
+      {
+        "url": "http://localhost:3000/api/v1/proposals?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3899
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_opportunities.png",
+    "screenshotBytes": 114890,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/opportunities/PRP-2026-0001",
+    "url": "http://localhost:3000/internal/opportunities/PRP-2026-0001",
+    "status": 200,
+    "loadTimeMs": 7413,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2791
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2562
+      },
+      {
+        "url": "http://localhost:3000/api/v1/proposals/PRP-2026-0001",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3946
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_opportunities_PRP-2026-0001.png",
+    "screenshotBytes": 115768,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/clients",
+    "url": "http://localhost:3000/internal/clients",
+    "status": 200,
+    "loadTimeMs": 8929,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2800
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2545
+      },
+      {
+        "url": "http://localhost:3000/api/v1/clients?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 5633
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_clients.png",
+    "screenshotBytes": 270902,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/clients/new",
+    "url": "http://localhost:3000/internal/clients/new",
+    "status": 200,
+    "loadTimeMs": 3338,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2807
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_clients_new.png",
+    "screenshotBytes": 147767,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/clients/cli-apex-01",
+    "url": "http://localhost:3000/internal/clients/cli-apex-01",
+    "status": 200,
+    "loadTimeMs": 14530,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2815
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2580
+      },
+      {
+        "url": "http://localhost:3000/api/v1/clients/cli-apex-01",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 11054
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_clients_cli-apex-01.png",
+    "screenshotBytes": 165816,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/services",
+    "url": "http://localhost:3000/internal/services",
+    "status": 200,
+    "loadTimeMs": 4333,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
@@ -269,200 +319,25 @@
         "durationMs": 2821
       },
       {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "url": "http://localhost:3000/api/v1/services",
         "method": "GET",
         "status": 200,
-        "durationMs": 2515
+        "durationMs": 701
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_invoices.png",
-    "screenshotBytes": 154648,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/invoices/new",
-    "url": "http://localhost:3000/internal/invoices/new",
-    "status": 200,
-    "loadTimeMs": 6595,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/invoices?page_size=50",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 0
-      },
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2771
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2527
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_invoices_new.png",
-    "screenshotBytes": 139684,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/invoices/inv-apex-01",
-    "url": "http://localhost:3000/internal/invoices/inv-apex-01",
-    "status": 200,
-    "loadTimeMs": 8274,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 4477
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2546
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_invoices_inv-apex-01.png",
-    "screenshotBytes": 205201,
-    "isNegativeTest": false
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_services.png",
+    "screenshotBytes": 136959,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "super_admin",
     "route": "/internal/agreements",
     "url": "http://localhost:3000/internal/agreements",
     "status": 200,
-    "loadTimeMs": 8577,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 4822
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2532
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_agreements.png",
-    "screenshotBytes": 180979,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/agreements/agr-apex-msa-01",
-    "url": "http://localhost:3000/internal/agreements/agr-apex-msa-01",
-    "status": 200,
-    "loadTimeMs": 6334,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2757
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2537
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_agreements_agr-apex-msa-01.png",
-    "screenshotBytes": 216052,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/attendance",
-    "url": "http://localhost:3000/internal/attendance",
-    "status": 200,
-    "loadTimeMs": 7193,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/agreements/agr-apex-msa-01",
-        "method": "GET",
-        "status": 404,
-        "durationMs": 0
-      },
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3433
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2504
-      },
-      {
-        "url": "http://localhost:3000/api/v1/attendance/summary?filter_range=this_month",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2525
-      }
-    ],
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 404 (Not Found)"
-    ],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_attendance.png",
-    "screenshotBytes": 158808,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/team",
-    "url": "http://localhost:3000/internal/team",
-    "status": 200,
-    "loadTimeMs": 6335,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2778
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2517
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_team.png",
-    "screenshotBytes": 80542,
-    "isNegativeTest": false
-  },
-  {
-    "role": "super_admin",
-    "route": "/internal/services",
-    "url": "http://localhost:3000/internal/services",
-    "status": 200,
-    "loadTimeMs": 6456,
+    "loadTimeMs": 14000,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
@@ -471,513 +346,990 @@
         "durationMs": 2766
       },
       {
-        "url": "http://localhost:3000/api/v1/services",
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 759
+        "durationMs": 2564
       },
       {
-        "url": "http://localhost:3000/api/v1/services",
+        "url": "http://localhost:3000/api/v1/agreements",
         "method": "GET",
         "status": 200,
-        "durationMs": 1449
+        "durationMs": 10567
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_agreements.png",
+    "screenshotBytes": 171962,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/agreements/agr-apex-msa-01",
+    "url": "http://localhost:3000/internal/agreements/agr-apex-msa-01",
+    "status": 200,
+    "loadTimeMs": 7397,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2826
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2613
+        "durationMs": 2546
+      },
+      {
+        "url": "http://localhost:3000/api/v1/agreements/agr-apex-msa-01",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3917
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_services.png",
-    "screenshotBytes": 137827,
-    "isNegativeTest": false
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_agreements_agr-apex-msa-01.png",
+    "screenshotBytes": 170995,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/contracts",
+    "url": "http://localhost:3000/internal/agreements",
+    "status": 200,
+    "redirectedTo": "http://localhost:3000/internal/agreements",
+    "loadTimeMs": 14003,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2808
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2552
+      },
+      {
+        "url": "http://localhost:3000/api/v1/agreements",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 10510
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_contracts.png",
+    "screenshotBytes": 171962,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/projects",
+    "url": "http://localhost:3000/internal/projects",
+    "status": 200,
+    "loadTimeMs": 12010,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2773
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2560
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 8264
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_projects.png",
+    "screenshotBytes": 135224,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/projects/proj-apex-01",
+    "url": "http://localhost:3000/internal/projects/proj-apex-01",
+    "status": 200,
+    "loadTimeMs": 11507,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2794
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2543
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects/proj-apex-01",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 7754
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_projects_proj-apex-01.png",
+    "screenshotBytes": 130417,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/tasks",
+    "url": "http://localhost:3000/internal/tasks",
+    "status": 200,
+    "loadTimeMs": 17604,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2790
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2526
+      },
+      {
+        "url": "http://localhost:3000/api/v1/tasks?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 14058
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_tasks.png",
+    "screenshotBytes": 185474,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/invoices",
+    "url": "http://localhost:3000/internal/invoices",
+    "status": 200,
+    "loadTimeMs": 6382,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2798
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2571
+      },
+      {
+        "url": "http://localhost:3000/api/v1/invoices?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2805
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_invoices.png",
+    "screenshotBytes": 345321,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/invoices/new",
+    "url": "http://localhost:3000/internal/invoices/new",
+    "status": 200,
+    "loadTimeMs": 8874,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2753
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2549
+      },
+      {
+        "url": "http://localhost:3000/api/v1/clients?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 5611
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_invoices_new.png",
+    "screenshotBytes": 136953,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/invoices/inv-apex-01",
+    "url": "http://localhost:3000/internal/invoices/inv-apex-01",
+    "status": 200,
+    "loadTimeMs": 8410,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2801
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2654
+      },
+      {
+        "url": "http://localhost:3000/api/v1/invoices/inv-apex-01",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4730
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_invoices_inv-apex-01.png",
+    "screenshotBytes": 153778,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/attendance",
+    "url": "http://localhost:3000/internal/attendance",
+    "status": 200,
+    "loadTimeMs": 6919,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2788
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2586
+      },
+      {
+        "url": "http://localhost:3000/api/v1/attendance/summary?filter_range=this_month",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2916
+      },
+      {
+        "url": "http://localhost:3000/api/v1/attendance/records?filter_range=this_month&page_size=50",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3273
+      },
+      {
+        "url": "http://localhost:3000/api/v1/attendance/today-status",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3585
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_attendance.png",
+    "screenshotBytes": 161795,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "super_admin",
+    "route": "/internal/team",
+    "url": "http://localhost:3000/internal/team",
+    "status": 200,
+    "loadTimeMs": 16573,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2806
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2596
+      },
+      {
+        "url": "http://localhost:3000/api/v1/team",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 13122
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_team.png",
+    "screenshotBytes": 147115,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "super_admin",
     "route": "/internal/reports",
     "url": "http://localhost:3000/internal/reports",
     "status": 200,
-    "loadTimeMs": 7073,
+    "loadTimeMs": 12001,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 2755
+        "durationMs": 2897
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2559
+        "durationMs": 2560
+      },
+      {
+        "url": "http://localhost:3000/api/v1/reports/overview",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 8491
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_reports.png",
-    "screenshotBytes": 80432,
-    "isNegativeTest": false
+    "screenshotBytes": 135846,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "super_admin",
     "route": "/internal/support",
     "url": "http://localhost:3000/internal/support",
     "status": 200,
-    "loadTimeMs": 6670,
+    "loadTimeMs": 6389,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 2761
+        "durationMs": 2827
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2548
+        "durationMs": 2575
       },
       {
         "url": "http://localhost:3000/api/v1/support/tickets?status_filter=",
         "method": "GET",
         "status": 200,
-        "durationMs": 2754
+        "durationMs": 2779
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_support.png",
-    "screenshotBytes": 92595,
-    "isNegativeTest": false
+    "screenshotBytes": 91948,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "super_admin",
     "route": "/internal/settings/roles",
     "url": "http://localhost:3000/internal/settings/roles",
     "status": 200,
-    "loadTimeMs": 6821,
+    "loadTimeMs": 6393,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 2752
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2550
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_settings_roles.png",
-    "screenshotBytes": 97128,
-    "isNegativeTest": false
-  },
-  {
-    "role": "sales",
-    "route": "/internal/dashboard",
-    "url": "http://localhost:3000/internal/dashboard",
-    "status": 200,
-    "loadTimeMs": 6891,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3299
+        "durationMs": 2834
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
         "durationMs": 2557
+      },
+      {
+        "url": "http://localhost:3000/api/v1/roles",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3042
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/super_admin_internal_settings_roles.png",
+    "screenshotBytes": 315593,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "sales",
+    "route": "/internal/dashboard",
+    "url": "http://localhost:3000/internal/dashboard",
+    "status": 200,
+    "loadTimeMs": 18267,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3381
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2816
+      },
+      {
+        "url": "http://localhost:3000/api/v1/dashboard/kpis",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 14064
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/sales_internal_dashboard.png",
-    "screenshotBytes": 80126,
-    "isNegativeTest": false
+    "screenshotBytes": 193187,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "sales",
     "route": "/internal/leads",
     "url": "http://localhost:3000/internal/leads",
     "status": 200,
-    "loadTimeMs": 7052,
+    "loadTimeMs": 9422,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3225
+        "durationMs": 3318
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2584
+        "durationMs": 2578
+      },
+      {
+        "url": "http://localhost:3000/api/v1/leads?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 5369
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/sales_internal_leads.png",
-    "screenshotBytes": 79431,
-    "isNegativeTest": false
+    "screenshotBytes": 106620,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "sales",
-    "route": "/internal/leads/lead-techcorp-01",
-    "url": "http://localhost:3000/internal/leads/lead-techcorp-01",
+    "route": "/internal/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+    "url": "http://localhost:3000/internal/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
     "status": 200,
-    "loadTimeMs": 7250,
+    "loadTimeMs": 8943,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3233
+        "durationMs": 3265
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2588
+        "durationMs": 2554
+      },
+      {
+        "url": "http://localhost:3000/api/v1/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4684
+      },
+      {
+        "url": "http://localhost:3000/api/v1/leads/c4afbc1f-b2c9-450b-a8d4-9312ec1794e8/activities",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4768
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/sales_internal_leads_lead-techcorp-01.png",
-    "screenshotBytes": 78772,
-    "isNegativeTest": false
+    "screenshotPath": "docs/qa/screens/baseline/sales_internal_leads_c4afbc1f-b2c9-450b-a8d4-9312ec1794e8.png",
+    "screenshotBytes": 130528,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "sales",
+    "route": "/internal/opportunities",
+    "url": "http://localhost:3000/internal/opportunities",
+    "status": 200,
+    "loadTimeMs": 8933,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3264
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2535
+      },
+      {
+        "url": "http://localhost:3000/api/v1/proposals?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4876
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/sales_internal_opportunities.png",
+    "screenshotBytes": 113826,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "sales",
     "route": "/internal/clients",
     "url": "http://localhost:3000/internal/clients",
     "status": 200,
-    "loadTimeMs": 7130,
+    "loadTimeMs": 11470,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3208
+        "durationMs": 3277
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2603
+        "durationMs": 2578
+      },
+      {
+        "url": "http://localhost:3000/api/v1/clients?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 7456
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/sales_internal_clients.png",
-    "screenshotBytes": 192240,
-    "isNegativeTest": false
+    "screenshotBytes": 114468,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "sales",
     "route": "/internal/clients/cli-apex-01",
     "url": "http://localhost:3000/internal/clients/cli-apex-01",
     "status": 200,
-    "loadTimeMs": 6878,
+    "loadTimeMs": 16577,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3211
+        "durationMs": 3253
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2525
+        "durationMs": 2577
+      },
+      {
+        "url": "http://localhost:3000/api/v1/clients/cli-apex-01",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 12379
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/sales_internal_clients_cli-apex-01.png",
-    "screenshotBytes": 79430,
-    "isNegativeTest": false
+    "screenshotBytes": 164690,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "sales",
     "route": "/internal/projects",
     "url": "http://localhost:3000/internal/projects",
     "status": 200,
-    "loadTimeMs": 7072,
+    "loadTimeMs": 11983,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3387
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2854
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/sales_internal_projects.png",
-    "screenshotBytes": 148251,
-    "isNegativeTest": false
-  },
-  {
-    "role": "sales",
-    "route": "/internal/tasks",
-    "url": "http://localhost:3000/internal/tasks",
-    "status": 200,
-    "loadTimeMs": 7025,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3211
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2581
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/sales_internal_tasks.png",
-    "screenshotBytes": 78772,
-    "isNegativeTest": false
-  },
-  {
-    "role": "sales",
-    "route": "/internal/invoices",
-    "url": "http://localhost:3000/internal/invoices",
-    "status": 200,
-    "loadTimeMs": 6851,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3530
-      },
-      {
-        "url": "http://localhost:3000/api/v1/notifications?limit=10",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 2539
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/sales_internal_invoices.png",
-    "screenshotBytes": 154172,
-    "isNegativeTest": false
-  },
-  {
-    "role": "sales",
-    "route": "/internal/agreements",
-    "url": "http://localhost:3000/internal/agreements",
-    "status": 200,
-    "loadTimeMs": 7178,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3305
+        "durationMs": 3355
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
         "durationMs": 2558
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 7644
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/sales_internal_agreements.png",
-    "screenshotBytes": 179843,
-    "isNegativeTest": false
+    "screenshotPath": "docs/qa/screens/baseline/sales_internal_projects.png",
+    "screenshotBytes": 120561,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "sales",
-    "route": "/internal/settings/roles",
-    "url": "http://localhost:3000/internal/settings/roles",
+    "route": "/internal/tasks",
+    "url": "http://localhost:3000/internal/tasks",
     "status": 200,
-    "loadTimeMs": 6536,
+    "loadTimeMs": 19080,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3207
+        "durationMs": 3257
       },
       {
         "url": "http://localhost:3000/api/v1/notifications?limit=10",
         "method": "GET",
         "status": 200,
-        "durationMs": 2523
+        "durationMs": 2558
+      },
+      {
+        "url": "http://localhost:3000/api/v1/tasks?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 15340
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/sales_internal_settings_roles.png",
-    "screenshotBytes": 83715,
-    "isNegativeTest": true
+    "screenshotPath": "docs/qa/screens/baseline/sales_internal_tasks.png",
+    "screenshotBytes": 184610,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "sales",
+    "route": "/internal/invoices",
+    "url": "http://localhost:3000/internal/invoices",
+    "status": 200,
+    "loadTimeMs": 8401,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3261
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2555
+      },
+      {
+        "url": "http://localhost:3000/api/v1/invoices?page_size=100",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4607
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/sales_internal_invoices.png",
+    "screenshotBytes": 248390,
+    "isNegativeTest": false,
+    "verdict": "PASS"
+  },
+  {
+    "role": "sales",
+    "route": "/internal/agreements",
+    "url": "http://localhost:3000/internal/agreements",
+    "status": 200,
+    "loadTimeMs": 15980,
+    "apiRequests": [
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 3259
+      },
+      {
+        "url": "http://localhost:3000/api/v1/notifications?limit=10",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 2543
+      },
+      {
+        "url": "http://localhost:3000/api/v1/agreements",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 11792
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "docs/qa/screens/baseline/sales_internal_agreements.png",
+    "screenshotBytes": 170646,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "client_owner",
     "route": "/portal",
     "url": "http://localhost:3000/portal",
     "status": 200,
-    "loadTimeMs": 7842,
+    "loadTimeMs": 13085,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3999
+        "durationMs": 4004
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects/deliverables/pending",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4651
+      },
+      {
+        "url": "http://localhost:3000/api/v1/invoices?page_size=4",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 5411
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects?page_size=6",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 8231
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/client_owner_portal.png",
-    "screenshotBytes": 27185,
-    "isNegativeTest": false
+    "screenshotBytes": 109239,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "client_owner",
     "route": "/portal/projects",
     "url": "http://localhost:3000/portal/projects",
     "status": 200,
-    "loadTimeMs": 8653,
+    "loadTimeMs": 13542,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3918
+        "durationMs": 3949
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects?page_size=50",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 8767
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/client_owner_portal_projects.png",
-    "screenshotBytes": 35721,
-    "isNegativeTest": false
+    "screenshotBytes": 46759,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "client_owner",
     "route": "/portal/approvals",
     "url": "http://localhost:3000/portal/approvals",
     "status": 200,
-    "loadTimeMs": 7648,
+    "loadTimeMs": 9449,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3892
+        "durationMs": 3956
+      },
+      {
+        "url": "http://localhost:3000/api/v1/projects/deliverables/pending",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 4680
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/client_owner_portal_approvals.png",
-    "screenshotBytes": 27943,
-    "isNegativeTest": false
+    "screenshotBytes": 45371,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "client_owner",
     "route": "/portal/invoices",
     "url": "http://localhost:3000/portal/invoices",
     "status": 200,
-    "loadTimeMs": 7329,
+    "loadTimeMs": 10011,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 4026
+        "durationMs": 4018
+      },
+      {
+        "url": "http://localhost:3000/api/v1/invoices?page_size=50",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 5340
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/client_owner_portal_invoices.png",
-    "screenshotBytes": 41834,
-    "isNegativeTest": false
+    "screenshotBytes": 125365,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "client_owner",
     "route": "/portal/agreements",
     "url": "http://localhost:3000/portal/agreements",
     "status": 200,
-    "loadTimeMs": 7839,
+    "loadTimeMs": 18159,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3992
+        "durationMs": 4265
+      },
+      {
+        "url": "http://localhost:3000/api/v1/agreements",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 12986
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/client_owner_portal_agreements.png",
-    "screenshotBytes": 27634,
-    "isNegativeTest": false
+    "screenshotBytes": 124818,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   },
   {
     "role": "client_owner",
     "route": "/portal/support",
     "url": "http://localhost:3000/portal/support",
     "status": 200,
-    "loadTimeMs": 7674,
+    "loadTimeMs": 9896,
     "apiRequests": [
       {
         "url": "http://localhost:3000/api/v1/auth/me",
         "method": "GET",
         "status": 200,
-        "durationMs": 3933
+        "durationMs": 3981
+      },
+      {
+        "url": "http://localhost:3000/api/v1/support/tickets",
+        "method": "GET",
+        "status": 200,
+        "durationMs": 5359
       }
     ],
     "consoleErrors": [],
     "pageErrors": [],
     "screenshotPath": "docs/qa/screens/baseline/client_owner_portal_support.png",
-    "screenshotBytes": 45083,
-    "isNegativeTest": false
-  },
-  {
-    "role": "client_owner",
-    "route": "/internal/dashboard",
-    "url": "http://localhost:3000/portal",
-    "status": 200,
-    "redirectedTo": "http://localhost:3000/portal",
-    "loadTimeMs": 8168,
-    "apiRequests": [
-      {
-        "url": "http://localhost:3000/api/v1/auth/me",
-        "method": "GET",
-        "status": 200,
-        "durationMs": 3909
-      }
-    ],
-    "consoleErrors": [],
-    "pageErrors": [],
-    "screenshotPath": "docs/qa/screens/baseline/client_owner_internal_dashboard.png",
-    "screenshotBytes": 27415,
-    "isNegativeTest": true
+    "screenshotBytes": 41069,
+    "isNegativeTest": false,
+    "verdict": "PASS"
   }
 ]

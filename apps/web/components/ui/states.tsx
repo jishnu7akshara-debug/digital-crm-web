@@ -3,6 +3,7 @@
 import React from "react";
 import { AlertCircle, RefreshCw, FolderSearch } from "lucide-react";
 import { Button } from "./button";
+import { PageReady } from "@/components/page-ready";
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -25,6 +26,7 @@ export function EmptyState({
     <div
       className={`flex flex-col items-center justify-center p-8 sm:p-12 text-center bg-white rounded-2xl border border-dashed border-[#E2E8F0] ${className}`}
     >
+      <PageReady when={true} state="empty" dataLength={0} />
       <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#F8FAFC] text-[#64748B] mb-4">
         {icon || <FolderSearch className="w-6 h-6" />}
       </div>
@@ -56,6 +58,7 @@ export function ErrorState({
     <div
       className={`flex flex-col items-center justify-center p-8 text-center bg-red-50/50 rounded-2xl border border-red-200 ${className}`}
     >
+      <PageReady when={true} state="error" />
       <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-red-100 text-red-600 mb-3">
         <AlertCircle className="w-6 h-6" />
       </div>
@@ -84,7 +87,7 @@ export function PageSkeleton({
   rowsCount?: number;
 }) {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="space-y-6 animate-pulse" data-testid="skeleton">
       {/* Top Banner Skeleton */}
       <div className="h-24 bg-slate-200/60 rounded-2xl border border-slate-200" />
 

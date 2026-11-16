@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 interface TaskItem {
   id: string;
@@ -86,6 +87,11 @@ export default function StaffTasksPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady
+        when={!isLoading}
+        state={error ? "error" : filteredTasks.length === 0 ? "empty" : "success"}
+        dataLength={filteredTasks.length}
+      />
       {/* Top Banner */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

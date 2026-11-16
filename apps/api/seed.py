@@ -39,6 +39,8 @@ MODULES = [
     "reports",
     "support",
     "settings",
+    "proposals",
+    "services",
 ]
 
 # Permission definitions per module: read, create, edit, delete (plus specific actions)
@@ -99,6 +101,14 @@ PERMISSIONS_DEF = [
         "Manage Settings",
         "Can edit roles, permissions and configurations",
     ),
+    # Proposals & Opportunities
+    ("proposals.read", "proposals", "View Proposals", "Can view proposals and deals"),
+    ("proposals.create", "proposals", "Create Proposals", "Can create quotations and proposals"),
+    ("proposals.edit", "proposals", "Edit Proposals", "Can update proposal line items and status"),
+    ("proposals.delete", "proposals", "Delete Proposals", "Can delete proposals"),
+    # Services Catalog
+    ("services.read", "services", "View Services", "Can view agency service catalog"),
+    ("services.manage", "services", "Manage Services", "Can manage catalog offerings and tiers"),
 ]
 
 # Matrix Mapping: role_code -> { module: scope }
@@ -118,6 +128,8 @@ ROLE_MATRIX = {
         "reports": "assigned",
         "support": "all",
         "settings": "assigned",
+        "proposals": "all",
+        "services": "all",
     },
     "sales": {
         "leads": "own",
@@ -129,6 +141,8 @@ ROLE_MATRIX = {
         "attendance": "own",
         "reports": "assigned",
         "support": "assigned",
+        "proposals": "assigned",
+        "services": "all",
     },
     "project_manager": {
         "clients": "assigned",
@@ -140,6 +154,8 @@ ROLE_MATRIX = {
         "employees": "assigned",
         "reports": "assigned",
         "support": "assigned",
+        "proposals": "assigned",
+        "services": "all",
     },
     "employee": {
         "clients": "own",
@@ -167,6 +183,32 @@ ROLE_MATRIX = {
         "support": "all",
         "clients": "assigned",
         "attendance": "own",
+    },
+    "client_owner": {
+        "clients": "client",
+        "projects": "client",
+        "tasks": "client",
+        "invoices": "client",
+        "payments": "client",
+        "contracts": "client",
+        "support": "client",
+    },
+    "client_manager": {
+        "clients": "client",
+        "projects": "client",
+        "tasks": "client",
+        "contracts": "client",
+        "support": "client",
+    },
+    "client_finance": {
+        "invoices": "client",
+        "payments": "client",
+        "contracts": "client",
+    },
+    "client_employee": {
+        "projects": "client",
+        "tasks": "client",
+        "support": "client",
     },
 }
 

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2, ShieldCheck, FileText } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { PageReady } from "@/components/page-ready";
 
 interface LineItemForm {
   id: string;
@@ -151,6 +152,7 @@ export default function NewInvoicePage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      <PageReady when={!isClientsLoading} />
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-3">

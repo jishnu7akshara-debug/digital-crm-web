@@ -6,120 +6,37 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, FileText, Upload, Building2, ExternalLink, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
-
-const DEFAULT_ACCOUNTS = [
-  {
-    id: "CLI-PEAK-001",
-    name: "Peak Fitness",
-    contact: "Arjun S",
-    phone: "+91 98765 43210",
-    industry: "Fitness",
-    city: "Bengaluru",
-    status: "Active",
-    owner: "Meera",
-  },
-  {
-    id: "CLI-AKSHARA-01",
-    name: "Akshara Enterprises",
-    contact: "Pooja M",
-    phone: "+91 98450 12345",
-    industry: "Manufacturing",
-    city: "Hyderabad",
-    status: "Active",
-    owner: "Karan",
-  },
-  {
-    id: "CLI-NOVA-001",
-    name: "Nova Learning",
-    contact: "Suresh P",
-    phone: "+91 97312 34567",
-    industry: "EdTech",
-    city: "Bengaluru",
-    status: "Active",
-    owner: "Meera",
-  },
-  {
-    id: "CLI-GREEN-001",
-    name: "Greenleaf Organics",
-    contact: "Divya R",
-    phone: "+91 98860 98765",
-    industry: "FMCG",
-    city: "Chennai",
-    status: "Active",
-    owner: "Karan",
-  },
-  {
-    id: "CLI-BLOOM-001",
-    name: "Bloom Dental Clinic",
-    contact: "Dr. Anita",
-    phone: "+91 99001 22334",
-    industry: "Healthcare",
-    city: "Bengaluru",
-    status: "Active",
-    owner: "Karan",
-  },
-  {
-    id: "CLI-MEHTA-001",
-    name: "Mehta Interiors",
-    contact: "Rahul M",
-    phone: "+91 98220 55667",
-    industry: "Design",
-    city: "Mumbai",
-    status: "Active",
-    owner: "Meera",
-  },
-  {
-    id: "CLI-SRIVENK-01",
-    name: "Sri Venkata Traders",
-    contact: "Ravi K",
-    phone: "+91 97400 33445",
-    industry: "Trading",
-    city: "Bengaluru",
-    status: "Active",
-    owner: "Meera",
-  },
-  {
-    id: "CLI-LAKSHMI-01",
-    name: "Lakshmi Silks",
-    contact: "Mohan T",
-    phone: "+91 98110 77889",
-    industry: "Retail",
-    city: "Chennai",
-    status: "Active",
-    owner: "Meera",
-  },
-];
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function AccountsListPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: apiClients } = useQuery<any>({
+  const {
+    data: apiClients,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<any>({
     queryKey: ["clients-list"],
     queryFn: async () => {
-      try {
-        const res = await api.get<any>("/clients?page_size=50");
-        return res?.items || [];
-      } catch (e) {
-        return [];
-      }
+      const res = await api.get<any>("/clients?page_size=100");
+      return res?.items || [];
     },
   });
 
-  const accounts =
-    apiClients && apiClients.length > 0
-      ? apiClients.map((c: any) => ({
-          id: c.code || c.id,
-          rawId: c.id,
-          name: c.name,
-          contact: c.brand_name || "Primary Contact",
-          phone: "+91 98765 43210",
-          industry: c.city ? "Enterprise" : "Fitness",
-          city: c.city || "Bengaluru",
-          status: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : "Active",
-          owner: c.account_manager_name || "Meera Sharma",
-        }))
-      : DEFAULT_ACCOUNTS;
+  const accounts = (apiClients || []).map((c: any) => ({
+    id: c.code || c.id,
+    rawId: c.id,
+    name: c.name,
+    contact: c.brand_name || "Primary Contact",
+    phone: "+91 98765 43210",
+    industry: c.city ? "Enterprise" : "Fitness",
+    city: c.city || "Bengaluru",
+    status: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : "Active",
+    owner: c.account_manager_name || "Meera Sharma",
+  }));
 
   const filtered = accounts.filter(
     (a: any) =>
@@ -128,8 +45,27 @@ export default function AccountsListPage() {
       a.city.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={(error as any)?.message || "Failed to load clients."}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
+      <PageReady
+        when={!isLoading}
+        state={error ? "error" : accounts.length === 0 ? "empty" : "success"}
+        dataLength={accounts.length}
+      />
+
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -194,65 +130,74 @@ export default function AccountsListPage() {
       </div>
 
       {/* Accounts Table */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[13.5px]">
-            <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
-                <th className="py-3 px-4 font-semibold text-[#64748B]">Account Name</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Primary Contact</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Industry</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">City</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Status</th>
-                <th className="py-3 px-3 font-semibold text-[#64748B]">Account Owner</th>
-                <th className="py-3 px-4 font-semibold text-[#64748B]">Phone</th>
-                <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {filtered.map((acc: any) => (
-                <tr
-                  key={acc.id}
-                  onClick={() => router.push(`/internal/clients/${acc.id}`)}
-                  className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
-                  title={`Open ${acc.name} 360 profile`}
-                >
-                  <td className="py-3.5 px-4">
-                    <Link
-                      href={`/internal/clients/${acc.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[#5B4BDB] hover:underline font-semibold inline-flex items-center space-x-1.5"
-                    >
-                      <span>{acc.name}</span>
-                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-[#5B4BDB] transition-opacity shrink-0" />
-                    </Link>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#0F172A]">{acc.contact}</td>
-                  <td className="py-3.5 px-3 text-[#64748B]">{acc.industry}</td>
-                  <td className="py-3.5 px-3 text-[#0F172A]">{acc.city}</td>
-                  <td className="py-3.5 px-3">
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] font-semibold text-xs">
-                      {acc.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#0F172A] font-medium">{acc.owner}</td>
-                  <td className="py-3.5 px-4 text-[#64748B]">{acc.phone}</td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Link
-                      href={`/internal/clients/${acc.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs shrink-0"
-                    >
-                      <span>Open 360</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </td>
+      {accounts.length === 0 ? (
+        <EmptyState
+          title="No client accounts found"
+          description="Create your first client account or convert a qualified lead to start managing clients."
+          actionLabel="Create Client"
+          onAction={() => router.push("/internal/clients/new")}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-[13.5px]">
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F8F9FB] text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Account Name</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Primary Contact</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Industry</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">City</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Status</th>
+                  <th className="py-3 px-3 font-semibold text-[#64748B]">Account Owner</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B]">Phone</th>
+                  <th className="py-3 px-4 font-semibold text-[#64748B] text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB]">
+                {filtered.map((acc: any) => (
+                  <tr
+                    key={acc.id}
+                    onClick={() => router.push(`/internal/clients/${acc.id}`)}
+                    className="hover:bg-[#F8F9FD] transition-colors group cursor-pointer"
+                    title={`Open ${acc.name} 360 profile`}
+                  >
+                    <td className="py-3.5 px-4">
+                      <Link
+                        href={`/internal/clients/${acc.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[#5B4BDB] hover:underline font-semibold inline-flex items-center space-x-1.5"
+                      >
+                        <span>{acc.name}</span>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-[#5B4BDB] transition-opacity shrink-0" />
+                      </Link>
+                    </td>
+                    <td className="py-3.5 px-3 text-[#0F172A]">{acc.contact}</td>
+                    <td className="py-3.5 px-3 text-[#64748B]">{acc.industry}</td>
+                    <td className="py-3.5 px-3 text-[#0F172A]">{acc.city}</td>
+                    <td className="py-3.5 px-3">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] font-semibold text-xs">
+                        {acc.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3 text-[#0F172A] font-medium">{acc.owner}</td>
+                    <td className="py-3.5 px-4 text-[#64748B]">{acc.phone}</td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Link
+                        href={`/internal/clients/${acc.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#F0EDFD] hover:bg-[#5B4BDB] text-[#5B4BDB] hover:text-white text-xs font-semibold transition-all shadow-xs shrink-0"
+                      >
+                        <span>Open 360</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function AccountDetailPage() {
   const params = useParams();
@@ -191,6 +192,7 @@ export default function AccountDetailPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={!isLoading && !!client} />
       {/* Back button */}
       <Link
         href="/internal/clients"

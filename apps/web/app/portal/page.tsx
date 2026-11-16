@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatINRPrecise } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageSkeleton } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 interface DeliverableItem {
   id: string;
@@ -145,6 +146,7 @@ export default function ClientPortalDashboard() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 select-none">
+      <PageReady when={!isDeliverablesLoading && !isProjectsLoading && !isInvoicesLoading} />
       {/* SaaS Welcome Banner */}
       <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

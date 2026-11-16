@@ -22,130 +22,54 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { api } from "@/lib/api";
-
-const AGREEMENT_DATA: Record<string, any> = {
-  "agr-7": {
-    id: "agr-7",
-    agreement_no: "DFA-2026-0007",
-    account: "Peak Fitness",
-    client_id: "CLI-PEAK-001",
-    service: "Custom Website Redesign & SEO Growth Retainer",
-    value: "₹1,10,000",
-    sent: "Nov 04, 2026",
-    effective_date: "Nov 10, 2026",
-    expiry_date: "Nov 09, 2027",
-    status: "Sent",
-    email: "arjun@peakfitness.in",
-    signatory: "Arjun Nambiar",
-    signer_title: "Managing Director",
-    signed_copy: false,
-    terms: "50% advance on execution, 30% on staging delivery, 20% on production go-live.",
-  },
-  "agr-6": {
-    id: "agr-6",
-    agreement_no: "DFA-2026-0006",
-    account: "Akshara Enterprises",
-    client_id: "CLI-AKSH-001",
-    service: "Custom CRM & Lead Routing Platform",
-    value: "₹1,20,000",
-    sent: "Oct 22, 2026",
-    effective_date: "Oct 25, 2026",
-    expiry_date: "Oct 24, 2027",
-    status: "Signed",
-    email: "pooja@akshara.in",
-    signatory: "Pooja Hegde",
-    signer_title: "Operations Head",
-    signed_copy: true,
-    signed_at: "Oct 24, 2026, 05:14 PM IST",
-    ip_address: "103.21.244.18",
-    terms: "Standard milestone billing upon Sprint UAT sign-off.",
-  },
-  "agr-5": {
-    id: "agr-5",
-    agreement_no: "DFA-2026-0005",
-    account: "Nova Learning",
-    client_id: "CLI-NOVA-001",
-    service: "Custom EdTech LMS Platform & Student Portal",
-    value: "₹2,40,000",
-    sent: "Oct 18, 2026",
-    effective_date: "Oct 20, 2026",
-    expiry_date: "Oct 19, 2027",
-    status: "Signed",
-    email: "suresh@novalearning.com",
-    signatory: "Suresh Patil",
-    signer_title: "Founder & CEO",
-    signed_copy: true,
-    signed_at: "Oct 19, 2026, 02:40 PM IST",
-    ip_address: "49.207.210.66",
-    terms: "Phased architecture delivery across 4 sprints.",
-  },
-};
+import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function AgreementDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const agreementId = (params.id as string) || "agr-7";
+  const agreementId = (params?.id as string) || "";
 
   const [notification, setNotification] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string>("");
 
   // Fetch from FastAPI
-  const { data: apiData, refetch } = useQuery<any>({
+  const {
+    data: apiData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<any>({
     queryKey: ["agreement-detail", agreementId],
     queryFn: async () => {
-      try {
-        const res = await api.get<any>(`/agreements/${agreementId}`);
-        return res;
-      } catch (e) {
-        return null;
-      }
+      return await api.get<any>(`/agreements/${agreementId}`);
     },
+    enabled: !!agreementId,
   });
-
-  const fallback = AGREEMENT_DATA[agreementId] || {
-    id: agreementId,
-    agreement_no: agreementId.startsWith("DFA-") ? agreementId : "DFA-2026-0007",
-    account: "Commercial Client Account",
-    client_id: "CLI-PEAK-001",
-    service: "Master Technology Services Agreement",
-    value: "₹1,50,000",
-    sent: "Nov 04, 2026",
-    effective_date: "Nov 10, 2026",
-    expiry_date: "Nov 09, 2027",
-    status: "Sent",
-    email: "legal@client.in",
-    signatory: "Primary Executive",
-    signer_title: "Authorized Officer",
-    signed_copy: false,
-    terms: "50% advance on execution, 30% on staging delivery, 20% on production go-live.",
-  };
 
   const agreement = apiData
     ? {
         id: apiData.id,
         agreement_no: apiData.agreement_no,
         account: apiData.account_name,
-        client_id: apiData.account_id || fallback.client_id,
+        client_id: apiData.account_id,
         service: apiData.service,
         value: apiData.value_formatted,
-        sent: apiData.sent_date || fallback.sent,
-        effective_date: fallback.effective_date,
-        expiry_date: fallback.expiry_date,
-        status: apiData.status ? apiData.status.charAt(0).toUpperCase() + apiData.status.slice(1) : fallback.status,
-        email: apiData.client_email || fallback.email,
-        signatory: fallback.signatory,
-        signer_title: fallback.signer_title,
-        signed_copy: apiData.signed_copy_received ?? fallback.signed_copy,
-        signed_at: fallback.signed_at,
-        ip_address: fallback.ip_address,
-        terms: apiData.terms_summary || fallback.terms,
+        sent: apiData.sent_date || "—",
+        effective_date: apiData.sent_date || "Upon execution",
+        expiry_date: "1 Year from Execution",
+        status: apiData.status ? apiData.status.charAt(0).toUpperCase() + apiData.status.slice(1) : "Draft",
+        email: apiData.client_email || "contact@client.in",
+        signed_copy: apiData.signed_copy_received ?? false,
+        terms: apiData.terms_summary || "Standard milestone billing upon Sprint UAT sign-off.",
       }
-    : fallback;
+    : null;
 
-  const effectiveStatus = currentStatus || agreement.status;
-  const isSigned = effectiveStatus === "Signed" || agreement.signed_copy;
+  const effectiveStatus = currentStatus || (agreement ? agreement.status : "");
+  const isSigned = effectiveStatus === "Signed" || (agreement?.signed_copy ?? false);
 
   const handleSignAgreement = async () => {
+    if (!agreement) return;
     try {
       await api.post(`/agreements/${agreement.id}/sign`, {});
       refetch();
@@ -164,8 +88,23 @@ export default function AgreementDetailPage() {
     }
   };
 
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
+
+  if (error || !agreement) {
+    return (
+      <ErrorState
+        message={(error as any)?.message || "Agreement not found."}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={!isLoading && !!agreement} />
+
       {/* Breadcrumb Navigation */}
       <div className="flex items-center space-x-2 text-xs text-[#64748B]">
         <Link
@@ -214,7 +153,7 @@ export default function AgreementDetailPage() {
             <p className="text-[14px] text-[#64748B] mt-0.5 flex items-center gap-2">
               <Building2 className="h-4 w-4 text-[#94A3B8]" />
               <Link
-                href={`/internal/clients/${agreement.client_id || "CLI-PEAK-001"}`}
+                href={`/internal/clients/${agreement.client_id || ""}`}
                 className="font-semibold text-[#5B4BDB] hover:underline"
               >
                 {agreement.account}
@@ -278,79 +217,38 @@ export default function AgreementDetailPage() {
             <div>
               <span className="text-[11px] font-bold text-[#94A3B8] uppercase block mb-0.5">CLIENT ENTITY</span>
               <p className="font-bold text-[#0F172A]">{agreement.account}</p>
-              <p>Designated Contact: {agreement.signatory} ({agreement.email})</p>
-              <p>Account Code: {agreement.client_id}</p>
+              <p>Billing Contact: {agreement.email}</p>
             </div>
           </div>
         </div>
 
-        {/* Scope of Work */}
-        <div className="space-y-2 text-xs">
-          <h3 className="font-bold text-sm text-[#0F172A]">1. Scope of Deliverables & Engagement</h3>
-          <p className="text-[#475569] leading-relaxed">
-            Service Provider agrees to design, engineer, and deploy the services defined under{" "}
-            <span className="font-semibold text-[#0F172A]">{agreement.service}</span> in compliance with modern production
-            standards, responsive performance, SEO indexing, and SLA maintenance requirements.
-          </p>
-        </div>
-
-        {/* Commercial Consideration */}
-        <div className="space-y-2 text-xs">
-          <h3 className="font-bold text-sm text-[#0F172A]">2. Commercial Value & Payment Milestones</h3>
-          <p className="text-[#475569] leading-relaxed">
-            The total agreed contractual value for this statement of work is{" "}
-            <span className="font-bold text-[#0F172A]">{agreement.value} (excluding applicable GST)</span>.
-            Payment terms: {agreement.terms}
-          </p>
-        </div>
-
-        {/* Intellectual Property & Confidentiality */}
-        <div className="space-y-2 text-xs">
-          <h3 className="font-bold text-sm text-[#0F172A]">3. Intellectual Property Rights & Warranty</h3>
-          <p className="text-[#475569] leading-relaxed">
-            Upon full settlement of all commercial milestones, all customized source code, database architectures, and design
-            assets created exclusively for Client shall transfer unconditionally to Client. Service Provider provides a 90-day
-            post-deployment warranty covering functional defects.
-          </p>
-        </div>
-
-        {/* Signatures & Verification Seal */}
-        <div className="pt-8 border-t-2 border-[#E5E7EB] grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs">
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold text-[#94A3B8] uppercase block">FOR DIGITAL FOOTPRINT:</span>
-            <div className="h-14 flex items-end">
-              <span className="font-serif italic font-bold text-base text-[#0F172A]">Sai Varshith</span>
-            </div>
-            <div className="border-t border-[#CBD5E1] pt-1">
-              <p className="font-semibold text-[#0F172A]">Sai Varshith</p>
-              <p className="text-[#64748B]">Super Admin & Managing Director</p>
-              <p className="text-[11px] text-[#94A3B8]">Digital Footprint Technologies</p>
-            </div>
+        {/* Terms Section */}
+        <div className="space-y-4 text-xs text-[#334155] leading-relaxed">
+          <div>
+            <h3 className="font-bold text-[#0F172A] uppercase tracking-wider text-[11px] mb-1">
+              1. Statement of Work & Deliverables
+            </h3>
+            <p>
+              The Service Provider agrees to deliver {agreement.service} adhering to production specifications agreed in writing with the Client.
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold text-[#94A3B8] uppercase block">
-              FOR CLIENT ({agreement.account.toUpperCase()}):
-            </span>
-            <div className="h-14 flex items-end">
-              {isSigned ? (
-                <div className="flex items-center space-x-2 text-[#059669]">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span className="font-serif italic font-bold text-base">{agreement.signatory}</span>
-                </div>
-              ) : (
-                <span className="text-xs text-[#94A3B8] italic">Awaiting client digital signature</span>
-              )}
-            </div>
-            <div className="border-t border-[#CBD5E1] pt-1">
-              <p className="font-semibold text-[#0F172A]">{agreement.signatory}</p>
-              <p className="text-[#64748B]">{agreement.signer_title}</p>
-              {isSigned && (
-                <p className="text-[11px] text-[#059669] font-medium">
-                  Signed: {agreement.signed_at || "Verified"} (IP: {agreement.ip_address || "Verified"})
-                </p>
-              )}
-            </div>
+          <div>
+            <h3 className="font-bold text-[#0F172A] uppercase tracking-wider text-[11px] mb-1">
+              2. Commercial Terms & Payment Schedule
+            </h3>
+            <p>
+              The total contract fee for the scope of services is {agreement.value} plus applicable GST. {agreement.terms}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-[#0F172A] uppercase tracking-wider text-[11px] mb-1">
+              3. Intellectual Property Rights
+            </h3>
+            <p>
+              Upon 100% receipt of all agreed consideration and fees, all intellectual property, source code, designs, and brand assets developed specifically for the Client shall be assigned to the Client.
+            </p>
           </div>
         </div>
       </div>

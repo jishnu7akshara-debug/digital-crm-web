@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function SaasDashboardPage() {
   const { user } = useAuth();
@@ -60,6 +61,7 @@ export default function SaasDashboardPage() {
 
   return (
     <div className="space-y-6 select-none pb-12">
+      <PageReady when={!isLoading && !!kpiData} />
       {/* 1. Page Header (Greeting + Date Picker Pill) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

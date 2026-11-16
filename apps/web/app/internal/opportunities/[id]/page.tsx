@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function OpportunityDetailPage() {
   const params = useParams();
@@ -70,6 +71,7 @@ export default function OpportunityDetailPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={!isLoading && !!proposal} />
       {/* Back button */}
       <Link
         href="/internal/opportunities"

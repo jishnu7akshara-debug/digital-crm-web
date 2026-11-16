@@ -25,6 +25,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { toast as sonnerToast } from "sonner";
+import { PageReady } from "@/components/page-ready";
 
 interface AttendanceRecordItem {
   id: string;
@@ -309,6 +310,7 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6 select-none max-w-[1550px] mx-auto pb-12">
+      <PageReady when={!isRecordsLoading && !!recordsData} />
       {/* Toast Notification */}
       {toast && (
         <div

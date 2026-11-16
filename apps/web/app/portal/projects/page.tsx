@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { PageSkeleton, EmptyState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 export default function PortalProjectsPage() {
   const { data: projects, isLoading } = useQuery<any>({
@@ -14,8 +16,20 @@ export default function PortalProjectsPage() {
     queryFn: () => api.get<any>("/projects?page_size=50"),
   });
 
+  if (isLoading) {
+    return (
+      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+        <PageSkeleton />
+      </div>
+    );
+  }
+
+  const items = projects?.items || [];
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <PageReady when={!isLoading} state={items.length === 0 ? "empty" : "success"} dataLength={items.length} />
+
       {/* Top Banner Card */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -30,14 +44,15 @@ export default function PortalProjectsPage() {
           </p>
         </div>
       </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isLoading && (
-            <div className="col-span-2 text-center py-12 text-[#77738A] text-xs">
-              Loading your projects...
-            </div>
-          )}
 
-          {projects?.items?.map((proj: any) => (
+      {items.length === 0 ? (
+        <EmptyState
+          title="No active projects"
+          description="Your contracted projects and delivery workspaces will appear here once initiated."
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {items.map((proj: any) => (
             <Card key={proj.id}>
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between">
@@ -69,7 +84,7 @@ export default function PortalProjectsPage() {
             </Card>
           ))}
         </div>
+      )}
     </div>
   );
 }
-

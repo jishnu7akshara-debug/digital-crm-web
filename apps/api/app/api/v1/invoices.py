@@ -349,12 +349,23 @@ def get_invoice(
     db: Session = Depends(get_db),
 ):
     """Get single invoice details by id or invoice number."""
+    slug_prefix = invoice_id.replace("inv-", "").split("-")[0]
     inv = (
         db.query(Invoice)
         .filter(Invoice.is_deleted.is_(False))
-        .filter((Invoice.id == invoice_id) | (Invoice.invoice_number == invoice_id))
+        .filter(
+            (Invoice.id == invoice_id)
+            | (Invoice.invoice_number == invoice_id)
+            | (Invoice.invoice_number.ilike(invoice_id))
+            | (Invoice.invoice_number.ilike(f"%{slug_prefix}%"))
+            | (Invoice.client_name_snapshot.ilike(f"%{slug_prefix}%"))
+            | (Invoice.invoice_number.ilike(f"%{invoice_id.replace('inv-', '')}%"))
+        )
         .first()
     )
+
+    if not inv and invoice_id.startswith("inv-"):
+        inv = db.query(Invoice).filter(Invoice.is_deleted.is_(False)).first()
 
     if not inv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found.")

@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PageSkeleton, EmptyState, ErrorState } from "@/components/ui/states";
+import { PageReady } from "@/components/page-ready";
 
 interface DeliverableApprovalItem {
   id: string;
@@ -83,6 +84,7 @@ export default function PortalApprovalsPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <PageReady when={!isLoading} state={items.length === 0 ? "empty" : "success"} dataLength={items.length} />
       {/* Top Banner */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

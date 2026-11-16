@@ -147,7 +147,18 @@ def get_proposal(
     db: Session = Depends(get_db),
 ):
     """Get full proposal with line items and commercial breakdown."""
-    p = db.query(Proposal).filter(Proposal.id == proposal_id, Proposal.is_deleted.is_(False)).first()
+    clean_num = proposal_id.upper()
+    p = (
+        db.query(Proposal)
+        .filter(
+            (Proposal.id == proposal_id)
+            | (Proposal.proposal_number == proposal_id)
+            | (Proposal.proposal_number == clean_num)
+            | (Proposal.proposal_number.ilike(f"%{proposal_id}%")),
+            Proposal.is_deleted.is_(False),
+        )
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found.")
 
@@ -278,7 +289,18 @@ def update_proposal_status(
     db: Session = Depends(get_db),
 ):
     """Transition proposal status (e.g. mark sent, accepted, rejected)."""
-    p = db.query(Proposal).filter(Proposal.id == proposal_id, Proposal.is_deleted.is_(False)).first()
+    clean_num = proposal_id.upper()
+    p = (
+        db.query(Proposal)
+        .filter(
+            (Proposal.id == proposal_id)
+            | (Proposal.proposal_number == proposal_id)
+            | (Proposal.proposal_number == clean_num)
+            | (Proposal.proposal_number.ilike(f"%{proposal_id}%")),
+            Proposal.is_deleted.is_(False),
+        )
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found.")
 
@@ -322,7 +344,18 @@ def delete_proposal(
     db: Session = Depends(get_db),
 ):
     """Soft delete proposal."""
-    p = db.query(Proposal).filter(Proposal.id == proposal_id, Proposal.is_deleted.is_(False)).first()
+    clean_num = proposal_id.upper()
+    p = (
+        db.query(Proposal)
+        .filter(
+            (Proposal.id == proposal_id)
+            | (Proposal.proposal_number == proposal_id)
+            | (Proposal.proposal_number == clean_num)
+            | (Proposal.proposal_number.ilike(f"%{proposal_id}%")),
+            Proposal.is_deleted.is_(False),
+        )
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proposal not found.")
 

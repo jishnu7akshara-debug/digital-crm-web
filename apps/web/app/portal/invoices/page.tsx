@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { formatINRPrecise, formatDate } from "@/lib/utils";
+import { PageReady } from "@/components/page-ready";
 
 export default function PortalInvoicesPage() {
   const { data: invoices, isLoading } = useQuery<any>({
@@ -15,8 +16,11 @@ export default function PortalInvoicesPage() {
     queryFn: () => api.get<any>("/invoices?page_size=50"),
   });
 
+  const items = invoices?.items || [];
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <PageReady when={!isLoading} dataLength={items.length} />
       {/* Top Banner */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

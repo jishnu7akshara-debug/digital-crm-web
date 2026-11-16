@@ -6,6 +6,7 @@ import { Lock, Mail, ArrowRight, ShieldAlert, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
+import { PageReady } from "@/components/page-ready";
 
 export default function PortalLoginPage() {
   const { login } = useAuth();
@@ -29,6 +30,7 @@ export default function PortalLoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-[#F8F8FC] px-4 select-none">
+      <PageReady when={true} />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <div className="h-12 w-12 rounded-xl bg-[#6C3BDB] flex items-center justify-center font-bold text-white text-xl shadow-md mb-3">

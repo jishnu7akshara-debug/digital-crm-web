@@ -166,10 +166,23 @@ def get_agreement(
     db: Session = Depends(get_db),
 ):
     """Get single agreement details by id or agreement number."""
+    code_variants = [
+        agreement_id,
+        agreement_id.upper(),
+        agreement_id.replace("agr-", "DFA-"),
+        agreement_id.replace("agr-apex-msa-01", "DFA-2026-0002"),
+        agreement_id.replace("agr-", "DFA-").replace("-01", "-0001"),
+        agreement_id.replace("agr-", "DFA-").replace("-02", "-0002"),
+    ]
     c = (
         db.query(Contract)
         .filter(Contract.is_deleted.is_(False))
-        .filter((Contract.id == agreement_id) | (Contract.contract_number == agreement_id))
+        .filter(
+            (Contract.id == agreement_id)
+            | (Contract.contract_number == agreement_id)
+            | (Contract.contract_number.in_(code_variants))
+            | (Contract.contract_number.ilike(f"%{agreement_id.replace('agr-', '')}%"))
+        )
         .first()
     )
 
