@@ -192,39 +192,64 @@ def login(
     audit_id = str(uuid.uuid4())
     now = datetime.now(UTC)
 
-    # Batch insert into login_attempts, user_sessions, update users.last_login_at, and insert audit_log in 1 CTE roundtrip
-    cte_sql = text("""
-        WITH ins_la AS (
-            INSERT INTO login_attempts (id, email_hash, ip_address, is_success, created_at, updated_at)
-            VALUES (:la_id, :email_hash, :ip, true, :now, :now)
-        ),
-        ins_us AS (
-            INSERT INTO user_sessions (id, user_id, token_hash, ip_address, user_agent, expires_at, created_at, updated_at, is_revoked)
-            VALUES (:us_id, :user_id, :token_hash, :ip, :ua, :expires, :now, :now, false)
-        ),
-        upd_u AS (
-            UPDATE users SET last_login_at = :now WHERE id = :user_id
+    bind = db.get_bind() if hasattr(db, "get_bind") else None
+    is_sqlite = bind is not None and getattr(bind.dialect, "name", "") == "sqlite"
+
+    if is_sqlite:
+        db.add(LoginAttempt(email_hash=email_hash, ip_address=client_ip, is_success=True))
+        session_entry = UserSession(
+            id=session_id,
+            user_id=user.id,
+            token_hash=token_hash,
+            ip_address=client_ip,
+            user_agent=request.headers.get("user-agent"),
+            expires_at=expires_at,
         )
-        INSERT INTO audit_logs (id, user_id, user_email, action, resource_type, resource_id, ip_address, timestamp)
-        VALUES (:al_id, :user_id, :email, 'user.login', 'user', :user_id, :ip, :now)
-    """)
-    db.execute(
-        cte_sql,
-        {
-            "la_id": attempt_id,
-            "email_hash": email_hash,
-            "ip": client_ip,
-            "now": now,
-            "us_id": session_id,
-            "user_id": user.id,
-            "token_hash": token_hash,
-            "ua": request.headers.get("user-agent"),
-            "expires": expires_at,
-            "al_id": audit_id,
-            "email": user.email,
-        },
-    )
-    db.commit()
+        db.add(session_entry)
+        user.last_login_at = now
+        log_audit_event(
+            db=db,
+            action="user.login",
+            resource_type="user",
+            resource_id=user.id,
+            user=user,
+            request=request,
+        )
+        db.commit()
+    else:
+        # PostgreSQL / Neon: fast single-roundtrip batched CTE
+        cte_sql = text("""
+            WITH ins_la AS (
+                INSERT INTO login_attempts (id, email_hash, ip_address, is_success, created_at, updated_at)
+                VALUES (:la_id, :email_hash, :ip, true, :now, :now)
+            ),
+            ins_us AS (
+                INSERT INTO user_sessions (id, user_id, token_hash, ip_address, user_agent, expires_at, created_at, updated_at, is_revoked)
+                VALUES (:us_id, :user_id, :token_hash, :ip, :ua, :expires, :now, :now, false)
+            ),
+            upd_u AS (
+                UPDATE users SET last_login_at = :now WHERE id = :user_id
+            )
+            INSERT INTO audit_logs (id, user_id, user_email, action, resource_type, resource_id, ip_address, timestamp)
+            VALUES (:al_id, :user_id, :email, 'user.login', 'user', :user_id, :ip, :now)
+        """)
+        db.execute(
+            cte_sql,
+            {
+                "la_id": attempt_id,
+                "email_hash": email_hash,
+                "ip": client_ip,
+                "now": now,
+                "us_id": session_id,
+                "user_id": user.id,
+                "token_hash": token_hash,
+                "ua": request.headers.get("user-agent"),
+                "expires": expires_at,
+                "al_id": audit_id,
+                "email": user.email,
+            },
+        )
+        db.commit()
 
     # Set secure HTTP-only cookie
     response.set_cookie(

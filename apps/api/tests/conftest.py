@@ -107,6 +107,12 @@ def setup_test_db():
             user_role = UserRole(user_id=admin.id, role_id=super_role.id)
             db.add(user_role)
             db.commit()
+        else:
+            admin.hashed_password = hash_password("Admin@123456!")
+            admin.is_active = True
+            admin.is_deleted = False
+            admin.is_suspended = False
+            db.commit()
 
         # Seed Apex Global client for crm_finance test if missing
         apex = db.query(Client).filter_by(name="Apex Global Technologies").first()
