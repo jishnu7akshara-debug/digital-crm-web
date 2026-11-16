@@ -117,9 +117,9 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     label: "Settings",
-    href: "/internal/settings/roles",
+    href: "/internal/settings",
     icon: Settings,
-    permission: "roles.manage",
+    permission: "settings.read",
   },
 ];
 
