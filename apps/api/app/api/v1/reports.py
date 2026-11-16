@@ -145,7 +145,7 @@ def build_report_data(report_type: str, db: Session) -> tuple[list[str], list[li
             val_inr = round(lead.estimated_value_paise / 100.0, 2)
             total_val_paise += lead.estimated_value_paise
             rows.append([
-                lead.name,
+                lead.contact_name or lead.title,
                 lead.company_name or "-",
                 lead.status,
                 f"{val_inr:.2f}",

@@ -178,7 +178,8 @@ def get_next_sequence_value(
             prefix = f"CN/{financial_year}/"
             cns = (
                 db.query(CreditNote.credit_note_number)
-                .join(Client, CreditNote.client_id == Client.id)
+                .join(Invoice, CreditNote.invoice_id == Invoice.id)
+                .join(Client, Invoice.client_id == Client.id)
                 .filter(
                     Client.organization_id == organization_id,
                     CreditNote.credit_note_number.like(f"{prefix}%"),
