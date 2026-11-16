@@ -86,8 +86,9 @@ def create_app() -> FastAPI:
     def root_health_check():
         return {"status": "ok", "service": "Digital Footprint OS API", "version": "1.0.0"}
 
-    # Mount API routers
+    # Mount API routers (both /api and root prefixes for Vercel/proxy compatibility)
     app.include_router(api_v1_router, prefix="/api")
+    app.include_router(api_v1_router)
 
     return app
 
