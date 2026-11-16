@@ -48,9 +48,6 @@ def pytest_configure(config: pytest.Config) -> None:
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
     """Ensure migrations are applied and required seed records are present in the test database."""
-    import alembic.command
-    import alembic.config
-
     import app.db.models  # noqa: F401
     from app.core.database import SessionLocal, engine
     from app.core.security import hash_password
@@ -63,16 +60,13 @@ def setup_test_db():
         UserRole,
     )
 
-    # 1. Run migrations to ensure latest schema
-    alembic_cfg = alembic.config.Config("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", os.environ["TEST_DATABASE_URL"])
+    db = SessionLocal()
     try:
-        alembic.command.upgrade(alembic_cfg, "head")
+        org = db.query(Organization).first()
     except Exception:
-        # Fallback to create_all if alembic table exists or in-memory
+        org = None
         Base.metadata.create_all(bind=engine)
 
-    db = SessionLocal()
     try:
         # Seed default org
         org = db.query(Organization).first()
@@ -86,6 +80,55 @@ def setup_test_db():
         if not super_role:
             super_role = Role(id="role-super-admin", organization_id=org.id, name="Super Administrator", code="super_admin")
             db.add(super_role)
+            db.commit()
+
+        # Seed all permissions and system & portal roles for test harness
+        from seed import PERMISSIONS_DEF, ROLE_MATRIX, PORTAL_ROLES
+        from app.db.models import Permission, RolePermission
+
+        existing_perms = {p.code: p for p in db.query(Permission).all()}
+        for code, module, name, desc in PERMISSIONS_DEF:
+            if code not in existing_perms:
+                perm = Permission(code=code, module=module, name=name, description=desc)
+                db.add(perm)
+                existing_perms[code] = perm
+        db.commit()
+
+        permissions_by_module = {}
+        for p in db.query(Permission).all():
+            permissions_by_module.setdefault(p.module, []).append(p)
+
+        existing_roles = {r.code: r for r in db.query(Role).all()}
+        for role_code, matrix in ROLE_MATRIX.items():
+            if role_code not in existing_roles:
+                role_type = "client" if role_code in PORTAL_ROLES else "internal"
+                role_name = role_code.replace("_", " ").title()
+                role = Role(
+                    organization_id=org.id,
+                    name=role_name,
+                    code=role_code,
+                    description=PORTAL_ROLES.get(role_code, f"System {role_name} role"),
+                    is_system=True,
+                    role_type=role_type,
+                )
+                db.add(role)
+                existing_roles[role_code] = role
+        db.commit()
+
+        existing_rps = set(db.query(RolePermission.role_id, RolePermission.permission_id).all())
+        to_add_rps = []
+        for role_code, matrix in ROLE_MATRIX.items():
+            role = existing_roles.get(role_code)
+            if not role:
+                continue
+            for module, scope in matrix.items():
+                if scope and module in permissions_by_module:
+                    for perm in permissions_by_module[module]:
+                        if (role.id, perm.id) not in existing_rps:
+                            to_add_rps.append(RolePermission(role_id=role.id, permission_id=perm.id, scope=scope))
+                            existing_rps.add((role.id, perm.id))
+        if to_add_rps:
+            db.add_all(to_add_rps)
             db.commit()
 
         # Seed admin user
