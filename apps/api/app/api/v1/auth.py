@@ -1,6 +1,7 @@
 """Authentication API Router: Login, Logout, Session, Password Reset."""
 
 import hashlib
+import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -13,6 +14,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
     generate_secure_token,
+    hash_password,
     hash_token,
     verify_password,
 )
@@ -301,3 +303,209 @@ def get_current_user_profile(
             home_route=home_route,
         ),
     )
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class SessionInfo(BaseModel):
+    id: str
+    ip_address: str | None = None
+    user_agent: str | None = None
+    created_at: str
+    expires_at: str
+    is_current: bool
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.post("/change-password", response_model=ApiResponse[bool])
+def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change current user password and revoke all other sessions."""
+    if not verify_password(payload.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password incorrect.")
+
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters.",
+        )
+
+    current_user.hashed_password = hash_password(payload.new_password)
+
+    # Revoke other sessions
+    current_token = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    curr_hash = hash_token(current_token) if current_token else None
+    q = db.query(UserSession).filter(UserSession.user_id == current_user.id)
+    if curr_hash:
+        q = q.filter(UserSession.token_hash != curr_hash)
+    q.update({"is_revoked": True})
+
+    log_audit_event(
+        db=db,
+        action="user.change_password",
+        resource_type="user",
+        resource_id=current_user.id,
+        user=current_user,
+        request=request,
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=True, message="Password updated. Other sessions revoked.")
+
+
+@router.get("/sessions", response_model=ApiResponse[list[SessionInfo]])
+def list_active_sessions(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List active sessions for current user."""
+    current_token = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    curr_hash = hash_token(current_token) if current_token else None
+
+    sessions = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == current_user.id,
+            UserSession.is_revoked.is_(False),
+            UserSession.expires_at > datetime.now(UTC),
+        )
+        .order_by(UserSession.created_at.desc())
+        .all()
+    )
+
+    items = [
+        SessionInfo(
+            id=s.id,
+            ip_address=s.ip_address,
+            user_agent=s.user_agent,
+            created_at=s.created_at.isoformat() if s.created_at else datetime.now(UTC).isoformat(),
+            expires_at=s.expires_at.isoformat() if s.expires_at else datetime.now(UTC).isoformat(),
+            is_current=(s.token_hash == curr_hash),
+        )
+        for s in sessions
+    ]
+    return ApiResponse(success=True, data=items)
+
+
+@router.delete("/sessions/{session_id}", response_model=ApiResponse[bool])
+def revoke_session(
+    session_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke a specific active session."""
+    s = (
+        db.query(UserSession)
+        .filter(UserSession.id == session_id, UserSession.user_id == current_user.id)
+        .first()
+    )
+    if not s:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
+    s.is_revoked = True
+    db.commit()
+    return ApiResponse(success=True, data=True, message="Session revoked.")
+
+
+@router.post("/forgot-password", response_model=ApiResponse[bool])
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Initiate password reset flow (always returns 200 for security)."""
+    user = (
+        db.query(User)
+        .filter(User.email == payload.email.lower().strip(), User.is_deleted.is_(False))
+        .first()
+    )
+    if user:
+        reset_token = generate_secure_token(32)
+        # Store in SystemSetting with expiry key
+        from app.db.models.common import SystemSetting
+        key = f"reset_token_{hash_token(reset_token)}"
+        val = json.dumps({
+            "user_id": user.id,
+            "expires_at": (datetime.now(UTC) + timedelta(minutes=30)).isoformat(),
+        })
+        db.add(SystemSetting(category="auth_reset", key=key, value=val, is_public=False))
+        log_audit_event(
+            db=db,
+            action="auth.forgot_password",
+            resource_type="user",
+            resource_id=user.id,
+            user=user,
+            request=request,
+        )
+        db.commit()
+
+    return ApiResponse(
+        success=True,
+        data=True,
+        message="If this email is registered, password reset instructions have been dispatched.",
+    )
+
+
+@router.post("/reset-password", response_model=ApiResponse[bool])
+def reset_password(
+    payload: ResetPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Reset password using one-time token."""
+    from app.db.models.common import SystemSetting
+    key = f"reset_token_{hash_token(payload.token)}"
+    setting = db.query(SystemSetting).filter_by(key=key).first()
+    if not setting:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token.")
+
+    data = json.loads(setting.value)
+    expires = datetime.fromisoformat(data["expires_at"])
+    if datetime.now(UTC) > expires:
+        db.delete(setting)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset token expired.")
+
+    user = db.query(User).filter_by(id=data["user_id"], is_deleted=False).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters.",
+        )
+
+    user.hashed_password = hash_password(payload.new_password)
+    # Revoke all sessions
+    db.query(UserSession).filter_by(user_id=user.id).update({"is_revoked": True})
+    db.delete(setting)
+
+    log_audit_event(
+        db=db,
+        action="auth.reset_password",
+        resource_type="user",
+        resource_id=user.id,
+        user=user,
+        request=request,
+    )
+    db.commit()
+
+    return ApiResponse(success=True, data=True, message="Password successfully reset. Please log in.")

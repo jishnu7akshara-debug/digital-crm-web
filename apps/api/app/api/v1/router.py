@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v1.agreements import router as agreements_router
 from app.api.v1.attendance import router as attendance_router
+from app.api.v1.audit_logs import router as audit_logs_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.clients import router as clients_router
 from app.api.v1.dashboard import router as dashboard_router
@@ -15,9 +16,11 @@ from app.api.v1.proposals import router as proposals_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.roles import router as roles_router
 from app.api.v1.services import router as services_router
+from app.api.v1.settings import router as settings_router
 from app.api.v1.support import router as support_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.team import router as team_router
+from app.api.v1.users import router as users_router
 
 api_v1_router = APIRouter(prefix="/v1")
 
@@ -44,3 +47,6 @@ api_v1_router.include_router(support_router)
 api_v1_router.include_router(attendance_router)
 api_v1_router.include_router(agreements_router)
 api_v1_router.include_router(notifications_router)
+api_v1_router.include_router(users_router)
+api_v1_router.include_router(settings_router)
+api_v1_router.include_router(audit_logs_router)
