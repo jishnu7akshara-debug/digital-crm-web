@@ -2,12 +2,14 @@
 
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ApiResponse
+from app.api.v1.invoices import get_next_sequence_value
+from app.core.audit import log_audit_event
 from app.core.database import get_db
 from app.db.models.crm import Client, ClientContact, Contract
 from app.policies.rbac import AccessScope, require_permission, verify_client_isolation
@@ -25,7 +27,7 @@ class AgreementSummaryItem(BaseModel):
     value_paise: int
     sent_date: str | None = None
     signed_copy_received: bool = False
-    status: str  # draft, sent, signed, expired
+    status: str  # draft, sent, signed, expired, active, terminated
     client_email: str | None = None
     terms_summary: str | None = None
 
@@ -52,6 +54,12 @@ class GenerateAgreementRequest(BaseModel):
     terms_summary: str | None = None
 
 
+class SignAgreementRequest(BaseModel):
+    signer_name: str | None = None
+    signer_title: str | None = None
+    consent: bool = True
+
+
 def format_inr(paise: int) -> str:
     rupees = paise // 100
     s = str(rupees)
@@ -68,25 +76,29 @@ def format_inr(paise: int) -> str:
     return f"₹{','.join(parts)},{last_three}"
 
 
-def generate_next_agreement_number(db: Session) -> str:
+def generate_next_agreement_number(db: Session, organization_id: str = "default") -> str:
     year = datetime.now(UTC).year
     prefix = f"DFA-{year}-"
-    # Find highest number for current year
-    existing = (
-        db.query(Contract)
-        .filter(Contract.contract_number.like(f"{prefix}%"))
-        .order_by(desc(Contract.contract_number))
-        .first()
-    )
-    if existing:
-        try:
-            num_part = int(existing.contract_number.split("-")[-1])
-            next_num = num_part + 1
-        except Exception:
+    try:
+        seq = get_next_sequence_value(db, "agreement", str(year), organization_id=organization_id)
+        return f"{prefix}{seq:04d}"
+    except Exception:
+        # Fallback to MAX()
+        existing = (
+            db.query(Contract)
+            .filter(Contract.contract_number.like(f"{prefix}%"))
+            .order_by(desc(Contract.contract_number))
+            .first()
+        )
+        if existing:
+            try:
+                num_part = int(existing.contract_number.split("-")[-1])
+                next_num = num_part + 1
+            except Exception:
+                next_num = 1
+        else:
             next_num = 1
-    else:
-        next_num = 1
-    return f"{prefix}{next_num:04d}"
+        return f"{prefix}{next_num:04d}"
 
 
 @router.get("", response_model=ApiResponse[AgreementListResponse])
@@ -223,12 +235,13 @@ def generate_agreement(
     scope: AccessScope = Depends(require_permission("contracts.manage")),
     db: Session = Depends(get_db),
 ):
-    """Generate a new DFA-YYYY-NNNN service agreement."""
+    """Generate a new DFA-YYYY-NNNN service agreement with atomic sequence numbering."""
     client = db.query(Client).filter_by(id=payload.account_id, is_deleted=False).first()
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
 
-    agr_no = generate_next_agreement_number(db)
+    org_id = client.organization_id if client.organization_id else "default"
+    agr_no = generate_next_agreement_number(db, organization_id=org_id)
     contract = Contract(
         contract_number=agr_no,
         client_id=client.id,
@@ -267,18 +280,81 @@ def generate_agreement(
 @router.post("/{agreement_id}/sign", response_model=ApiResponse[bool])
 def sign_agreement(
     agreement_id: str,
+    request: Request,
+    payload: SignAgreementRequest | None = None,
     scope: AccessScope = Depends(require_permission("contracts.read", allow_client=True)),
     db: Session = Depends(get_db),
 ):
-    """Client portal signing endpoint."""
+    """Client portal signing endpoint with e-signature capture and state validation."""
     contract = db.query(Contract).filter_by(id=agreement_id, is_deleted=False).first()
     if not contract:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
 
     verify_client_isolation(contract.client_id, scope)
 
+    st = (contract.status or "draft").lower()
+    if st == "draft":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Agreement must be sent to the client before it can be signed.",
+        )
+    if st in ("signed", "active"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Agreement {contract.contract_number} is already signed.",
+        )
+    if st in ("expired", "terminated"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot sign an agreement in '{st}' state.",
+        )
+
+    if payload and not payload.consent:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Signer consent is required to execute this agreement.",
+        )
+
+    signer_name = (
+        (payload.signer_name if payload and payload.signer_name else scope.user.full_name)
+        or "Authorized Representative"
+    )
+    signer_title = payload.signer_title if payload and payload.signer_title else "Signatory"
+    ip_addr = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent") or "unknown"
+    signed_at = datetime.now(UTC)
+
+    sig_notice = (
+        f"\n\n[Digitally signed by {signer_name} ({signer_title}) "
+        f"on {signed_at.strftime('%Y-%m-%d %H:%M:%S UTC')} from IP {ip_addr}]"
+    )
+    if contract.terms_summary:
+        contract.terms_summary += sig_notice
+    else:
+        contract.terms_summary = sig_notice.strip()
+
+    old_status = contract.status
     contract.status = "signed"
     contract.signed_copy_received = True
+
+    log_audit_event(
+        db=db,
+        action="agreement.signed",
+        resource_type="contract",
+        resource_id=contract.id,
+        user=scope.user,
+        old_values={"status": old_status},
+        new_values={
+            "status": "signed",
+            "signer_name": signer_name,
+            "signer_title": signer_title,
+            "ip_address": ip_addr,
+            "user_agent": user_agent,
+            "signed_at": str(signed_at),
+        },
+        request=request,
+    )
+
     db.commit()
 
     return ApiResponse(
@@ -291,6 +367,7 @@ def sign_agreement(
 @router.post("/{agreement_id}/send", response_model=ApiResponse[bool])
 def send_agreement(
     agreement_id: str,
+    request: Request,
     scope: AccessScope = Depends(require_permission("contracts.manage")),
     db: Session = Depends(get_db),
 ):
@@ -299,10 +376,113 @@ def send_agreement(
     if not contract:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
 
+    st = (contract.status or "draft").lower()
+    if st in ("signed", "active"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Agreement is already {st} and cannot be re-sent.",
+        )
+    if st in ("expired", "terminated"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot send an agreement in '{st}' state.",
+        )
+
+    old_status = contract.status
     contract.status = "sent"
     contract.sent_date = datetime.now(UTC).date()
+
+    log_audit_event(
+        db=db,
+        action="agreement.sent",
+        resource_type="contract",
+        resource_id=contract.id,
+        user=scope.user,
+        old_values={"status": old_status},
+        new_values={"status": "sent", "sent_date": str(contract.sent_date)},
+        request=request,
+    )
+
     db.commit()
 
     return ApiResponse(
         success=True, data=True, message=f"Agreement {contract.contract_number} sent to client."
+    )
+
+
+@router.post("/{agreement_id}/activate", response_model=ApiResponse[bool])
+def activate_agreement(
+    agreement_id: str,
+    request: Request,
+    scope: AccessScope = Depends(require_permission("contracts.manage")),
+    db: Session = Depends(get_db),
+):
+    """Activate an agreement following client signing."""
+    contract = db.query(Contract).filter_by(id=agreement_id, is_deleted=False).first()
+    if not contract:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
+
+    st = (contract.status or "draft").lower()
+    if st not in ("signed", "draft", "sent"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot activate an agreement in '{st}' state.",
+        )
+
+    old_status = contract.status
+    contract.status = "active"
+
+    log_audit_event(
+        db=db,
+        action="agreement.activated",
+        resource_type="contract",
+        resource_id=contract.id,
+        user=scope.user,
+        old_values={"status": old_status},
+        new_values={"status": "active"},
+        request=request,
+    )
+
+    db.commit()
+    return ApiResponse(
+        success=True, data=True, message=f"Agreement {contract.contract_number} is now active."
+    )
+
+
+@router.post("/{agreement_id}/terminate", response_model=ApiResponse[bool])
+def terminate_agreement(
+    agreement_id: str,
+    request: Request,
+    scope: AccessScope = Depends(require_permission("contracts.manage")),
+    db: Session = Depends(get_db),
+):
+    """Terminate an active or signed service agreement."""
+    contract = db.query(Contract).filter_by(id=agreement_id, is_deleted=False).first()
+    if not contract:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agreement not found.")
+
+    st = (contract.status or "draft").lower()
+    if st in ("expired", "terminated"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Agreement is already {st}.",
+        )
+
+    old_status = contract.status
+    contract.status = "terminated"
+
+    log_audit_event(
+        db=db,
+        action="agreement.terminated",
+        resource_type="contract",
+        resource_id=contract.id,
+        user=scope.user,
+        old_values={"status": old_status},
+        new_values={"status": "terminated"},
+        request=request,
+    )
+
+    db.commit()
+    return ApiResponse(
+        success=True, data=True, message=f"Agreement {contract.contract_number} terminated."
     )
