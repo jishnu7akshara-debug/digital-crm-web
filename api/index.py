@@ -1,4 +1,5 @@
 """Vercel Serverless Function entrypoint."""
+import os
 import sys
 from pathlib import Path
 
@@ -7,5 +8,7 @@ api_dir = Path(__file__).resolve().parent.parent / "apps" / "api"
 if str(api_dir) not in sys.path:
     sys.path.insert(0, str(api_dir))
 
-from app.main import app
+# Enforce serverless mode on Vercel for connection safety
+os.environ["SERVERLESS"] = "1"
 
+from app.main import app

@@ -1,0 +1,19 @@
+{
+  "name": "digitalfootprint-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Digital Footprint OS: Enterprise Unified Monolith (Next.js 15 + FastAPI)",
+  "scripts": {
+    "dev:web": "pnpm --filter digitalfootprint-web dev",
+    "dev:api": "cd apps/api && uvicorn app.main:app --reload --port 8000",
+    "dev": "pnpm --filter digitalfootprint-web dev",
+    "build:web": "pnpm --filter digitalfootprint-web build",
+    "build": "pnpm --filter digitalfootprint-web build",
+    "start": "pnpm --filter digitalfootprint-web start",
+    "lint": "pnpm --filter digitalfootprint-web lint",
+    "test": "cd apps/api && pytest"
+  },
+  "workspaces": [
+    "apps/*"
+  ]
+}

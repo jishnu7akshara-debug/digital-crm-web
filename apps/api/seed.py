@@ -1,6 +1,7 @@
 """Database seed script for Digital Footprint OS."""
 
 import datetime
+import sys
 
 from sqlalchemy.orm import Session
 
@@ -417,9 +418,11 @@ def seed_database() -> None:
                 db.refresh(svc)
             services_dict[code] = svc
 
-        # 7. Sample Client Organization and Client 360 Records
-        sample_client = db.query(Client).filter_by(code="CLI-APEX-001").first()
-        if not sample_client:
+        # 7. Sample Client Organization and Client 360 Records (Dev/Demo Only)
+        skip_demo = "--core-only" in sys.argv or settings.is_production
+        if not skip_demo:
+            sample_client = db.query(Client).filter_by(code="CLI-APEX-001").first()
+            if not sample_client:
             sample_client = Client(
                 organization_id=org.id,
                 name="Apex Global Technologies",
@@ -596,6 +599,8 @@ def seed_database() -> None:
             db.add(inv_item)
             db.commit()
             print("Seeded sample client, services, project, milestones, tasks, and invoice.")
+        else:
+            print("Core foundation seeded cleanly (Skipped demo data).")
 
         print("Database seed completed successfully!")
     finally:

@@ -80,6 +80,12 @@ def create_app() -> FastAPI:
             },
         )
 
+    # Global health check for load balancers and deployment probes
+    @app.get("/health", tags=["Health"])
+    @app.get("/api/health", tags=["Health"])
+    def root_health_check():
+        return {"status": "ok", "service": "Digital Footprint OS API", "version": "1.0.0"}
+
     # Mount API routers
     app.include_router(api_v1_router, prefix="/api")
 
